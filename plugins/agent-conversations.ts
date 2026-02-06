@@ -36,11 +36,27 @@ const ROLE_ALIASES: Record<string, Role> = {
   research: "RESEARCH"
 };
 
-const MENTION_REGEX = /@(?:\[|<)?([A-Za-z]+)(?:\]|>)?/g;
+const MENTION_REGEX = /@([A-Za-z][A-Za-z0-9_-]*)/g;
 const MARKER_REGEX = /<<AGENT_CONVERSATIONS:([^>]+)>>/;
 const MARKER_REMOVAL_REGEX = /\n*<<AGENT_CONVERSATIONS:[^>]+>>/g;
 const MARKER_PREFIX = "<<AGENT_CONVERSATIONS:";
 const MARKER_SUFFIX = ">>";
+
+const DEBUG_ENABLED = /^(1|true|yes|on)$/i.test(process.env.AGENT_CONVERSATIONS_DEBUG ?? "");
+
+const previewText = (text: string, max = 80) => {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  return normalized.length <= max ? normalized : `${normalized.slice(0, max)}...`;
+};
+
+const debugLog = (event: string, details?: Record<string, unknown>) => {
+  if (!DEBUG_ENABLED) {
+    return;
+  }
+
+  const payload = details ? ` ${JSON.stringify(details)}` : "";
+  console.error(`[agent-conversations] ${event}${payload}`);
+};
 
 const STALE_SENSITIVE_REGEX =
   /\b(current|latest|today|this week|this month|recent|live|regression|incident|status|right now|fresh|up-to-date)\b/i;
@@ -68,7 +84,6 @@ const MCP_PROVIDER_PATTERNS: Array<{ key: MentionedProvider; regex: RegExp; hint
   }
 ];
 
-const sessionRoles = new Map<string, Role[]>();
 const sessionPolicy = new Map<string, SessionPolicy>();
 const systemInjectedForSession = new Set<string>();
 
@@ -160,6 +175,14 @@ const isSupportedRole = (role: string): role is Role => {
   return SUPPORTED_ROLES.includes(role as Role);
 };
 
+const replaceWithSpaces = (value: string) => " ".repeat(value.length);
+
+const stripCodeSegments = (text: string) => {
+  return text
+    .replace(/```[\s\S]*?```/g, (segment) => replaceWithSpaces(segment))
+    .replace(/`[^`]*`/g, (segment) => replaceWithSpaces(segment));
+};
+
 const normalizeRole = (raw: string): Role | null => {
   const lowered = raw.toLowerCase();
   if (ROLE_ALIASES[lowered]) {
@@ -171,9 +194,24 @@ const normalizeRole = (raw: string): Role | null => {
 };
 
 const detectRolesFromMentions = (text: string): Role[] => {
+  const sanitizedText = stripCodeSegments(text);
   const detected = new Set<Role>();
 
-  for (const match of text.matchAll(MENTION_REGEX)) {
+  for (const match of sanitizedText.matchAll(MENTION_REGEX)) {
+    const fullMatch = match[0];
+    const mentionStart = match.index ?? -1;
+    const mentionEnd = mentionStart + fullMatch.length;
+    const nextChar = mentionEnd >= 0 ? (sanitizedText[mentionEnd] ?? "") : "";
+    const prevChar = mentionStart > 0 ? (sanitizedText[mentionStart - 1] ?? "") : "";
+
+    if (prevChar && /[A-Za-z0-9_./\\-]/.test(prevChar)) {
+      continue;
+    }
+
+    if (nextChar === "/" || nextChar === "." || nextChar === "\\") {
+      continue;
+    }
+
     const role = normalizeRole(match[1]);
     if (role) {
       detected.add(role);
@@ -714,97 +752,65 @@ export const AgentConversations: Plugin = async () => {
     "tui.prompt.append": async ({ input }) => {
       const roles = detectRolesFromMentions(input);
       if (roles.length === 0) {
+        debugLog("tui.prompt.append.no_roles", {
+          preview: previewText(input)
+        });
         return input;
       }
 
       const marker = `${MARKER_PREFIX}${roles.join(",")}${MARKER_SUFFIX}`;
-      return `${input}\n\n${marker}`;
-    },
-    "chat.message": async (input, output) => {
-      if (output.message.role !== "user") {
-        return;
-      }
-
-      let roles: Role[] | null = null;
-      let sourceText = "";
-
-      for (const part of output.parts) {
-        if (part.type !== "text") {
-          continue;
-        }
-
-        const parsed = detectRolesFromText(part.text);
-        if (!parsed) {
-          continue;
-        }
-
-        roles = parsed;
-        sourceText = part.text;
-        part.text = part.text.replace(MARKER_REMOVAL_REGEX, "");
-      }
-
-      if (!roles || roles.length === 0) {
-        sessionRoles.delete(input.sessionID);
-        sessionPolicy.delete(input.sessionID);
-        systemInjectedForSession.delete(input.sessionID);
-        return;
-      }
-
-      const intent = detectIntent(sourceText);
-      const targets = buildTurnTargets(roles, sourceText);
-      const mcpProviders = detectMcpProviders(sourceText);
-      const mcpHints = buildMcpHints(mcpProviders);
-      const staleSensitive = STALE_SENSITIVE_REGEX.test(sourceText);
-      const allowDeepMcp = DEEP_MCP_REGEX.test(sourceText);
-      for (const part of output.parts) {
-        if (part.type === "text") {
-          part.text = enforceUserContract(part.text, roles, targets, mcpProviders, mcpHints, staleSensitive);
-        }
-      }
-
-      sessionRoles.set(input.sessionID, roles);
-      sessionPolicy.set(input.sessionID, {
+      debugLog("tui.prompt.append.marker_appended", {
         roles,
-        targets,
-        intent,
-        mcpProviders,
-        mcpHints,
-        staleSensitive,
-        allowDeepMcp,
-        mcpCallCount: 0,
-        mcpTouched: {}
+        preview: previewText(input)
       });
-      systemInjectedForSession.delete(input.sessionID);
+      return `${input}\n\n${marker}`;
     },
     "experimental.chat.messages.transform": async (_input, output) => {
       const userMessages = output.messages.filter((message) => message.info.role === "user");
       const message = userMessages[userMessages.length - 1];
       if (!message) {
+        debugLog("messages.transform.no_user_message");
         return;
       }
 
       let roles: Role[] | null = null;
       let sourceText = "";
+      let nonTextParts = 0;
+      let textPartsWithoutRoles = 0;
+      let textPartsWithRoles = 0;
 
       for (const part of message.parts) {
         if (part.type !== "text") {
+          nonTextParts += 1;
           continue;
         }
 
         const parsed = detectRolesFromText(part.text);
         if (!parsed) {
+          textPartsWithoutRoles += 1;
           continue;
         }
 
+        textPartsWithRoles += 1;
         roles = parsed;
         sourceText = part.text;
         part.text = part.text.replace(MARKER_REMOVAL_REGEX, "");
       }
 
+      debugLog("messages.transform.parts_processed", {
+        sessionID: message.info.sessionID,
+        nonTextParts,
+        textPartsWithRoles,
+        textPartsWithoutRoles
+      });
+
       if (!roles || roles.length === 0) {
-        sessionRoles.delete(message.info.sessionID);
         sessionPolicy.delete(message.info.sessionID);
         systemInjectedForSession.delete(message.info.sessionID);
+        debugLog("messages.transform.policy_cleared", {
+          sessionID: message.info.sessionID,
+          reason: "no_roles_detected"
+        });
         return;
       }
 
@@ -820,7 +826,6 @@ export const AgentConversations: Plugin = async () => {
         }
       }
 
-      sessionRoles.set(message.info.sessionID, roles);
       sessionPolicy.set(message.info.sessionID, {
         roles,
         targets,
@@ -832,15 +837,30 @@ export const AgentConversations: Plugin = async () => {
         mcpCallCount: 0,
         mcpTouched: {}
       });
+      debugLog("messages.transform.policy_set", {
+        sessionID: message.info.sessionID,
+        roles,
+        intent,
+        mcpProviders,
+        staleSensitive,
+        allowDeepMcp
+      });
     },
     "experimental.chat.system.transform": async (input, output) => {
       if (!input.sessionID || systemInjectedForSession.has(input.sessionID)) {
+        debugLog("system.transform.skipped", {
+          sessionID: input.sessionID ?? null,
+          reason: input.sessionID ? "already_injected" : "missing_session_id"
+        });
         return;
       }
 
       const policy = sessionPolicy.get(input.sessionID);
-      const roles = policy?.roles ?? sessionRoles.get(input.sessionID);
+      const roles = policy?.roles;
       if (!roles || roles.length === 0) {
+        debugLog("system.transform.no_roles", {
+          sessionID: input.sessionID
+        });
         return;
       }
 
@@ -850,15 +870,29 @@ export const AgentConversations: Plugin = async () => {
       const staleSensitive = policy?.staleSensitive ?? false;
       output.system.push(buildSystemInstruction(roles, targets, mcpProviders, mcpHints, staleSensitive));
       systemInjectedForSession.add(input.sessionID);
+      debugLog("system.transform.injected", {
+        sessionID: input.sessionID,
+        roles,
+        mcpProviders
+      });
     },
     "tool.execute.before": async (input) => {
       const provider = providerFromToolName(input.tool);
       if (!provider) {
+        debugLog("tool.execute.before.skip_non_mcp", {
+          sessionID: input.sessionID,
+          tool: input.tool
+        });
         return;
       }
 
       const policy = sessionPolicy.get(input.sessionID);
       if (!policy) {
+        debugLog("tool.execute.before.skip_no_policy", {
+          sessionID: input.sessionID,
+          tool: input.tool,
+          provider
+        });
         return;
       }
 
@@ -887,10 +921,20 @@ export const AgentConversations: Plugin = async () => {
       policy.mcpCallCount += 1;
       policy.mcpTouched[provider] = (policy.mcpTouched[provider] ?? 0) + 1;
       sessionPolicy.set(input.sessionID, policy);
+      debugLog("tool.execute.before.allowed", {
+        sessionID: input.sessionID,
+        provider,
+        tool: input.tool,
+        mcpCallCount: policy.mcpCallCount,
+        cap
+      });
     },
     "experimental.text.complete": async (input, output) => {
       const policy = sessionPolicy.get(input.sessionID);
       if (!policy) {
+        debugLog("text.complete.skip_no_policy", {
+          sessionID: input.sessionID
+        });
         return;
       }
 
@@ -912,6 +956,13 @@ export const AgentConversations: Plugin = async () => {
       }
 
       output.text = nextText;
+      debugLog("text.complete.processed", {
+        sessionID: input.sessionID,
+        roles: policy.roles,
+        mcpProviders: policy.mcpProviders,
+        staleSensitive: policy.staleSensitive,
+        hadThreadNormalization: policy.roles.length > 1
+      });
     }
   };
 };
