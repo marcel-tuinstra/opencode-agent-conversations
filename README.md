@@ -1,5 +1,7 @@
 # Agent Conversations Bundle
 
+> Note: This is an independent community plugin for OpenCode and is not affiliated with or endorsed by OpenCode.
+
 This bundle contains:
 
 - `plugins/agent-conversations.ts`
@@ -141,3 +143,12 @@ Tips:
 
 The plugin still works for multi-agent formatting and role weighting.
 Mention-gated MCP logic will simply never run if no MCP tools are available.
+
+## Contact
+
+- Website: `https://marcel.tuinstra.dev`
+- Email: `marcel@tuinstra.dev`
+
+## License
+
+This project is licensed under the MIT License. See `LICENSE` for details.
