@@ -40,7 +40,7 @@ For setup steps, copy commands, and a quick verification prompt, see [`INSTALL.m
 
 ## Contact
 
-- Website: `https://marcel.tuinstra.dev`
+- Website: [`https://marcel.tuinstra.dev`](https://marcel.tuinstra.dev)
 - Email: `marcel@tuinstra.dev`
 
 ## License
