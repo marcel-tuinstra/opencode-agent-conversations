@@ -48,6 +48,8 @@ const SEGMENT_SPLIT_REGEX = /[;,]\s*|\n+/;
 
 const EXECUTION_LIST_CUE_REGEX = /\b(build|implement|fix|refactor|update|write|add|remove|migrate|ship|document|test|validate)\b/i;
 const SYNTHESIS_JOINER_REGEX = /\b(and|plus|with)\b/i;
+const DISCOVERY_LEADING_VERB_REGEX =
+  /^(?:then\s+)?(?:research|explore|scope|define|identify|assess|evaluate|compare|analy[sz]e|synthesize|recommend|benchmark|summari[sz]e)\s+/i;
 
 const normalizeGoalText = (value: string): string => value.replace(/\s+/g, " ").trim();
 
@@ -101,12 +103,12 @@ const shouldPreserveExecutionList = (
     return false;
   }
 
-  if (isDiscoveryStyle) {
-    return false;
-  }
-
   const executionSegmentCount = segments.filter((segment) => EXECUTION_LIST_CUE_REGEX.test(segment)).length;
   const discoverySegmentCount = segments.filter((segment) => DISCOVERY_CUE_REGEX.test(segment)).length;
+
+  if (isDiscoveryStyle) {
+    return executionSegmentCount > 0 && discoverySegmentCount < segments.length;
+  }
 
   if (executionSegmentCount === segments.length) {
     return true;
@@ -148,7 +150,7 @@ const buildDiscoveryWorkUnitObjectives = (goalText: string): string[] => {
 
   const parts = normalizedGoal
     .split(/,|;|\band\b/gi)
-    .map((part) => normalizeGoalText(part.replace(/^(research|compare|define|scope|summari[sz]e)\s+/i, "")))
+    .map((part) => normalizeGoalText(part.replace(DISCOVERY_LEADING_VERB_REGEX, "")))
     .filter(Boolean);
   const focus = parts.slice(0, 3).join(", ");
   const workUnits = [

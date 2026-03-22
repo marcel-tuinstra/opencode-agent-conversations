@@ -144,7 +144,7 @@ const resolveAmbiguity = (
     return true;
   }
 
-  if (intent === "mixed" && !hasActionVerb && !hasDeliverableCue) {
+  if (intent === "mixed" && !hasActionVerb && !hasDeliverableCue && !hasDiscoveryCue) {
     return true;
   }
 
