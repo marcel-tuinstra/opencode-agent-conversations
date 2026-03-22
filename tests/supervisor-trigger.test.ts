@@ -128,6 +128,14 @@ describe("supervisor-trigger", () => {
       expect(result.workUnits[2]!.workUnit.objective).toContain("next steps");
     });
 
+    it("keeps MVP build prompts execution-oriented instead of reclassifying them as discovery", () => {
+      const result = buildSupervisorPlan("build an MVP landing page");
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits).toHaveLength(1);
+      expect(result.workUnits[0]!.workUnit.objective).toBe("build an MVP landing page");
+    });
+
     it("keeps bounded comparison prompts to 2-4 meaningful work units", () => {
       const result = buildSupervisorPlan("compare 3 tools and recommend one");
 
@@ -137,6 +145,18 @@ describe("supervisor-trigger", () => {
       expect(result.workUnits[0]!.workUnit.objective).toContain("comparison criteria");
       expect(result.workUnits[1]!.workUnit.objective).toContain("Compare 3 tools and recommend one");
       expect(result.workUnits[result.workUnits.length - 1]!.workUnit.objective).toContain("Recommend");
+    });
+
+    it("keeps comparison prompts with then on the discovery synthesis path", () => {
+      const result = buildSupervisorPlan(
+        "compare 3 tools, then recommend the best option for our team"
+      );
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits.length).toBeGreaterThanOrEqual(2);
+      expect(result.workUnits.length).toBeLessThanOrEqual(4);
+      expect(result.workUnits[0]!.workUnit.objective).toContain("comparison criteria");
+      expect(result.workUnits[1]!.workUnit.objective).toContain("Compare 3 tools, then recommend the best option for our team");
     });
 
     it("does not treat roadmap prompts as discovery without explicit discovery cues", () => {
@@ -153,6 +173,18 @@ describe("supervisor-trigger", () => {
       expect(result.status).toBe("supported");
       expect(result.workUnits.length).toBeGreaterThanOrEqual(2);
       expect(result.workUnits[0]!.workUnit.objective).toContain("discovery scope");
+    });
+
+    it("preserves sequential decomposition for concrete execution lists with then", () => {
+      const result = buildSupervisorPlan(
+        "implement auth service, then add API validation, then write integration tests"
+      );
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits).toHaveLength(3);
+      expect(result.workUnits[0]!.workUnit.objective).toBe("implement auth service");
+      expect(result.workUnits[1]!.workUnit.objective).toBe("then add API validation");
+      expect(result.workUnits[2]!.workUnit.objective).toBe("then write integration tests");
     });
   });
 

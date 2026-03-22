@@ -92,8 +92,16 @@ const splitIntoSegments = (goalText: string): string[] => goalText
   .map((segment) => normalizeGoalText(segment))
   .filter(Boolean);
 
-const shouldPreserveExecutionList = (goalText: string, segments: readonly string[]): boolean => {
+const shouldPreserveExecutionList = (
+  goalText: string,
+  segments: readonly string[],
+  isDiscoveryStyle: boolean
+): boolean => {
   if (segments.length <= 1) {
+    return false;
+  }
+
+  if (isDiscoveryStyle) {
     return false;
   }
 
@@ -162,12 +170,13 @@ export const buildWorkUnitsFromGoal = (
   intent = "mixed"
 ): LanePlanningWorkUnit[] => {
   const segments = splitIntoSegments(goalText);
+  const isDiscoveryStyle = isDiscoveryStyleGoal(goalText, intent);
 
-  if (shouldPreserveExecutionList(goalText, segments)) {
+  if (shouldPreserveExecutionList(goalText, segments, isDiscoveryStyle)) {
     return buildSequentialWorkUnits(segments);
   }
 
-  if (isDiscoveryStyleGoal(goalText, intent)) {
+  if (isDiscoveryStyle) {
     return buildSequentialWorkUnits(buildDiscoveryWorkUnitObjectives(goalText));
   }
 
