@@ -115,6 +115,113 @@ describe("supervisor-trigger", () => {
       expect(result.workUnits[0]!.workUnit.objective).toBe("build the user authentication API");
       expect(result.workUnits[1]!.workUnit.objective).toBe("add integration tests for the auth module");
     });
+
+    it("synthesizes discovery prompts into bounded work units instead of comma fragments", () => {
+      const result = buildSupervisorPlan(
+        "define target audience, goals, and MVP scope for an app"
+      );
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits).toHaveLength(3);
+      expect(result.workUnits[0]!.workUnit.objective).toContain("target audience");
+      expect(result.workUnits[1]!.workUnit.objective).toContain("MVP scope");
+      expect(result.workUnits[2]!.workUnit.objective).toContain("next steps");
+    });
+
+    it("keeps MVP build prompts execution-oriented instead of reclassifying them as discovery", () => {
+      const result = buildSupervisorPlan("build an MVP landing page");
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits).toHaveLength(1);
+      expect(result.workUnits[0]!.workUnit.objective).toBe("build an MVP landing page");
+    });
+
+    it("keeps bounded comparison prompts to 2-4 meaningful work units", () => {
+      const result = buildSupervisorPlan("compare 3 tools and recommend one");
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits.length).toBeGreaterThanOrEqual(2);
+      expect(result.workUnits.length).toBeLessThanOrEqual(4);
+      expect(result.workUnits[0]!.workUnit.objective).toContain("comparison criteria");
+      expect(result.workUnits[1]!.workUnit.objective).toContain("Compare 3 tools and recommend one");
+      expect(result.workUnits[result.workUnits.length - 1]!.workUnit.objective).toContain("Recommend");
+    });
+
+    it("keeps comparison prompts with then on the discovery synthesis path", () => {
+      const result = buildSupervisorPlan(
+        "compare 3 tools, then recommend the best option for our team"
+      );
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits.length).toBeGreaterThanOrEqual(2);
+      expect(result.workUnits.length).toBeLessThanOrEqual(4);
+      expect(result.workUnits[0]!.workUnit.objective).toContain("comparison criteria");
+      expect(result.workUnits[1]!.workUnit.objective).toContain("Compare 3 tools, then recommend the best option for our team");
+    });
+
+    it("does not treat roadmap prompts as discovery without explicit discovery cues", () => {
+      const result = buildSupervisorPlan("plan roadmap sequencing, update milestones, ship release notes");
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits).toHaveLength(3);
+      expect(result.workUnits[0]!.workUnit.objective).toBe("plan roadmap sequencing");
+    });
+
+    it("treats marketing prompts as discovery only when explicit discovery cues are present", () => {
+      const result = buildSupervisorPlan("identify audience options and recommend positioning for the launch");
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits.length).toBeGreaterThanOrEqual(2);
+      expect(result.workUnits[0]!.workUnit.objective).toContain("discovery scope");
+    });
+
+    it("preserves sequential decomposition for concrete execution lists with then", () => {
+      const result = buildSupervisorPlan(
+        "implement auth service, then add API validation, then write integration tests"
+      );
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits).toHaveLength(3);
+      expect(result.workUnits[0]!.workUnit.objective).toBe("implement auth service");
+      expect(result.workUnits[1]!.workUnit.objective).toBe("then add API validation");
+      expect(result.workUnits[2]!.workUnit.objective).toBe("then write integration tests");
+    });
+
+    it("preserves mixed execution and discovery prompts instead of collapsing concrete execution steps", () => {
+      const result = buildSupervisorPlan(
+        "optimize the checkout flow, then compare Sentry and Datadog"
+      );
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits).toHaveLength(2);
+      expect(result.workUnits[0]!.workUnit.objective).toBe("optimize the checkout flow");
+      expect(result.workUnits[1]!.workUnit.objective).toBe("then compare Sentry and Datadog");
+    });
+
+    it("does not split comparison lists into standalone vendor fragments", () => {
+      const result = buildSupervisorPlan(
+        "Compare Sentry, Honeycomb, and Datadog"
+      );
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits.length).toBeGreaterThanOrEqual(2);
+      expect(result.workUnits[1]!.workUnit.objective).toBe("Compare Sentry, Honeycomb, and Datadog");
+      expect(result.workUnits.some((unit: { workUnit: { objective: string } }) => unit.workUnit.objective === "Honeycomb")).toBe(false);
+      expect(result.workUnits.some((unit: { workUnit: { objective: string } }) => unit.workUnit.objective === "and Datadog")).toBe(false);
+    });
+
+    it("preserves secondary asks in define plus MVP discovery prompts", () => {
+      const result = buildSupervisorPlan(
+        "define the MVP for a team inbox product and compare pricing options"
+      );
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits).toHaveLength(3);
+      expect(result.workUnits[1]!.workUnit.objective).toBe(
+        "Define the MVP for a team inbox product and compare pricing options"
+      );
+      expect(result.workUnits.some((unit: { workUnit: { objective: string } }) => /pricing options/i.test(unit.workUnit.objective))).toBe(true);
+    });
   });
 
   describe("formatSupervisorPreview", () => {
@@ -135,6 +242,20 @@ describe("supervisor-trigger", () => {
       expect(preview).toContain("Merge:");
       expect(preview).toContain("Policy:");
       expect(preview).toContain("[Supervisor] Mode: active. Child sessions will be launched for each lane.");
+    });
+
+    it("renders mixed discovery previews with synthesis-oriented lane goals", () => {
+      const plan = buildSupervisorPlan(
+        "research competitor patterns, shape positioning for the launch, and outline a near-term roadmap"
+      );
+
+      const preview = formatSupervisorPreview(plan);
+
+      expect(plan.status).toBe("supported");
+      expect(plan.workUnits.length).toBeGreaterThanOrEqual(2);
+      expect(plan.workUnits.length).toBeLessThanOrEqual(4);
+      expect(preview).toContain("comparison dimensions");
+      expect(preview).toContain("recommendations");
     });
 
     it("shows unsupported reason for an unsupported plan", () => {
@@ -222,6 +343,27 @@ describe("supervisor-trigger", () => {
       expect(instruction).toContain("Execute lanes in order. For each lane, use the `supervisor` tool to launch a child session.");
       expect(instruction).toContain("Budget class:");
       expect(instruction).toContain("Report progress after each lane completes.");
+    });
+
+    it("uses discovery-oriented supervisor instructions for research plans", () => {
+      const plan = buildSupervisorPlan("research competitor patterns and summarize findings");
+
+      const instruction = buildSupervisorSystemInstruction(plan);
+
+      expect(instruction).toContain("findings");
+      expect(instruction).toContain("recommendations");
+      expect(instruction).toContain("assumptions");
+      expect(instruction).toContain("scoped next steps");
+      expect(instruction).toContain("bounded");
+    });
+
+    it("does not use discovery-oriented instructions for roadmap execution plans without discovery cues", () => {
+      const plan = buildSupervisorPlan("plan roadmap sequencing, update milestones, ship release notes");
+
+      const instruction = buildSupervisorSystemInstruction(plan);
+
+      expect(instruction).toContain("Bias toward concrete execution progress");
+      expect(instruction).not.toContain("Keep the plan bounded and synthesis-oriented");
     });
 
     it("includes merge mode and escalation mode from policy", () => {

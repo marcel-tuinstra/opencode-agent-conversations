@@ -3,6 +3,10 @@ import {
   type PlanSupervisorGoalResult
 } from "./supervisor-goal-plan";
 import {
+  DISCOVERY_CUE_REGEX,
+  isDiscoveryStyleGoal
+} from "./discovery-heuristics";
+import {
   decomposeSupervisorGoalIntoLanes,
   type SupervisorLaneDecompositionResult
 } from "./lane-decomposition";
@@ -40,14 +44,24 @@ export const detectSupervisorTrigger = (
   return { detected: false, goal: "" };
 };
 
-const SEGMENT_SPLIT_REGEX = /[;,]\s*|\n+/;
+const STRONG_SEGMENT_SPLIT_REGEX = /;\s*|\n+/;
 
-const buildWorkUnitsFromGoal = (goalText: string): LanePlanningWorkUnit[] => {
-  const segments = goalText
-    .split(SEGMENT_SPLIT_REGEX)
-    .map((segment) => segment.trim())
-    .filter(Boolean);
+const EXECUTION_LIST_CUE_PATTERN = "build|implement|fix|refactor|design|plan|investigate|analy[sz]e|draft|deliver|create|update|write|add|remove|migrate|optimi[sz]e|ship|document|test|validate|map|size";
+const EXECUTION_LIST_CUE_REGEX = new RegExp(`\\b(${EXECUTION_LIST_CUE_PATTERN})\\b`, "i");
+const SYNTHESIS_JOINER_REGEX = /\b(and|plus|with)\b/i;
+const DISCOVERY_LEADING_VERB_REGEX =
+  /^(?:then\s+)?(?:research|explore|scope|define|identify|assess|evaluate|compare|analy[sz]e|synthesize|recommend|benchmark|summari[sz]e)\s+/i;
+const STEP_LEADING_CUE_REGEX = new RegExp(
+  `^(?:then\\s+)?(?:${EXECUTION_LIST_CUE_PATTERN}|research|explore|scope|define|identify|assess|evaluate|compare|synthesize|recommend|benchmark|summari[sz]e)\\b`,
+  "i"
+);
 
+const normalizeGoalText = (value: string): string => value.replace(/\s+/g, " ").trim();
+
+const titleCaseFirst = (value: string): string =>
+  value.length === 0 ? value : value.charAt(0).toUpperCase() + value.slice(1);
+
+const buildSequentialWorkUnits = (segments: readonly string[]): LanePlanningWorkUnit[] => {
   const workUnits: LanePlanningWorkUnit[] = [];
 
   for (let index = 0; index < segments.length; index++) {
@@ -80,6 +94,136 @@ const buildWorkUnitsFromGoal = (goalText: string): LanePlanningWorkUnit[] => {
   return workUnits;
 };
 
+const splitCommaSeparatedSteps = (segmentText: string): string[] => {
+  const parts = segmentText.split(",");
+
+  if (parts.length <= 1) {
+    return [normalizeGoalText(segmentText)].filter(Boolean);
+  }
+
+  const segments: string[] = [];
+  let current = parts[0] ?? "";
+
+  for (let index = 1; index < parts.length; index++) {
+    const nextPart = normalizeGoalText(parts[index] ?? "");
+
+    if (STEP_LEADING_CUE_REGEX.test(nextPart)) {
+      const normalizedCurrent = normalizeGoalText(current);
+      if (normalizedCurrent.length > 0) {
+        segments.push(normalizedCurrent);
+      }
+      current = nextPart;
+      continue;
+    }
+
+    current = `${current}, ${nextPart}`;
+  }
+
+  const normalizedCurrent = normalizeGoalText(current);
+  if (normalizedCurrent.length > 0) {
+    segments.push(normalizedCurrent);
+  }
+
+  return segments;
+};
+
+const splitIntoSegments = (goalText: string): string[] => goalText
+  .split(STRONG_SEGMENT_SPLIT_REGEX)
+  .flatMap((segment) => splitCommaSeparatedSteps(segment))
+  .map((segment) => normalizeGoalText(segment))
+  .filter(Boolean);
+
+const shouldPreserveExecutionList = (
+  goalText: string,
+  segments: readonly string[],
+  isDiscoveryStyle: boolean
+): boolean => {
+  if (segments.length <= 1) {
+    return false;
+  }
+
+  const executionSegmentCount = segments.filter((segment) => EXECUTION_LIST_CUE_REGEX.test(segment)).length;
+  const discoverySegmentCount = segments.filter((segment) => DISCOVERY_CUE_REGEX.test(segment)).length;
+
+  if (isDiscoveryStyle) {
+    return executionSegmentCount > 0 && discoverySegmentCount < segments.length;
+  }
+
+  if (executionSegmentCount === segments.length) {
+    return true;
+  }
+
+  if (executionSegmentCount >= 2 && discoverySegmentCount === 0) {
+    return true;
+  }
+
+  return /[,;\n]/.test(goalText) && /\bthen\b/i.test(goalText);
+};
+
+const buildDiscoveryWorkUnitObjectives = (goalText: string): string[] => {
+  const normalizedGoal = normalizeGoalText(goalText);
+
+  if (/\bcompare\b/i.test(normalizedGoal) && /\brecommend\b/i.test(normalizedGoal)) {
+    return [
+      "Frame the comparison criteria, constraints, and decision goals",
+      titleCaseFirst(normalizedGoal),
+      "Recommend the best option, note tradeoffs, and outline scoped next steps"
+    ];
+  }
+
+  if (/\bresearch\b/i.test(normalizedGoal) && /\bcompetitor\b/i.test(normalizedGoal)) {
+    return [
+      "Define the competitor scan, comparison dimensions, and assumptions",
+      titleCaseFirst(normalizedGoal),
+      "Summarize the most relevant findings, recommendations, implications, and bounded next steps"
+    ];
+  }
+
+  if (/\bdefine\b/i.test(normalizedGoal) && /\bmvp\b/i.test(normalizedGoal)) {
+    return [
+      "Define the target audience, core user goals, product constraints, and assumptions",
+      titleCaseFirst(normalizedGoal),
+      "Translate the request into a bounded MVP scope with exclusions, tradeoffs, and practical next steps"
+    ];
+  }
+
+  const parts = normalizedGoal
+    .split(/,|;|\band\b/gi)
+    .map((part) => normalizeGoalText(part.replace(DISCOVERY_LEADING_VERB_REGEX, "")))
+    .filter(Boolean);
+  const focus = parts.slice(0, 3).join(", ");
+  const workUnits = [
+    focus.length > 0
+      ? `Frame the discovery scope, success criteria, and assumptions for ${focus}`
+      : "Frame the discovery scope, success criteria, and assumptions",
+    titleCaseFirst(normalizedGoal)
+  ];
+
+  if (parts.length > 1 || SYNTHESIS_JOINER_REGEX.test(normalizedGoal)) {
+    workUnits.push("Synthesize the findings into recommendations, scoped next steps, and follow-up questions");
+  }
+
+  return workUnits.slice(0, 4);
+};
+
+export const buildWorkUnitsFromGoal = (
+  goalText: string,
+  intent = "mixed"
+): LanePlanningWorkUnit[] => {
+  const segments = splitIntoSegments(goalText);
+  const isDiscoveryStyle = isDiscoveryStyleGoal(goalText, intent);
+
+  if (shouldPreserveExecutionList(goalText, segments, isDiscoveryStyle)) {
+    return buildSequentialWorkUnits(segments);
+  }
+
+  if (isDiscoveryStyle) {
+    return buildSequentialWorkUnits(buildDiscoveryWorkUnitObjectives(goalText));
+  }
+
+  return buildSequentialWorkUnits(segments.length > 0 ? segments : [normalizeGoalText(goalText)]);
+};
+
 export const buildSupervisorPlan = (goalText: string): SupervisorPlanResult => {
   const goalPlan = planSupervisorGoal({
     goal: goalText,
@@ -98,7 +242,7 @@ export const buildSupervisorPlan = (goalText: string): SupervisorPlanResult => {
     };
   }
 
-  const workUnits = buildWorkUnitsFromGoal(goalText);
+  const workUnits = buildWorkUnitsFromGoal(goalText, goalPlan.intent);
   const laneDecomposition = decomposeSupervisorGoalIntoLanes({
     goalPlan,
     workUnits
@@ -185,7 +329,7 @@ export const formatSupervisorPreview = (plan: SupervisorPlanResult): string => {
       ...laneDefinitions.map((d: SupervisorLaneDefinition) =>
         d.workUnitIds.map((id: string) => objectiveMap.get(id) ?? id).join(", ").length
       ),
-      20
+      32
     );
 
     for (const def of laneDefinitions) {

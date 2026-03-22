@@ -1,6 +1,11 @@
+import { isDiscoveryStyleGoal } from "./discovery-heuristics";
 import type { SupervisorPlanResult } from "./supervisor-trigger";
 import type { SupervisorLaneDefinition } from "./supervisor-scheduler";
 import { getSupervisorPolicy } from "./supervisor-config";
+
+const isDiscoveryOrientedPlan = (plan: SupervisorPlanResult): boolean => {
+  return isDiscoveryStyleGoal(plan.goalPlan.goal, plan.goalPlan.intent);
+};
 
 export const buildSupervisorSystemInstruction = (
   plan: SupervisorPlanResult
@@ -18,6 +23,7 @@ export const buildSupervisorSystemInstruction = (
 
   const policy = getSupervisorPolicy();
   const lines: string[] = [];
+  const discoveryPlan = isDiscoveryOrientedPlan(plan);
 
   lines.push("You are operating in Supervisor mode.");
   lines.push("");
@@ -72,9 +78,13 @@ export const buildSupervisorSystemInstruction = (
 
   lines.push("## Execution Protocol");
   lines.push("");
-  lines.push(
-    "Execute lanes in order. For each lane, use the `supervisor` tool to launch a child session."
-  );
+  lines.push("Execute lanes in order. For each lane, use the `supervisor` tool to launch a child session.");
+  if (discoveryPlan) {
+    lines.push("Keep the plan bounded and synthesis-oriented; do not turn this into an open-ended brainstorm.");
+    lines.push("Each lane should produce concrete findings, comparisons, recommendations, assumptions, and scoped next steps when relevant.");
+  } else {
+    lines.push("Bias toward concrete execution progress, implementation evidence, validation, and review-ready handoff notes.");
+  }
   lines.push("");
 
   lines.push("## Budget and Approval Boundaries");
@@ -92,7 +102,11 @@ export const buildSupervisorSystemInstruction = (
   lines.push(`- Escalation mode: ${policy.approvalGates.escalationMode}`);
   lines.push("");
 
-  lines.push("Report progress after each lane completes.");
+  if (discoveryPlan) {
+    lines.push("Report progress after each lane with findings, recommendation shifts, assumptions, and next-step scope.");
+  } else {
+    lines.push("Report progress after each lane completes.");
+  }
 
   return lines.join("\n");
 };
