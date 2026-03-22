@@ -66,7 +66,7 @@ export const INTENT_KEYWORDS: Record<Intent, RegExp[]> = {
   ],
   marketing: [
     /marketing|positioning|messaging|campaign|launch|brand|audience|copy|narrative/i,
-    /go-to-market|gtm|webinar|case study|ad|funnel|conversion|persona|icp|competitor|brief/i
+    /go-to-market|gtm|webinar|case study|ads|advert(?:ising|isement)?|funnel|conversion|persona|icp|competitor|brief/i
   ],
   roadmap: [
     /roadmap|milestone|quarter|timeline|deadline|planning|refinement|delivery|scope/i,

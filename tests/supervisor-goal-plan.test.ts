@@ -104,6 +104,13 @@ describe("supervisor-goal-plan", () => {
     expect(result.confidence).toBe("high");
   });
 
+  it("supports discovery-only roadmap prompts when they include explicit discovery cues", () => {
+    const result = planSupervisorGoal({ goal: "Identify roadmap options and size the MVP." });
+
+    expect(result.status).toBe("supported");
+    expect(result.confidence).toBe("high");
+  });
+
   it("keeps open-ended brainstorming unsupported", () => {
     const result = planSupervisorGoal({ goal: "brainstorm startup ideas" });
 

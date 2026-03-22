@@ -1,12 +1,10 @@
+import { isDiscoveryStyleGoal } from "./discovery-heuristics";
 import type { SupervisorPlanResult } from "./supervisor-trigger";
 import type { SupervisorLaneDefinition } from "./supervisor-scheduler";
 import { getSupervisorPolicy } from "./supervisor-config";
 
-const DISCOVERY_INSTRUCTION_INTENTS = new Set(["research", "marketing", "roadmap"]);
-const DISCOVERY_OUTPUT_REGEX = /\b(research|compare|evaluate|benchmark|synthesize|recommend|findings|summary|summari[sz]e|scope|define|audience|persona|icp|competitor|mvp|prd|requirements?|roadmap|positioning|messaging)\b/i;
-
 const isDiscoveryOrientedPlan = (plan: SupervisorPlanResult): boolean => {
-  return DISCOVERY_INSTRUCTION_INTENTS.has(plan.goalPlan.intent) || DISCOVERY_OUTPUT_REGEX.test(plan.goalPlan.goal);
+  return isDiscoveryStyleGoal(plan.goalPlan.goal, plan.goalPlan.intent);
 };
 
 export const buildSupervisorSystemInstruction = (

@@ -3,6 +3,10 @@ import {
   type PlanSupervisorGoalResult
 } from "./supervisor-goal-plan";
 import {
+  DISCOVERY_CUE_REGEX,
+  isDiscoveryStyleGoal
+} from "./discovery-heuristics";
+import {
   decomposeSupervisorGoalIntoLanes,
   type SupervisorLaneDecompositionResult
 } from "./lane-decomposition";
@@ -42,7 +46,6 @@ export const detectSupervisorTrigger = (
 
 const SEGMENT_SPLIT_REGEX = /[;,]\s*|\n+/;
 
-const DISCOVERY_GOAL_REGEX = /\b(research|explore|assess|evaluate|compare|benchmark|analy[sz]e|synthesize|recommend|findings|summary|summari[sz]e|scope|define|audience|persona|icp|competitor|mvp|prd|requirements?|roadmap|positioning|messaging|goals?)\b/i;
 const EXECUTION_LIST_CUE_REGEX = /\b(build|implement|fix|refactor|update|write|add|remove|migrate|ship|document|test|validate)\b/i;
 const SYNTHESIS_JOINER_REGEX = /\b(and|plus|with)\b/i;
 
@@ -89,21 +92,13 @@ const splitIntoSegments = (goalText: string): string[] => goalText
   .map((segment) => normalizeGoalText(segment))
   .filter(Boolean);
 
-const isDiscoveryStyleGoal = (goalText: string, intent: string): boolean => {
-  if (["research", "marketing", "roadmap"].includes(intent)) {
-    return true;
-  }
-
-  return DISCOVERY_GOAL_REGEX.test(goalText);
-};
-
 const shouldPreserveExecutionList = (goalText: string, segments: readonly string[]): boolean => {
   if (segments.length <= 1) {
     return false;
   }
 
   const executionSegmentCount = segments.filter((segment) => EXECUTION_LIST_CUE_REGEX.test(segment)).length;
-  const discoverySegmentCount = segments.filter((segment) => DISCOVERY_GOAL_REGEX.test(segment)).length;
+  const discoverySegmentCount = segments.filter((segment) => DISCOVERY_CUE_REGEX.test(segment)).length;
 
   if (executionSegmentCount === segments.length) {
     return true;

@@ -40,6 +40,12 @@ describe("intent", () => {
     expect(intent).toBe("mixed");
   });
 
+  it("does not classify incidental 'ad' substrings as marketing", () => {
+    const intent = detectIntent("Map the loader behavior and identify failure modes.");
+
+    expect(intent).not.toBe("marketing");
+  });
+
   it("returns zero turns for single role", () => {
     // Arrange
 

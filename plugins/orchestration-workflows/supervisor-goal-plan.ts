@@ -1,4 +1,5 @@
 import { INTENT_ROLE_WEIGHTS } from "./constants";
+import { isDiscoveryStyleGoal } from "./discovery-heuristics";
 import { detectIntent } from "./intent";
 import { getSupervisorPolicy } from "./supervisor-config";
 import type { Intent, Role } from "./types";
@@ -37,7 +38,6 @@ export type PlanSupervisorGoalResult = {
 
 const ACTION_REGEX = /\b(implement|build|fix|refactor|design|plan|investigate|analy[sz]e|draft|ship|deliver|create|update|migrate|optimi[sz]e|test|validate|document|research|explore|scope|define|identify|assess|evaluate|compare|synthesize|recommend|benchmark|map|size)\b/i;
 const DELIVERABLE_REGEX = /\b(pull request|pr|test|docs?|release|workflow|story|lane|runbook|policy|dashboard|playbook|plan|mvp|persona|audience|icp|competitor analysis|brief|prd|requirements?|recommendation|findings|shortlist|options?|decision memo|summary|patterns?)\b/i;
-const DISCOVERY_CUE_REGEX = /\b(research|explore|scope|define|identify|assess|evaluate|compare|synthesize|recommend|benchmark|map|size|mvp|persona|audience|icp|competitor|brief|prd|requirements?|recommendation|findings|shortlist|options?|decision memo)\b/i;
 const OPEN_ENDED_IDEATION_REGEX = /\b(brainstorm|ideate|blue-sky|startup ideas?)\b/i;
 const UNBOUNDED_DISCOVERY_REGEX = /\b(entire|whole|full|all(?:\s+of)?)\b[\s\S]{0,40}\b(market|landscape|industry|category|space)\b/i;
 const LONG_HORIZON_STRATEGY_REGEX = /\b(?:\d{1,2}[- ]month|annual|year(?:ly)?|long[- ]term|multi[- ]year)\s+strategy\b/i;
@@ -140,11 +140,15 @@ const resolveAmbiguity = (
     return true;
   }
 
-  if (!hasActionVerb && !hasDeliverableCue) {
+  if (!hasActionVerb && !hasDeliverableCue && !hasDiscoveryCue) {
     return true;
   }
 
-  return intent === "mixed" && !hasActionVerb && !hasDeliverableCue && !hasDiscoveryCue;
+  if (intent === "mixed" && !hasActionVerb && !hasDeliverableCue) {
+    return true;
+  }
+
+  return false;
 };
 
 const resolveLeadRole = (intent: Intent): Role => getSupervisorPolicy().routing.intentProfiles[intent].leadRole;
@@ -251,7 +255,7 @@ export const planSupervisorGoal = (input: PlanSupervisorGoalInput): PlanSupervis
   const intent = detectIntent(goal);
   const hasActionVerb = ACTION_REGEX.test(goal);
   const hasDeliverableCue = DELIVERABLE_REGEX.test(goal);
-  const hasDiscoveryCue = DISCOVERY_CUE_REGEX.test(goal) || ["research", "marketing", "roadmap"].includes(intent);
+  const hasDiscoveryCue = isDiscoveryStyleGoal(goal, intent);
   const complexityCueCount = countRegexMatches(goal, COMPLEXITY_CUES_REGEX);
   const riskCueCount = countRegexMatches(goal, RISK_CUES_REGEX);
   const ambiguous = resolveAmbiguity(goal, intent, hasActionVerb, hasDeliverableCue, hasDiscoveryCue);

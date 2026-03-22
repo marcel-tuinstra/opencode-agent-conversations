@@ -138,6 +138,22 @@ describe("supervisor-trigger", () => {
       expect(result.workUnits[1]!.workUnit.objective).toContain("Compare 3 tools and recommend one");
       expect(result.workUnits[result.workUnits.length - 1]!.workUnit.objective).toContain("Recommend");
     });
+
+    it("does not treat roadmap prompts as discovery without explicit discovery cues", () => {
+      const result = buildSupervisorPlan("plan roadmap sequencing, update milestones, ship release notes");
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits).toHaveLength(3);
+      expect(result.workUnits[0]!.workUnit.objective).toBe("plan roadmap sequencing");
+    });
+
+    it("treats marketing prompts as discovery only when explicit discovery cues are present", () => {
+      const result = buildSupervisorPlan("identify audience options and recommend positioning for the launch");
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits.length).toBeGreaterThanOrEqual(2);
+      expect(result.workUnits[0]!.workUnit.objective).toContain("discovery scope");
+    });
   });
 
   describe("formatSupervisorPreview", () => {
@@ -271,6 +287,15 @@ describe("supervisor-trigger", () => {
       expect(instruction).toContain("assumptions");
       expect(instruction).toContain("scoped next steps");
       expect(instruction).toContain("bounded");
+    });
+
+    it("does not use discovery-oriented instructions for roadmap execution plans without discovery cues", () => {
+      const plan = buildSupervisorPlan("plan roadmap sequencing, update milestones, ship release notes");
+
+      const instruction = buildSupervisorSystemInstruction(plan);
+
+      expect(instruction).toContain("Bias toward concrete execution progress");
+      expect(instruction).not.toContain("Keep the plan bounded and synthesis-oriented");
     });
 
     it("includes merge mode and escalation mode from policy", () => {
