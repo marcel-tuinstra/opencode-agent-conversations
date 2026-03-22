@@ -44,12 +44,17 @@ export const detectSupervisorTrigger = (
   return { detected: false, goal: "" };
 };
 
-const SEGMENT_SPLIT_REGEX = /[;,]\s*|\n+/;
+const STRONG_SEGMENT_SPLIT_REGEX = /;\s*|\n+/;
 
-const EXECUTION_LIST_CUE_REGEX = /\b(build|implement|fix|refactor|update|write|add|remove|migrate|ship|document|test|validate)\b/i;
+const EXECUTION_LIST_CUE_PATTERN = "build|implement|fix|refactor|design|plan|investigate|analy[sz]e|draft|deliver|create|update|write|add|remove|migrate|optimi[sz]e|ship|document|test|validate|map|size";
+const EXECUTION_LIST_CUE_REGEX = new RegExp(`\\b(${EXECUTION_LIST_CUE_PATTERN})\\b`, "i");
 const SYNTHESIS_JOINER_REGEX = /\b(and|plus|with)\b/i;
 const DISCOVERY_LEADING_VERB_REGEX =
   /^(?:then\s+)?(?:research|explore|scope|define|identify|assess|evaluate|compare|analy[sz]e|synthesize|recommend|benchmark|summari[sz]e)\s+/i;
+const STEP_LEADING_CUE_REGEX = new RegExp(
+  `^(?:then\\s+)?(?:${EXECUTION_LIST_CUE_PATTERN}|research|explore|scope|define|identify|assess|evaluate|compare|synthesize|recommend|benchmark|summari[sz]e)\\b`,
+  "i"
+);
 
 const normalizeGoalText = (value: string): string => value.replace(/\s+/g, " ").trim();
 
@@ -89,8 +94,42 @@ const buildSequentialWorkUnits = (segments: readonly string[]): LanePlanningWork
   return workUnits;
 };
 
+const splitCommaSeparatedSteps = (segmentText: string): string[] => {
+  const parts = segmentText.split(",");
+
+  if (parts.length <= 1) {
+    return [normalizeGoalText(segmentText)].filter(Boolean);
+  }
+
+  const segments: string[] = [];
+  let current = parts[0] ?? "";
+
+  for (let index = 1; index < parts.length; index++) {
+    const nextPart = normalizeGoalText(parts[index] ?? "");
+
+    if (STEP_LEADING_CUE_REGEX.test(nextPart)) {
+      const normalizedCurrent = normalizeGoalText(current);
+      if (normalizedCurrent.length > 0) {
+        segments.push(normalizedCurrent);
+      }
+      current = nextPart;
+      continue;
+    }
+
+    current = `${current}, ${nextPart}`;
+  }
+
+  const normalizedCurrent = normalizeGoalText(current);
+  if (normalizedCurrent.length > 0) {
+    segments.push(normalizedCurrent);
+  }
+
+  return segments;
+};
+
 const splitIntoSegments = (goalText: string): string[] => goalText
-  .split(SEGMENT_SPLIT_REGEX)
+  .split(STRONG_SEGMENT_SPLIT_REGEX)
+  .flatMap((segment) => splitCommaSeparatedSteps(segment))
   .map((segment) => normalizeGoalText(segment))
   .filter(Boolean);
 
@@ -142,9 +181,9 @@ const buildDiscoveryWorkUnitObjectives = (goalText: string): string[] => {
 
   if (/\bdefine\b/i.test(normalizedGoal) && /\bmvp\b/i.test(normalizedGoal)) {
     return [
-      "Define the target audience, core user goals, and product assumptions",
-      "Translate the goals into a bounded MVP scope with exclusions and tradeoffs",
-      "Recommend the initial delivery plan, open questions, and next steps"
+      "Define the target audience, core user goals, product constraints, and assumptions",
+      titleCaseFirst(normalizedGoal),
+      "Translate the request into a bounded MVP scope with exclusions, tradeoffs, and practical next steps"
     ];
   }
 

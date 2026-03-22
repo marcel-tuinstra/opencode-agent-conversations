@@ -186,6 +186,42 @@ describe("supervisor-trigger", () => {
       expect(result.workUnits[1]!.workUnit.objective).toBe("then add API validation");
       expect(result.workUnits[2]!.workUnit.objective).toBe("then write integration tests");
     });
+
+    it("preserves mixed execution and discovery prompts instead of collapsing concrete execution steps", () => {
+      const result = buildSupervisorPlan(
+        "optimize the checkout flow, then compare Sentry and Datadog"
+      );
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits).toHaveLength(2);
+      expect(result.workUnits[0]!.workUnit.objective).toBe("optimize the checkout flow");
+      expect(result.workUnits[1]!.workUnit.objective).toBe("then compare Sentry and Datadog");
+    });
+
+    it("does not split comparison lists into standalone vendor fragments", () => {
+      const result = buildSupervisorPlan(
+        "Compare Sentry, Honeycomb, and Datadog"
+      );
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits.length).toBeGreaterThanOrEqual(2);
+      expect(result.workUnits[1]!.workUnit.objective).toBe("Compare Sentry, Honeycomb, and Datadog");
+      expect(result.workUnits.some((unit: { workUnit: { objective: string } }) => unit.workUnit.objective === "Honeycomb")).toBe(false);
+      expect(result.workUnits.some((unit: { workUnit: { objective: string } }) => unit.workUnit.objective === "and Datadog")).toBe(false);
+    });
+
+    it("preserves secondary asks in define plus MVP discovery prompts", () => {
+      const result = buildSupervisorPlan(
+        "define the MVP for a team inbox product and compare pricing options"
+      );
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits).toHaveLength(3);
+      expect(result.workUnits[1]!.workUnit.objective).toBe(
+        "Define the MVP for a team inbox product and compare pricing options"
+      );
+      expect(result.workUnits.some((unit: { workUnit: { objective: string } }) => /pricing options/i.test(unit.workUnit.objective))).toBe(true);
+    });
   });
 
   describe("formatSupervisorPreview", () => {
