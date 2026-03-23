@@ -101,10 +101,17 @@ export const AgentConversations: Plugin = async (input: PluginInput) => {
     },
 
     "experimental.chat.messages.transform": async (_input, output) => {
-      const userMessages = output.messages.filter((message: { info: { role: string } }) => message.info.role === "user");
-      const message = userMessages[userMessages.length - 1];
+      const message = output.messages[output.messages.length - 1];
       if (!message) {
-        debugLog("messages.transform.no_user_message");
+        debugLog("messages.transform.no_message");
+        return;
+      }
+
+      if (message.info.role !== "user") {
+        debugLog("messages.transform.skip_non_user_message", {
+          sessionId: message.info.sessionID,
+          role: message.info.role
+        });
         return;
       }
 
@@ -406,6 +413,7 @@ export const AgentConversations: Plugin = async (input: PluginInput) => {
         const { formatSupervisorPreview } = await import("./supervisor-trigger");
         const preview = formatSupervisorPreview(supervisorPlanForComplete);
         output.text = `${preview}\n\n${output.text}`;
+        supervisorPlans.delete(input.sessionID);
         debugLog("text.complete.supervisor_preview", {
           sessionId: input.sessionID,
           status: supervisorPlanForComplete.status

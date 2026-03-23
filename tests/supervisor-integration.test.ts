@@ -24,10 +24,10 @@ const createMockPluginInput = (overrides?: {
 /**
  * Build a mock messages output structure matching what OpenCode provides.
  */
-const createMessagesOutput = (text: string, sessionID: string) => ({
+const createMessagesOutput = (text: string, sessionID: string, role = "user") => ({
   messages: [
     {
-      info: { role: "user", sessionID },
+      info: { role, sessionID },
       parts: [{ type: "text", text }]
     }
   ]
@@ -138,6 +138,69 @@ describe("supervisor integration (Wave 4)", () => {
       // No policy should be set for a plain message (no roles detected)
       expect(policy).toBeUndefined();
     });
+
+    it("does not activate supervisor mode when the latest assistant message contains a supervisor trigger", async () => {
+      const hooks = await AgentConversations(createMockPluginInput());
+      const sessionID = "test-session-assistant-supervisor-trigger";
+      const output = {
+        messages: [
+          {
+            info: { role: "user", sessionID },
+            parts: [{ type: "text", text: "@supervisor Build auth module" }]
+          },
+          {
+            info: { role: "assistant", sessionID },
+            parts: [{ type: "text", text: "@supervisor build something" }]
+          }
+        ]
+      };
+
+      await hooks["experimental.chat.messages.transform"]!({}, output as any);
+
+      expect(sessionPolicy.get(sessionID)).toBeUndefined();
+    });
+
+    it("does not activate supervisor mode when the latest tool message contains a supervisor trigger", async () => {
+      const hooks = await AgentConversations(createMockPluginInput());
+      const sessionID = "test-session-tool-supervisor-trigger";
+      const output = {
+        messages: [
+          {
+            info: { role: "user", sessionID },
+            parts: [{ type: "text", text: "@supervisor Build auth module" }]
+          },
+          {
+            info: { role: "tool", sessionID },
+            parts: [{ type: "text", text: "@supervisor build something" }]
+          }
+        ]
+      };
+
+      await hooks["experimental.chat.messages.transform"]!({}, output as any);
+
+      expect(sessionPolicy.get(sessionID)).toBeUndefined();
+    });
+
+    it("activates supervisor mode when the latest user message contains a supervisor trigger", async () => {
+      const hooks = await AgentConversations(createMockPluginInput());
+      const sessionID = "test-session-latest-user-supervisor-trigger";
+      const output = {
+        messages: [
+          {
+            info: { role: "assistant", sessionID },
+            parts: [{ type: "text", text: "Earlier assistant response" }]
+          },
+          {
+            info: { role: "user", sessionID },
+            parts: [{ type: "text", text: "@supervisor build something" }]
+          }
+        ]
+      };
+
+      await hooks["experimental.chat.messages.transform"]!({}, output as any);
+
+      expect(sessionPolicy.get(sessionID)?.supervisorMode).toBe(true);
+    });
   });
 
   describe("system.transform — supervisor instruction injection", () => {
@@ -199,6 +262,50 @@ describe("supervisor integration (Wave 4)", () => {
       expect(output.text).toContain("[Supervisor] Plan");
       expect(output.text).toContain("comparison dimensions");
       expect(output.text).toContain("recommendations");
+    });
+
+    it("only prepends the supervisor preview once per session", async () => {
+      const hooks = await AgentConversations(createMockPluginInput());
+      const sessionID = "test-session-text-preview-once";
+
+      const msgOutput = createMessagesOutput(
+        "@supervisor Build authentication module and refactor the API contract layer",
+        sessionID
+      );
+      await hooks["experimental.chat.messages.transform"]!({}, msgOutput);
+
+      const firstRender = createTextCompleteIO(sessionID, "First LLM response");
+      await hooks["experimental.text.complete"]!(firstRender.input, firstRender.output);
+      expect(firstRender.output.text).toContain("[Supervisor] Plan");
+
+      const secondRender = createTextCompleteIO(sessionID, "Second LLM response");
+      await hooks["experimental.text.complete"]!(secondRender.input, secondRender.output);
+      expect(secondRender.output.text).not.toContain("[Supervisor] Plan");
+    });
+
+    it("does not repeat the supervisor preview after a normal follow-up in the same session", async () => {
+      const hooks = await AgentConversations(createMockPluginInput());
+      const sessionID = "test-session-text-preview-followup";
+
+      const supervisorMessage = createMessagesOutput(
+        "@supervisor Build authentication module and refactor the API contract layer",
+        sessionID
+      );
+      await hooks["experimental.chat.messages.transform"]!({}, supervisorMessage);
+
+      const firstRender = createTextCompleteIO(sessionID, "First LLM response");
+      await hooks["experimental.text.complete"]!(firstRender.input, firstRender.output);
+      expect(firstRender.output.text).toContain("[Supervisor] Plan");
+
+      const followUpMessage = createMessagesOutput(
+        "Thanks, now just summarize the result",
+        sessionID
+      );
+      await hooks["experimental.chat.messages.transform"]!({}, followUpMessage);
+
+      const followUpRender = createTextCompleteIO(sessionID, "Follow-up LLM response");
+      await hooks["experimental.text.complete"]!(followUpRender.input, followUpRender.output);
+      expect(followUpRender.output.text).not.toContain("[Supervisor] Plan");
     });
   });
 
