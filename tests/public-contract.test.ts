@@ -1,9 +1,37 @@
 import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
-import { describe, expect, it } from "vitest";
+import { describe, expect, expectTypeOf, it } from "vitest";
 import * as pluginEntry from "../plugins/orchestration-workflows.js";
 import * as packageRoot from "../index.js";
+import * as supervisorRoot from "../plugins/orchestration-workflows-supervisor.js";
+import type {
+  DelegationMode,
+  DelegationPlan,
+  DelegationRequest,
+  DelegationWave,
+  Intent,
+  Role,
+  SessionPolicy
+} from "../index.js";
+import {
+  createFileBackedSupervisorStateStore,
+  createSupervisorDispatchPlan,
+  DEFAULT_SUPERVISOR_PROFILE,
+  CHILD_SESSION_TRANSITIONS,
+  createSupervisorEvent,
+  bridgeDelegationPlan,
+  evaluateRetryDecision
+} from "../plugins/orchestration-workflows-supervisor.js";
+import type {
+  DelegationMode as SourceDelegationMode,
+  DelegationPlan as SourceDelegationPlan,
+  DelegationRequest as SourceDelegationRequest,
+  DelegationWave as SourceDelegationWave,
+  Intent as SourceIntent,
+  Role as SourceRole,
+  SessionPolicy as SourceSessionPolicy
+} from "../plugins/orchestration-workflows/types.js";
 
 const repoRoot = fileURLToPath(new URL("../", import.meta.url));
 const packageJsonPath = fileURLToPath(new URL("../package.json", import.meta.url));
@@ -42,6 +70,48 @@ describe("public contract guardrails", () => {
     expect("createSupervisorDispatchPlan" in packageRoot).toBe(false);
     expect("createSupervisorExecutionWorkflow" in packageRoot).toBe(false);
     expect("DEFAULT_SUPERVISOR_POLICY_PATH" in packageRoot).toBe(false);
+  });
+
+  it("plugin entry contains no non-function exports", () => {
+    for (const [, value] of Object.entries(pluginEntry)) {
+      expect(typeof value).toBe("function");
+    }
+  });
+
+  it("keeps supervisor exports out of the plugin entry and package root", () => {
+    expect("createSupervisorDispatchPlan" in pluginEntry).toBe(false);
+    expect("createFileBackedSupervisorStateStore" in packageRoot).toBe(false);
+    expect("DEFAULT_SUPERVISOR_PROFILE" in packageRoot).toBe(false);
+    // MCP helper types are intentionally internal-only
+    expect("McpProviderConfig" in packageRoot).toBe(false);
+    expect("McpBlockResult" in packageRoot).toBe(false);
+  });
+
+  it("package root re-exports match their source type definitions", () => {
+    expectTypeOf<Role>().toEqualTypeOf<SourceRole>();
+    expectTypeOf<Intent>().toEqualTypeOf<SourceIntent>();
+    expectTypeOf<DelegationMode>().toEqualTypeOf<SourceDelegationMode>();
+    expectTypeOf<DelegationRequest>().toEqualTypeOf<SourceDelegationRequest>();
+    expectTypeOf<DelegationWave>().toEqualTypeOf<SourceDelegationWave>();
+    expectTypeOf<DelegationPlan>().toEqualTypeOf<SourceDelegationPlan>();
+    expectTypeOf<SessionPolicy>().toEqualTypeOf<SourceSessionPolicy>();
+  });
+
+  it("exports supervisor symbols from the experimental supervisor barrel", () => {
+    expect(supervisorRoot.createSupervisorDispatchPlan).toBe(createSupervisorDispatchPlan);
+    expect(supervisorRoot.createFileBackedSupervisorStateStore).toBe(createFileBackedSupervisorStateStore);
+    expect(supervisorRoot.DEFAULT_SUPERVISOR_PROFILE).toBe(DEFAULT_SUPERVISOR_PROFILE);
+  });
+
+  it("exports child-session lifecycle structures from the supervisor barrel", () => {
+    expect(CHILD_SESSION_TRANSITIONS).toHaveProperty("pending");
+    expect(CHILD_SESSION_TRANSITIONS).toHaveProperty("failed");
+  });
+
+  it("exports supervisor event, delegation bridge, and retry symbols from the supervisor barrel", () => {
+    expect(supervisorRoot.createSupervisorEvent).toBe(createSupervisorEvent);
+    expect(supervisorRoot.bridgeDelegationPlan).toBe(bridgeDelegationPlan);
+    expect(supervisorRoot.evaluateRetryDecision).toBe(evaluateRetryDecision);
   });
 
   it("keeps stable CLI command names and intents discoverable in help output", () => {

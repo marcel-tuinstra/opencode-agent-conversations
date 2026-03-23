@@ -267,9 +267,6 @@ export {
   createSupervisorDispatchPlan
 } from "./orchestration-workflows/supervisor-dispatch-planning.ts";
 export {
-  createSupervisorBootstrapPreview
-} from "./orchestration-workflows/supervisor-bootstrap.ts";
-export {
   assertValidLaneCompletionContract,
   createLaneCompletionContract,
   evaluateLaneCompletionContract,

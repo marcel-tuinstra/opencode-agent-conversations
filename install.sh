@@ -66,7 +66,6 @@ review-ready-packet.ts
 roles.ts
 session-runtime-adapter.ts
 session.ts
-supervisor-bootstrap.ts
 supervisor-config.ts
 supervisor-delegation.ts
 supervisor-dispatch-planning.ts
@@ -356,8 +355,8 @@ download_with_git() {
 # ─── Success message ─────────────────────────────────────────────────────────
 
 print_success() {
-  # Count: 1 barrel + 52 modules + 10 agents = 63
-  _total=63
+  # Count: 1 barrel + 51 modules + 10 agents = 62
+  _total=62
 
   echo ""
   success "${BOLD}Done!${RESET}${GREEN} ${_total} files installed to ${INSTALL_DIR}/${RESET}"
