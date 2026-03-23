@@ -550,7 +550,7 @@ describe("supervisor integration (Wave 4)", () => {
 
       // Trigger supervisor mode
       const msgOutput = createMessagesOutput(
-        "@supervisor Build authentication module and refactor the API contract layer",
+        "@supervisor Build authentication module, then refactor the API contract layer",
         parentId
       );
       await hooks["experimental.chat.messages.transform"]!({}, msgOutput);
@@ -631,7 +631,7 @@ describe("supervisor integration (Wave 4)", () => {
       );
 
       const msgOutput = createMessagesOutput(
-        "@supervisor Build authentication module and refactor the API contract layer",
+        "@supervisor Build authentication module, then refactor the API contract layer",
         parentId
       );
       await hooks["experimental.chat.messages.transform"]!({}, msgOutput);
@@ -778,7 +778,7 @@ describe("supervisor integration (Wave 4)", () => {
       const toolDef = hooks.tool!.supervisor_launch as any;
       const resultA = JSON.parse(
         await toolDef.execute(
-          { laneId: "lane-a", objective: "Build auth", role: "DEV" },
+          { laneId: "lane-1", objective: "Build auth", role: "DEV" },
           { sessionID: parentA }
         )
       );
@@ -786,7 +786,7 @@ describe("supervisor integration (Wave 4)", () => {
 
       const resultB = JSON.parse(
         await toolDef.execute(
-          { laneId: "lane-b", objective: "Design DB", role: "BE" },
+          { laneId: "lane-1", objective: "Design DB", role: "BE" },
           { sessionID: parentB }
         )
       );
@@ -904,7 +904,7 @@ describe("supervisor integration (Wave 4)", () => {
 
       // Trigger supervisor mode
       const msgOutput = createMessagesOutput(
-        "@supervisor Build authentication module and refactor the API contract layer",
+        "@supervisor Build authentication module, then refactor the API contract layer",
         parentId
       );
       await hooks["experimental.chat.messages.transform"]!({}, msgOutput);
@@ -927,7 +927,7 @@ describe("supervisor integration (Wave 4)", () => {
       // Re-establish supervisor state for a second wave
       systemInjectedForSession.clear();
       const msgOutput2 = createMessagesOutput(
-        "@supervisor Now handle the second wave of work: deploy and monitor",
+        "@supervisor Deploy release candidate and monitor key regressions",
         parentId
       );
       await hooks["experimental.chat.messages.transform"]!({}, msgOutput2);
@@ -935,7 +935,7 @@ describe("supervisor integration (Wave 4)", () => {
       // Launch second child under fresh supervisor state
       const result2 = JSON.parse(
         await toolDef.execute(
-          { laneId: "lane-2", objective: "Deploy", role: "DEV" },
+          { laneId: "lane-1", objective: "Deploy", role: "DEV" },
           { sessionID: parentId }
         )
       );

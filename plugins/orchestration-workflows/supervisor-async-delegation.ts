@@ -154,11 +154,29 @@ export const createSupervisorAsyncDelegationRuntime = () => {
       };
     }
 
-    if (!input.laneId.trim()) {
+    if (parent.planStatus !== "supported") {
+      return {
+        allowed: false,
+        reasonCode: "governance.plan-unsupported",
+        reason: "Supervisor launch is only allowed for supported plans."
+      };
+    }
+
+    const laneId = input.laneId.trim();
+
+    if (!laneId) {
       return {
         allowed: false,
         reasonCode: "governance.invalid-lane",
         reason: "Lane id must be non-empty."
+      };
+    }
+
+    if (parent.allowedLaneIds.size > 0 && !parent.allowedLaneIds.has(laneId)) {
+      return {
+        allowed: false,
+        reasonCode: "governance.lane-not-approved",
+        reason: `Lane '${laneId}' is not part of the active supervisor plan.`
       };
     }
 
@@ -178,12 +196,12 @@ export const createSupervisorAsyncDelegationRuntime = () => {
       };
     }
 
-    const existing = parent.lanes.get(input.laneId);
+    const existing = parent.lanes.get(laneId);
     if (existing && !TERMINAL_LANE_STATES.has(existing.state) && existing.state !== "ready") {
       return {
         allowed: false,
         reasonCode: "governance.lane-in-flight",
-        reason: `Lane '${input.laneId}' already has an in-flight child session.`
+        reason: `Lane '${laneId}' already has an in-flight child session.`
       };
     }
 
@@ -361,12 +379,16 @@ export const createSupervisorAsyncDelegationRuntime = () => {
   };
 
   const allChildSessionsTerminal = (parentSessionId: string): boolean => {
-    const children = getChildSessions(parentSessionId);
-    if (children.length === 0) {
+    const parent = byParentSession.get(parentSessionId);
+    if (!parent || parent.lanes.size === 0) {
       return false;
     }
 
-    return children.every((child) => TERMINAL_LANE_STATES.has(child.state));
+    if (parent.allowedLaneIds.size > 0 && parent.lanes.size < parent.allowedLaneIds.size) {
+      return false;
+    }
+
+    return [...parent.lanes.values()].every((lane) => TERMINAL_LANE_STATES.has(lane.state));
   };
 
   return {

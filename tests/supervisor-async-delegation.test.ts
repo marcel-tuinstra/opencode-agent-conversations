@@ -16,7 +16,7 @@ describe("supervisor-async-delegation", () => {
     expect(launch.reasonCode).toBe("governance.parent-missing");
   });
 
-  it("allows launches for primed parents regardless of plan support status", () => {
+  it("enforces plan status and approved lane ids for launches", () => {
     const runtime = createSupervisorAsyncDelegationRuntime();
     runtime.primeParent({
       parentSessionId: "parent-unsupported",
@@ -30,7 +30,8 @@ describe("supervisor-async-delegation", () => {
       role: "DEV",
       objective: "Build feature"
     });
-    expect(unsupportedLaunch.allowed).toBe(true);
+    expect(unsupportedLaunch.allowed).toBe(false);
+    expect(unsupportedLaunch.reasonCode).toBe("governance.plan-unsupported");
 
     runtime.primeParent({
       parentSessionId: "parent-supported",
@@ -43,7 +44,36 @@ describe("supervisor-async-delegation", () => {
       role: "DEV",
       objective: "Build feature"
     });
-    expect(supportedLaunch.allowed).toBe(true);
+    expect(supportedLaunch.allowed).toBe(false);
+    expect(supportedLaunch.reasonCode).toBe("governance.lane-not-approved");
+  });
+
+  it("does not report terminal completion while launches are in flight or planned lanes are missing", () => {
+    const runtime = createSupervisorAsyncDelegationRuntime();
+    runtime.primeParent({
+      parentSessionId: "parent-4",
+      planStatus: "supported",
+      allowedLaneIds: ["lane-1", "lane-2"]
+    });
+
+    const beginLaneOne = runtime.beginLaunch({
+      parentSessionId: "parent-4",
+      laneId: "lane-1",
+      role: "DEV",
+      objective: "First lane"
+    });
+    expect(beginLaneOne.allowed).toBe(true);
+    expect(runtime.allChildSessionsTerminal("parent-4")).toBe(false);
+
+    runtime.commitLaunch({
+      parentSessionId: "parent-4",
+      laneId: "lane-1",
+      childSessionId: "child-4"
+    });
+    runtime.applySessionEvent({ eventType: "session.completed", childSessionId: "child-4" });
+
+    // lane-2 never launched yet, so parent should not be considered terminal.
+    expect(runtime.allChildSessionsTerminal("parent-4")).toBe(false);
   });
 
   it("applies deterministic launch -> complete transitions and ignores late terminal flips", () => {
