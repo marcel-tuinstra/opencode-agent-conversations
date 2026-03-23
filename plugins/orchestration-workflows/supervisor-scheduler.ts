@@ -434,6 +434,28 @@ export const createSupervisorLaneDefinitions = (
     .sort((left, right) => left.sequence - right.sequence || left.laneId.localeCompare(right.laneId)));
 };
 
+const buildDecision = (
+  laneId: string,
+  status: SupervisorDispatchLaneStatus,
+  targetState: LaneLifecycleState,
+  action: SupervisorDispatchAction,
+  nextAction: SupervisorApprovalNextAction,
+  assignedOwner: string | undefined,
+  reasons: readonly string[],
+  lane: SupervisorLaneRecord,
+  extras?: Pick<Partial<SupervisorDispatchLaneDecision>, "reviewRouting" | "worktree" | "session">
+): SupervisorDispatchLaneDecision => ({
+  laneId,
+  status,
+  targetState,
+  action,
+  nextAction,
+  assignedOwner,
+  reasons,
+  lane,
+  ...extras,
+});
+
 export const createSupervisorDispatchLoop = (
   options: CreateSupervisorDispatchLoopOptions
 ): { run(input: RunSupervisorDispatchLoopInput): Promise<RunSupervisorDispatchLoopResult> } => {
@@ -502,18 +524,8 @@ export const createSupervisorDispatchLoop = (
         }
 
         reasons.push("Lane completion was explicitly signaled.");
-        decisions.push({
-          laneId: lane.laneId,
-          status: "complete",
-          targetState: "complete",
-          action: worktree?.status === "released" ? "release-worktree" : "none",
-          nextAction: "continue",
-          assignedOwner,
-          reasons: freezeList(reasons),
-          lane,
-          worktree,
-          session
-        });
+        const completeAction: SupervisorDispatchAction = worktree?.status === "released" ? "release-worktree" : "none";
+        decisions.push(buildDecision(lane.laneId, "complete", "complete", completeAction, "continue", assignedOwner, freezeList(reasons), lane, { worktree, session }));
         continue;
       }
 
@@ -549,19 +561,7 @@ export const createSupervisorDispatchLoop = (
               sideEffects: ["captured-handoff-evidence", "handoff-repair-required"]
             });
             reasons.push(...reviewRouting.reasons);
-            decisions.push({
-              laneId: lane.laneId,
-              status: "blocked",
-              targetState: lane.state,
-              action: "none",
-              nextAction: "pause",
-              assignedOwner,
-              reasons: freezeList(reasons),
-              reviewRouting,
-              lane,
-              worktree,
-              session
-            });
+            decisions.push(buildDecision(lane.laneId, "blocked", lane.state, "none", "pause", assignedOwner, freezeList(reasons), lane, { reviewRouting, worktree, session }));
             continue;
           }
 
@@ -600,19 +600,8 @@ export const createSupervisorDispatchLoop = (
               );
             }
             reasons.push(...reviewRouting.reasons);
-            decisions.push({
-              laneId: lane.laneId,
-              status: "blocked",
-              targetState: lane.state,
-              action: session?.status === "paused" ? "pause-session" : "none",
-              nextAction: "pause",
-              assignedOwner,
-              reasons: freezeList(reasons),
-              reviewRouting,
-              lane,
-              worktree,
-              session
-            });
+            const escalateAction: SupervisorDispatchAction = session?.status === "paused" ? "pause-session" : "none";
+            decisions.push(buildDecision(lane.laneId, "blocked", lane.state, escalateAction, "pause", assignedOwner, freezeList(reasons), lane, { reviewRouting, worktree, session }));
             continue;
           }
 
@@ -648,19 +637,8 @@ export const createSupervisorDispatchLoop = (
               );
             }
             reasons.push(...reviewRouting.reasons);
-            decisions.push({
-              laneId: lane.laneId,
-              status: "blocked",
-              targetState: lane.state,
-              action: session?.status === "paused" ? "pause-session" : "none",
-              nextAction: "pause",
-              assignedOwner,
-              reasons: freezeList(reasons),
-              reviewRouting,
-              lane,
-              worktree,
-              session
-            });
+            const blockAction: SupervisorDispatchAction = session?.status === "paused" ? "pause-session" : "none";
+            decisions.push(buildDecision(lane.laneId, "blocked", lane.state, blockAction, "pause", assignedOwner, freezeList(reasons), lane, { reviewRouting, worktree, session }));
             continue;
           }
 
@@ -682,52 +660,18 @@ export const createSupervisorDispatchLoop = (
           worktree = findWorktree(state, lane.worktreeId);
           session = findSession(state, lane.sessionId);
           reasons.push(...reviewRouting.reasons);
-          decisions.push({
-            laneId: lane.laneId,
-            status: "review_ready",
-            targetState: "review_ready",
-            action: "none",
-            nextAction: "continue",
-            assignedOwner,
-            reasons: freezeList(reasons),
-            reviewRouting,
-            lane,
-            worktree,
-            session
-          });
+          decisions.push(buildDecision(lane.laneId, "review_ready", "review_ready", "none", "continue", assignedOwner, freezeList(reasons), lane, { reviewRouting, worktree, session }));
           continue;
         } catch (error) {
           reasons.push(error instanceof Error ? error.message : "Lane review-ready handoff validation failed.");
-          decisions.push({
-            laneId: lane.laneId,
-            status: "blocked",
-            targetState: lane.state,
-            action: "none",
-            nextAction: "pause",
-            assignedOwner,
-            reasons: freezeList(reasons),
-            lane,
-            worktree,
-            session
-          });
+          decisions.push(buildDecision(lane.laneId, "blocked", lane.state, "none", "pause", assignedOwner, freezeList(reasons), lane, { worktree, session }));
           continue;
         }
       }
 
       if (dependencyStatus.blocked) {
         reasons.push(...dependencyStatus.reasons);
-        decisions.push({
-          laneId: lane.laneId,
-          status: "blocked",
-          targetState: lane.state,
-          action: "none",
-          nextAction: "pause",
-          assignedOwner,
-          reasons: freezeList(reasons),
-          lane,
-          worktree,
-          session
-        });
+        decisions.push(buildDecision(lane.laneId, "blocked", lane.state, "none", "pause", assignedOwner, freezeList(reasons), lane, { worktree, session }));
         continue;
       }
 
@@ -746,18 +690,7 @@ export const createSupervisorDispatchLoop = (
         }
 
         reasons.push(`Lane is waiting on: ${waitingOn.join(", ")}.`);
-        decisions.push({
-          laneId: lane.laneId,
-          status: "blocked",
-          targetState: lane.state,
-          action: "none",
-          nextAction: "pause",
-          assignedOwner,
-          reasons: freezeList(reasons),
-          lane,
-          worktree,
-          session
-        });
+        decisions.push(buildDecision(lane.laneId, "blocked", lane.state, "none", "pause", assignedOwner, freezeList(reasons), lane, { worktree, session }));
         continue;
       }
 
@@ -790,18 +723,7 @@ export const createSupervisorDispatchLoop = (
 
         if (session?.status === "paused" && laneInput.approvalGate.signal?.status !== "approved") {
           reasons.push(...approvalDecision.reasons, "Execution stays paused until an explicit approval event arrives.");
-          decisions.push({
-            laneId: lane.laneId,
-            status: "blocked",
-            targetState: lane.state,
-            action: "none",
-            nextAction: "pause",
-            assignedOwner,
-            reasons: freezeList(reasons),
-            lane,
-            worktree,
-            session
-          });
+          decisions.push(buildDecision(lane.laneId, "blocked", lane.state, "none", "pause", assignedOwner, freezeList(reasons), lane, { worktree, session }));
           continue;
         }
 
@@ -832,18 +754,8 @@ export const createSupervisorDispatchLoop = (
           }
 
           reasons.push(...approvalDecision.reasons);
-          decisions.push({
-            laneId: lane.laneId,
-            status: "blocked",
-            targetState: lane.state,
-            action: session?.status === "paused" ? "pause-session" : "none",
-            nextAction: "pause",
-            assignedOwner,
-            reasons: freezeList(reasons),
-            lane,
-            worktree,
-            session
-          });
+          const approvalPauseAction: SupervisorDispatchAction = session?.status === "paused" ? "pause-session" : "none";
+          decisions.push(buildDecision(lane.laneId, "blocked", lane.state, approvalPauseAction, "pause", assignedOwner, freezeList(reasons), lane, { worktree, session }));
           continue;
         }
 
@@ -877,18 +789,7 @@ export const createSupervisorDispatchLoop = (
             session = sessionResult.session;
             lane = sessionResult.lane;
             reasons.push(...approvalDecision.reasons);
-            decisions.push({
-              laneId: lane.laneId,
-              status: "active",
-              targetState: "active",
-              action: "resume-session",
-              nextAction: "resume",
-              assignedOwner,
-              reasons: freezeList(reasons),
-              lane,
-              worktree,
-              session
-            });
+            decisions.push(buildDecision(lane.laneId, "active", "active", "resume-session", "resume", assignedOwner, freezeList(reasons), lane, { worktree, session }));
             continue;
           }
         }
@@ -898,18 +799,7 @@ export const createSupervisorDispatchLoop = (
         const activeLaneCount = countActiveLanes(state);
         if (activeLaneCount >= policy.maxActiveLanes) {
           reasons.push(`Active lane cap ${policy.maxActiveLanes} is already saturated.`);
-          decisions.push({
-            laneId: lane.laneId,
-            status: "at-lane-cap",
-            targetState: lane.state,
-            action: "none",
-            nextAction: "pause",
-            assignedOwner,
-            reasons: freezeList(reasons),
-            lane,
-            worktree,
-            session
-          });
+          decisions.push(buildDecision(lane.laneId, "at-lane-cap", lane.state, "none", "pause", assignedOwner, freezeList(reasons), lane, { worktree, session }));
           continue;
         }
 
@@ -944,18 +834,8 @@ export const createSupervisorDispatchLoop = (
         lane = provisionResult.lane;
         worktree = provisionResult.worktree;
         reasons.push(...provisionResult.reasons);
-        decisions.push({
-          laneId: lane.laneId,
-          status: "active",
-          targetState: "active",
-          action: provisionResult.action === "blocked" ? "none" : "provision-worktree",
-          nextAction: "continue",
-          assignedOwner,
-          reasons: freezeList(reasons),
-          lane,
-          worktree,
-          session,
-        });
+        const provisionAction: SupervisorDispatchAction = provisionResult.action === "blocked" ? "none" : "provision-worktree";
+        decisions.push(buildDecision(lane.laneId, "active", "active", provisionAction, "continue", assignedOwner, freezeList(reasons), lane, { worktree, session }));
         continue;
       }
 
@@ -971,18 +851,7 @@ export const createSupervisorDispatchLoop = (
         });
         session = sessionResult.session;
         lane = sessionResult.lane;
-        decisions.push({
-          laneId: lane.laneId,
-          status: "active",
-          targetState: "active",
-          action: "launch-session",
-          nextAction: "continue",
-          assignedOwner,
-          reasons: freezeList(reasons),
-          lane,
-          worktree,
-          session
-        });
+        decisions.push(buildDecision(lane.laneId, "active", "active", "launch-session", "continue", assignedOwner, freezeList(reasons), lane, { worktree, session }));
         continue;
       }
 
@@ -1001,35 +870,13 @@ export const createSupervisorDispatchLoop = (
 
           if (retryDecision.action === "exhausted") {
             reasons.push(`Retry exhausted: ${retryDecision.reason}`);
-            decisions.push({
-              laneId: lane.laneId,
-              status: session.status === "stalled" ? "active" : "active",
-              targetState: lane.state,
-              action: "none",
-              nextAction: "pause",
-              assignedOwner,
-              reasons: freezeList(reasons),
-              lane,
-              worktree,
-              session
-            });
+            decisions.push(buildDecision(lane.laneId, "active", lane.state, "none", "pause", assignedOwner, freezeList(reasons), lane, { worktree, session }));
             continue;
           }
 
           if (retryDecision.action === "skip" && childRecord) {
             reasons.push(retryDecision.reason);
-            decisions.push({
-              laneId: lane.laneId,
-              status: "active",
-              targetState: lane.state,
-              action: "none",
-              nextAction: "pause",
-              assignedOwner,
-              reasons: freezeList(reasons),
-              lane,
-              worktree,
-              session
-            });
+            decisions.push(buildDecision(lane.laneId, "active", lane.state, "none", "pause", assignedOwner, freezeList(reasons), lane, { worktree, session }));
             continue;
           }
         }
@@ -1056,33 +903,13 @@ export const createSupervisorDispatchLoop = (
 
         session = sessionResult.session;
         lane = sessionResult.lane;
-        decisions.push({
-          laneId: lane.laneId,
-          status: "active",
-          targetState: "active",
-          action: session.status === "active" && sessionResult.action === "resumed" ? "resume-session" : "replace-session",
-          nextAction: session.status === "active" && sessionResult.action === "resumed" ? "resume" : "continue",
-          assignedOwner,
-          reasons: freezeList(reasons),
-          lane,
-          worktree,
-          session
-        });
+        const resumeAction: SupervisorDispatchAction = session.status === "active" && sessionResult.action === "resumed" ? "resume-session" : "replace-session";
+        const resumeNext: SupervisorApprovalNextAction = session.status === "active" && sessionResult.action === "resumed" ? "resume" : "continue";
+        decisions.push(buildDecision(lane.laneId, "active", "active", resumeAction, resumeNext, assignedOwner, freezeList(reasons), lane, { worktree, session }));
         continue;
       }
 
-      decisions.push({
-        laneId: lane.laneId,
-        status: "active",
-        targetState: "active",
-        action: "none",
-        nextAction: "continue",
-        assignedOwner,
-        reasons: freezeList(reasons),
-        lane,
-        worktree,
-        session
-      });
+      decisions.push(buildDecision(lane.laneId, "active", "active", "none", "continue", assignedOwner, freezeList(reasons), lane, { worktree, session }));
     }
 
     return {
