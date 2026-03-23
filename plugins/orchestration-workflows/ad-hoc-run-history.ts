@@ -1,4 +1,5 @@
 import type { EvidenceLink, WorkUnit } from "./work-unit";
+import { freezeRecord } from "./internal-utils";
 
 export type AdHocRunArtifactKind =
   | "pull-request"
@@ -37,8 +38,6 @@ export type AdHocRunHistoryInput = {
   createdAt: string;
   relatedArtifacts?: AdHocRunArtifactLink[];
 };
-
-const freezeRecord = <T extends Record<string, unknown>>(value: T): Readonly<T> => Object.freeze({ ...value });
 
 const dedupeStrings = (items: string[]): string[] => Array.from(new Set(items.map((item) => item.trim()).filter(Boolean)));
 

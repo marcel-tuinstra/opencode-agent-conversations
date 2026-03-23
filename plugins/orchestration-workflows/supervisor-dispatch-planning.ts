@@ -6,6 +6,7 @@ import {
 } from "./supervisor-routing";
 import type { SupervisorDispatchLaneInput } from "./supervisor-scheduler";
 import type { PlanSupervisorGoalResult } from "./supervisor-goal-plan";
+import { freezeList } from "./internal-utils";
 
 export type CreateSupervisorDispatchPlanInput = DecomposeSupervisorGoalIntoLanesInput & {
   readyDependencyReferences?: readonly string[];
@@ -22,8 +23,6 @@ export type SupervisorDispatchPlanResult = {
   warnings: readonly string[];
   remediation: readonly string[];
 };
-
-const freezeList = <T>(items: readonly T[]): readonly T[] => Object.freeze([...items]);
 
 const dedupe = (values: readonly string[]): readonly string[] => freezeList(Array.from(new Set(values)));
 

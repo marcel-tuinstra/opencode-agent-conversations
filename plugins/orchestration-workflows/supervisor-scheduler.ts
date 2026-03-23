@@ -44,6 +44,7 @@ import {
   type ReviewRoutingDecision,
   type ReviewRoutingPolicyDecision
 } from "./review-coordination";
+import { freezeList, assertNonEmpty, findLane, findWorktree, findSession } from "./internal-utils";
 
 export type SupervisorLaneDefinition = {
   laneId: string;
@@ -135,29 +136,7 @@ export type CreateSupervisorDispatchLoopOptions = {
   reviewRoutingPolicyEvaluator?: SupervisorReviewRoutingPolicyEvaluator;
 };
 
-const freezeList = <T>(items: readonly T[]): readonly T[] => Object.freeze([...items]);
 
-const assertNonEmpty = (value: string, field: string): string => {
-  const normalized = value.trim();
-
-  if (normalized.length === 0) {
-    throw new Error(`Supervisor scheduler requires a non-empty ${field}.`);
-  }
-
-  return normalized;
-};
-
-const findLane = (state: SupervisorRunState, laneId: string): SupervisorLaneRecord | undefined => (
-  state.lanes.find((lane) => lane.laneId === laneId)
-);
-
-const findWorktree = (state: SupervisorRunState, worktreeId?: string): SupervisorWorktreeRecord | undefined => (
-  worktreeId ? state.worktrees.find((worktree) => worktree.worktreeId === worktreeId) : undefined
-);
-
-const findSession = (state: SupervisorRunState, sessionId?: string): SupervisorSessionRecord | undefined => (
-  sessionId ? state.sessions.find((session) => session.sessionId === sessionId) : undefined
-);
 
 const findApproval = (state: SupervisorRunState, approvalId: string): SupervisorApprovalRecord | undefined => (
   state.approvals.find((approval) => approval.approvalId === approvalId)

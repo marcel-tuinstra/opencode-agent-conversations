@@ -9,6 +9,7 @@ import type {
 import type { ChildSessionRecord, ChildSessionState } from "./child-session-lifecycle";
 import { assertChildSessionTransition, canTransitionChildSession } from "./child-session-lifecycle";
 import { createSupervisorEvent, type SupervisorCorrelationContext, type SupervisorEvent } from "./supervisor-event-catalog";
+import { freezeRecord, assertNonEmpty, assertTimestamp, findLane, findWorktree, findSession } from "./internal-utils";
 
 export const DEFAULT_SUPERVISOR_SESSION_STALL_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -173,43 +174,13 @@ export type CreateSupervisorSessionLifecycleOptions = {
   emitEvent?: (event: SupervisorEvent) => void;
 };
 
-const freezeRecord = <T extends Record<string, unknown>>(value: T): Readonly<T> => Object.freeze({ ...value });
 
-const assertNonEmpty = (value: string, field: string): string => {
-  const normalized = value.trim();
-
-  if (normalized.length === 0) {
-    throw new Error(`Supervisor session lifecycle requires a non-empty ${field}.`);
-  }
-
-  return normalized;
-};
-
-const assertTimestamp = (value: string, field: string): string => {
-  const normalized = assertNonEmpty(value, field);
-
-  if (Number.isNaN(Date.parse(normalized))) {
-    throw new Error(`Supervisor session lifecycle requires a valid ${field}.`);
-  }
-
-  return normalized;
-};
 
 const buildSupervisorSessionId = (runId: string, laneId: string, attempt: number): string => (
   `${assertNonEmpty(runId, "run id")}:${assertNonEmpty(laneId, "lane id")}:session-${String(attempt).padStart(2, "0")}`
 );
 
-const findLane = (state: SupervisorRunState, laneId: string): SupervisorLaneRecord | undefined => (
-  state.lanes.find((lane) => lane.laneId === laneId)
-);
 
-const findWorktree = (state: SupervisorRunState, worktreeId: string): SupervisorWorktreeRecord | undefined => (
-  state.worktrees.find((worktree) => worktree.worktreeId === worktreeId)
-);
-
-const findSession = (state: SupervisorRunState, sessionId: string): SupervisorSessionRecord | undefined => (
-  state.sessions.find((session) => session.sessionId === sessionId)
-);
 
 const resolveRunState = async (store: SupervisorStateStore, runId: string): Promise<SupervisorRunState> => {
   const normalizedRunId = assertNonEmpty(runId, "run id");

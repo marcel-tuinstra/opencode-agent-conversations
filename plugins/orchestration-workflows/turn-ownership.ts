@@ -1,4 +1,5 @@
 import type { Role } from "./types";
+import { assertNonEmpty as assertNonEmptyValue } from "./internal-utils";
 
 export type LaneTurnRole = Role | "TESTER" | "REVIEWER" | (string & {});
 
@@ -26,16 +27,6 @@ export type LaneTurnHandoffInput = {
 
 export type LaneTurnHandoffContract = LaneTurnHandoffInput & {
   openQuestions: readonly string[];
-};
-
-const assertNonEmptyValue = (value: string, field: string): string => {
-  const normalized = value.trim();
-
-  if (normalized.length === 0) {
-    throw new Error(`Lane turn handoff requires a non-empty ${field}.`);
-  }
-
-  return normalized;
 };
 
 const normalizeEvidenceList = (values: readonly string[], field: string): string[] => {

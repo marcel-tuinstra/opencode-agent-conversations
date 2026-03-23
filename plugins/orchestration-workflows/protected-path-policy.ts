@@ -6,6 +6,7 @@ import {
   type SupervisorProtectedPathOutcome,
   type SupervisorProtectedPathRule
 } from "./supervisor-config";
+import { freezeList } from "./internal-utils";
 
 export type ProtectedPathDecisionSource = "explicit-rule" | "policy-default";
 
@@ -32,8 +33,6 @@ export type ProtectedPathPolicyDecision = {
   reasons: readonly string[];
   reasonDetails: readonly SupervisorReasonDetail[];
 };
-
-const freezeList = <T>(items: readonly T[]): readonly T[] => Object.freeze([...items]);
 
 const OUTCOME_PRIORITY: Record<SupervisorProtectedPathOutcome, number> = {
   allow: 0,

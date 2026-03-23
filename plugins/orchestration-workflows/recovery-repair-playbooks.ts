@@ -10,6 +10,7 @@ import type {
   SupervisorWorktreeRecord
 } from "./durable-state-store";
 import type { SupervisorLaneWorktreeReconciliationReport } from "./lane-worktree-provisioner";
+import { freezeRecord, freezeList, assertNonEmpty, assertTimestamp, findLane, findWorktree, findSession } from "./internal-utils";
 
 export const DEFAULT_SUPERVISOR_RECOVERY_STALL_TIMEOUT_MS = 5 * 60 * 1000;
 
@@ -102,41 +103,7 @@ export type SupervisorPartialCompletionGap = {
   isIncomplete: boolean;
 };
 
-const freezeRecord = <T extends Record<string, unknown>>(value: T): Readonly<T> => Object.freeze({ ...value });
 
-const freezeList = <T>(items: readonly T[]): readonly T[] => Object.freeze([...items]);
-
-const assertNonEmpty = (value: string, field: string): string => {
-  const normalized = value.trim();
-
-  if (normalized.length === 0) {
-    throw new Error(`Recovery playbooks require a non-empty ${field}.`);
-  }
-
-  return normalized;
-};
-
-const assertTimestamp = (value: string, field: string): string => {
-  const normalized = assertNonEmpty(value, field);
-
-  if (Number.isNaN(Date.parse(normalized))) {
-    throw new Error(`Recovery playbooks require a valid ${field}.`);
-  }
-
-  return normalized;
-};
-
-const findLane = (state: SupervisorRunState, laneId: string): SupervisorLaneRecord | undefined => (
-  state.lanes.find((lane) => lane.laneId === laneId)
-);
-
-const findWorktree = (state: SupervisorRunState, worktreeId?: string): SupervisorWorktreeRecord | undefined => (
-  worktreeId ? state.worktrees.find((worktree) => worktree.worktreeId === worktreeId) : undefined
-);
-
-const findSession = (state: SupervisorRunState, sessionId?: string): SupervisorSessionRecord | undefined => (
-  sessionId ? state.sessions.find((session) => session.sessionId === sessionId) : undefined
-);
 
 const normalizeArtifactKinds = (kinds: readonly SupervisorPersistedArtifactKind[] | undefined): readonly SupervisorPersistedArtifactKind[] => (
   freezeList(Array.from(new Set((kinds ?? []).map((kind) => kind.trim() as SupervisorPersistedArtifactKind))))

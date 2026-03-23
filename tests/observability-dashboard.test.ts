@@ -321,7 +321,7 @@ describe("observability-dashboard", () => {
     expect(() => createSupervisorObservabilityDashboard({
       generatedAt: "not-a-date",
       lanes: []
-    })).toThrow("Supervisor observability dashboard requires a valid generated timestamp.");
+    })).toThrow("requires a valid generated timestamp.");
     expect(() => createSupervisorObservabilityDashboard({
       generatedAt: "2026-03-12T12:00:00.000Z",
       lanes: [
@@ -330,6 +330,6 @@ describe("observability-dashboard", () => {
           state: "active"
         }
       ]
-    })).toThrow("Supervisor observability dashboard requires a non-empty lane id.");
+    })).toThrow("requires a non-empty lane id.");
   });
 });

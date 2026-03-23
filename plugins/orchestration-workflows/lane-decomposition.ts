@@ -1,6 +1,7 @@
 import { planWorkUnitLanes, type LanePlan, type LanePlanningWorkUnit } from "./lane-plan";
 import { createSupervisorLaneDefinitions, type CreateSupervisorLaneDefinitionsOptions, type SupervisorLaneDefinition } from "./supervisor-scheduler";
 import type { PlanSupervisorGoalResult } from "./supervisor-goal-plan";
+import { freezeList } from "./internal-utils";
 
 export type DecomposeSupervisorGoalIntoLanesInput = {
   goalPlan: PlanSupervisorGoalResult;
@@ -18,8 +19,6 @@ export type SupervisorLaneDecompositionResult = {
   warnings: readonly string[];
   remediation: readonly string[];
 };
-
-const freezeList = <T>(items: readonly T[]): readonly T[] => Object.freeze([...items]);
 
 export const decomposeSupervisorGoalIntoLanes = (
   input: DecomposeSupervisorGoalIntoLanesInput

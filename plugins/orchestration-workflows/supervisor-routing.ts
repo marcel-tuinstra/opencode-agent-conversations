@@ -10,6 +10,7 @@ import { getSupervisorPolicy, type SupervisorExecutionPath } from "./supervisor-
 import type { SupervisorLaneDefinition } from "./supervisor-scheduler";
 import type { Role } from "./types";
 import type { WorkUnit } from "./work-unit";
+import { freezeList } from "./internal-utils";
 
 export type SupervisorRoutingConfidence = "low" | "medium" | "high";
 
@@ -53,8 +54,6 @@ export type RouteSupervisorWorkUnitResult = {
   };
   thresholdEvents: readonly SupervisorThresholdEvent[];
 };
-
-const freezeList = <T>(items: readonly T[]): readonly T[] => Object.freeze([...items]);
 
 const buildRoutingText = (workUnit: WorkUnit): string => [
   workUnit.objective,

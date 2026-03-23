@@ -3,6 +3,7 @@ import type { BudgetGovernanceDecision, BudgetGovernanceStatus } from "./budget-
 import type { LaneLifecycleState } from "./lane-lifecycle";
 import type { SupervisorReasonDetail } from "./reason-codes";
 import type { LaneTurnHandoffContract, LaneTurnRole } from "./turn-ownership";
+import { assertNonEmpty as assertNonEmptyValue, assertTimestamp } from "./internal-utils";
 
 export type SupervisorHeartbeatHealth = "healthy" | "stale" | "missing";
 
@@ -146,25 +147,7 @@ const normalizeOptionalRunId = (value: string | undefined): string | undefined =
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
-const assertNonEmptyValue = (value: string, field: string): string => {
-  const normalized = value.trim();
 
-  if (normalized.length === 0) {
-    throw new Error(`Supervisor observability dashboard requires a non-empty ${field}.`);
-  }
-
-  return normalized;
-};
-
-const assertTimestamp = (value: string, field: string): string => {
-  const normalized = assertNonEmptyValue(value, field);
-
-  if (Number.isNaN(Date.parse(normalized))) {
-    throw new Error(`Supervisor observability dashboard requires a valid ${field}.`);
-  }
-
-  return normalized;
-};
 
 const assertPositiveInteger = (value: number, field: string): number => {
   if (!Number.isInteger(value) || value <= 0) {

@@ -7,6 +7,7 @@ import {
 import { planSupervisorGoal, type PlanSupervisorGoalResult } from "./supervisor-goal-plan";
 import { getSupervisorPolicy } from "./supervisor-config";
 import type { Role } from "./types";
+import { freezeList } from "./internal-utils";
 
 export type SupervisorBootstrapPreviewStatus = "supported" | "unsupported";
 export type SupervisorBootstrapCheckStatus = "ready" | "blocked";
@@ -78,8 +79,6 @@ export type SupervisorBootstrapPreviewResult = {
   warnings: readonly string[];
   remediation: readonly string[];
 };
-
-const freezeList = <T>(items: readonly T[]): readonly T[] => Object.freeze([...items]);
 
 const dedupe = (values: readonly string[]): readonly string[] => freezeList(Array.from(new Set(values)));
 

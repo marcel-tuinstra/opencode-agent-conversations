@@ -1,5 +1,6 @@
 import type { LaneTurnHandoffContract, LaneTurnHandoffInput } from "./turn-ownership";
 import { createLaneTurnHandoffContract } from "./turn-ownership";
+import { freezeRecord, freezeList, assertNonEmpty as normalizeNonEmpty, assertTimestamp as normalizeTimestamp } from "./internal-utils";
 
 export type LaneOutputArtifactKind = "branch" | "pull-request" | "review-packet" | "session-log" | "validation" | "diff" | "other";
 export type LaneCompletionStatus = "ready" | "blocked";
@@ -50,25 +51,6 @@ export type LaneCompletionHandoffEvaluation = {
   valid: boolean;
   outcome: LaneCompletionHandoffOutcome;
   violations: readonly LaneContractViolation[];
-};
-
-const freezeRecord = <T extends Record<string, unknown>>(value: T): Readonly<T> => Object.freeze({ ...value });
-const freezeList = <T>(items: readonly T[]): readonly T[] => Object.freeze([...items]);
-
-const normalizeNonEmpty = (value: string, field: string): string => {
-  const normalized = value.trim();
-  if (normalized.length === 0) {
-    throw new Error(`Lane completion contract requires a non-empty ${field}.`);
-  }
-  return normalized;
-};
-
-const normalizeTimestamp = (value: string, field: string): string => {
-  const normalized = normalizeNonEmpty(value, field);
-  if (Number.isNaN(Date.parse(normalized))) {
-    throw new Error(`Lane completion contract requires a valid ${field}.`);
-  }
-  return normalized;
 };
 
 const normalizeStringList = (values: readonly string[], field: string, requireAtLeastOne: boolean): readonly string[] => {

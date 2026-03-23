@@ -7,6 +7,7 @@ import type {
 } from "./durable-state-store";
 import type { SupervisorObservedThresholdEvent } from "./observability-dashboard";
 import type { ReviewRoutingDecision } from "./review-coordination";
+import { freezeList, freezeRecord, assertNonEmpty, assertTimestamp } from "./internal-utils";
 
 export type SupervisorDataLifecycleStage = "active" | "archived" | "deleted";
 export type SupervisorDataLifecycleRecommendation = "retain" | "archive-review" | "delete-review";
@@ -124,28 +125,7 @@ const RETENTION_BLOCKING_SESSION_STATUSES = new Set<SupervisorPersistedSessionSt
 
 const UNRELEASED_WORKTREE_STATUSES = new Set<SupervisorPersistedWorktreeStatus>(["active", "parked"]);
 
-const freezeList = <T>(items: readonly T[]): readonly T[] => Object.freeze([...items]);
-const freezeRecord = <T extends Record<string, unknown>>(value: T): Readonly<T> => Object.freeze({ ...value });
 
-const assertNonEmpty = (value: string, field: string): string => {
-  const normalized = value.trim();
-
-  if (normalized.length === 0) {
-    throw new Error(`Supervisor data lifecycle requires a non-empty ${field}.`);
-  }
-
-  return normalized;
-};
-
-const assertTimestamp = (value: string, field: string): string => {
-  const normalized = assertNonEmpty(value, field);
-
-  if (Number.isNaN(Date.parse(normalized))) {
-    throw new Error(`Supervisor data lifecycle requires a valid ${field}.`);
-  }
-
-  return normalized;
-};
 
 const mergePolicy = (policy?: Partial<SupervisorDataLifecyclePolicy>): SupervisorDataLifecyclePolicy => ({
   durableRuns: {

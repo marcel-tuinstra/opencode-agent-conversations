@@ -13,6 +13,7 @@ import {
   type ReviewReadyEvidencePacket,
   type ReviewReadyEvidencePacketInput
 } from "./review-ready-packet";
+import { freezeRecord, freezeList, assertNonEmpty } from "./internal-utils";
 
 export type ReviewCoordinationExternalSystem = "shortcut" | "jira" | "github" | "linear" | "custom";
 
@@ -144,25 +145,11 @@ export type ReviewCoordinationBundle = {
   pullRequest: ReviewCoordinationPullRequestPrep;
 };
 
-const freezeRecord = <T extends Record<string, unknown>>(value: T): Readonly<T> => Object.freeze({ ...value });
-
-const freezeList = <T>(items: readonly T[]): readonly T[] => Object.freeze([...items]);
-
 const REVIEW_ROUTING_OUTCOME_PRIORITY: Record<ReviewRoutingOutcome, number> = {
   accept: 0,
   repair: 1,
   escalate: 2,
   block: 3
-};
-
-const assertNonEmpty = (value: string, field: string): string => {
-  const normalized = value.trim();
-
-  if (normalized.length === 0) {
-    throw new Error(`Review coordination requires a non-empty ${field}.`);
-  }
-
-  return normalized;
 };
 
 const normalizeNonEmptyList = (values: readonly string[], field: string): readonly string[] => {

@@ -9,6 +9,7 @@ import type {
 import { createLaneCompletionContract, evaluateLaneCompletionContract } from "./lane-contract";
 import type { LaneTurnHandoffContract, LaneTurnHandoffInput } from "./turn-ownership";
 import { createLaneTurnHandoffContract } from "./turn-ownership";
+import { freezeList, assertNonEmpty as assertNonEmptyValue } from "./internal-utils";
 
 export type ReviewReadyAcceptanceTraceStatus = "done" | "follow-up";
 
@@ -59,7 +60,7 @@ export type ReviewReadyEvidencePacket = {
   ownership: ReviewReadyHandoffOwners;
 };
 
-const freezeList = <T>(items: readonly T[]): readonly T[] => Object.freeze([...items]);
+
 
 const createAcceptedValidation = (): LaneCompletionHandoffEvaluation => ({
   valid: true,
@@ -95,15 +96,7 @@ const isLaneCompletionContract = (
   (input as LaneCompletionContract).contractVersion === "v1"
 );
 
-const assertNonEmptyValue = (value: string, field: string): string => {
-  const normalized = value.trim();
 
-  if (normalized.length === 0) {
-    throw new Error(`Review-ready evidence packet requires a non-empty ${field}.`);
-  }
-
-  return normalized;
-};
 
 const normalizeNonEmptyList = (values: readonly string[], field: string): string[] => {
   const normalized = values

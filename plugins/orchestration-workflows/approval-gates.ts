@@ -6,6 +6,7 @@ import {
 import { evaluateProtectedPathPolicy } from "./protected-path-policy";
 import { createSupervisorReasonDetail, type SupervisorReasonDetail } from "./reason-codes";
 import { getSupervisorPolicy } from "./supervisor-config";
+import { freezeList, assertNonEmpty, assertTimestamp } from "./internal-utils";
 
 export type SupervisorApprovalBoundary =
   | "write"
@@ -79,27 +80,7 @@ export type SupervisorApprovalGateDecision = {
   thresholdEvents: readonly SupervisorThresholdEvent[];
 };
 
-const freezeList = <T>(items: readonly T[]): readonly T[] => Object.freeze([...items]);
 
-const assertNonEmpty = (value: string, field: string): string => {
-  const normalized = value.trim();
-
-  if (normalized.length === 0) {
-    throw new Error(`Approval gates require a non-empty ${field}.`);
-  }
-
-  return normalized;
-};
-
-const assertTimestamp = (value: string, field: string): string => {
-  const normalized = assertNonEmpty(value, field);
-
-  if (Number.isNaN(Date.parse(normalized))) {
-    throw new Error(`Approval gates require a valid ${field}.`);
-  }
-
-  return normalized;
-};
 
 const normalizeStringList = (values?: readonly string[]): readonly string[] => freezeList(
   Array.from(new Set((values ?? []).map((value) => value.trim()).filter(Boolean)))

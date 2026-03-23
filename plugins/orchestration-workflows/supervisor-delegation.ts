@@ -1,5 +1,6 @@
 import { getSupervisorPolicy, type SupervisorExecutionPolicy } from "./supervisor-config";
 import type { Role } from "./types";
+import { freezeList, freezeRecord } from "./internal-utils";
 
 const EXECUTION_ROLES = Object.freeze(["DEV", "FE", "BE", "UX"] as const satisfies readonly Role[]);
 const MANAGER_ROLES = Object.freeze(["CEO", "CTO", "PM", "PO", "RESEARCH", "MARKETING"] as const satisfies readonly Role[]);
@@ -82,8 +83,7 @@ export type SupervisorDelegationValidation = {
   plan: SupervisorDelegationPlan;
 };
 
-const freezeList = <T>(items: readonly T[]): readonly T[] => Object.freeze([...items]);
-const freezeRecord = <T extends Record<string, unknown>>(value: T): Readonly<T> => Object.freeze({ ...value });
+
 
 const normalizeString = (value: string | undefined, field: string): string | undefined => {
   if (value === undefined) {

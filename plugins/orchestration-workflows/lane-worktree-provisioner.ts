@@ -8,6 +8,7 @@ import type {
   SupervisorWorktreeRecord
 } from "./durable-state-store";
 import type { LaneLifecycleState } from "./lane-lifecycle";
+import { freezeRecord, freezeList, assertNonEmpty, findLane, findWorktree } from "./internal-utils";
 
 export const DEFAULT_SUPERVISOR_WORKTREE_ROOT = ".opencode/supervisor/worktrees";
 
@@ -121,19 +122,7 @@ export type SupervisorLaneWorktreeProvisioner = {
   reconcileLaneWorktrees(runId: string): Promise<SupervisorLaneWorktreeReconciliationReport>;
 };
 
-const freezeRecord = <T extends Record<string, unknown>>(value: T): Readonly<T> => Object.freeze({ ...value });
 
-const freezeList = <T>(items: readonly T[]): readonly T[] => Object.freeze([...items]);
-
-const assertNonEmpty = (value: string, field: string): string => {
-  const normalized = value.trim();
-
-  if (normalized.length === 0) {
-    throw new Error(`Supervisor lane worktree provisioner requires a non-empty ${field}.`);
-  }
-
-  return normalized;
-};
 
 const sanitizePathSegment = (value: string, field: string): string => {
   const normalized = assertNonEmpty(value, field)
@@ -274,13 +263,7 @@ const createNodeSupervisorLaneWorktreeSystem = (repoRoot: string): SupervisorLan
   }
 });
 
-const findLane = (state: SupervisorRunState, laneId: string): SupervisorLaneRecord | undefined => (
-  state.lanes.find((lane) => lane.laneId === laneId)
-);
 
-const findWorktree = (state: SupervisorRunState, worktreeId: string): SupervisorWorktreeRecord | undefined => (
-  state.worktrees.find((worktree) => worktree.worktreeId === worktreeId)
-);
 
 const buildPathCollisionMap = (worktrees: readonly SupervisorWorktreeRecord[]): Map<string, SupervisorWorktreeRecord[]> => {
   const collisions = new Map<string, SupervisorWorktreeRecord[]>();

@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node
 import path from "node:path";
 import type { LaneLifecycleState } from "./lane-lifecycle";
 import type { ChildSessionRecord } from "./child-session-lifecycle";
+import { freezeRecord, freezeList, assertNonEmpty, assertTimestamp } from "./internal-utils";
 
 export const SUPERVISOR_STATE_STORE_SCHEMA_VERSION = 2;
 export const DEFAULT_SUPERVISOR_STATE_ROOT = ".opencode/supervisor/state";
@@ -171,29 +172,7 @@ export type FileBackedSupervisorStateStoreOptions = {
   rootDir?: string;
 };
 
-const freezeRecord = <T extends Record<string, unknown>>(value: T): Readonly<T> => Object.freeze({ ...value });
 
-const freezeList = <T>(items: readonly T[]): readonly T[] => Object.freeze([...items]);
-
-const assertNonEmpty = (value: string, field: string): string => {
-  const normalized = value.trim();
-
-  if (normalized.length === 0) {
-    throw new Error(`Supervisor durable state requires a non-empty ${field}.`);
-  }
-
-  return normalized;
-};
-
-const assertTimestamp = (value: string, field: string): string => {
-  const normalized = assertNonEmpty(value, field);
-
-  if (Number.isNaN(Date.parse(normalized))) {
-    throw new Error(`Supervisor durable state requires a valid ${field}.`);
-  }
-
-  return normalized;
-};
 
 const normalizeRunRecord = (input: SupervisorRunRecordInput): SupervisorRunRecord => {
   const createdAt = assertTimestamp(input.createdAt, "run created timestamp");

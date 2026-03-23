@@ -6,6 +6,7 @@ import {
   type SupervisorGovernanceCheckpointPolicy,
   type SupervisorGovernancePolicyOutcome
 } from "./supervisor-config";
+import { freezeList } from "./internal-utils";
 
 export type GovernancePolicyDecisionSource = "explicit-policy" | "policy-default" | "missing-policy";
 
@@ -37,8 +38,6 @@ export type GovernancePolicyDecision = {
   reasonDetails: readonly SupervisorReasonDetail[];
   reasons: readonly string[];
 };
-
-const freezeList = <T>(items: readonly T[]): readonly T[] => Object.freeze([...items]);
 
 const OUTCOME_PRIORITY: Record<SupervisorGovernancePolicyOutcome, number> = {
   accept: 0,

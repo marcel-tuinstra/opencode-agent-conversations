@@ -27,6 +27,7 @@ import {
   type RunSupervisorDispatchLoopInput,
   type RunSupervisorDispatchLoopResult
 } from "./supervisor-scheduler";
+import { freezeList, assertNonEmpty } from "./internal-utils";
 import { createSupervisorReasonDetail, formatSupervisorReason } from "./reason-codes";
 
 export type SupervisorWorkflowStage = "intake" | "dispatch" | "approval" | "recovery" | "review" | "completion";
@@ -141,17 +142,7 @@ const WORKFLOW_STATUS_PREFIX = "workflow-status:";
 const WORKFLOW_NEXT_ACTION_PREFIX = "workflow-next-action:";
 const WORKFLOW_LANE_PREFIX = "workflow-lane:";
 
-const freezeList = <T>(items: readonly T[]): readonly T[] => Object.freeze([...items]);
 
-const assertNonEmpty = (value: string, field: string): string => {
-  const normalized = value.trim();
-
-  if (normalized.length === 0) {
-    throw new Error(`Supervisor execution workflow requires a non-empty ${field}.`);
-  }
-
-  return normalized;
-};
 
 const dedupe = (values: readonly string[]): readonly string[] => freezeList(Array.from(new Set(values.map((value) => value.trim()).filter(Boolean))));
 
