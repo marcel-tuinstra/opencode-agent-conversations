@@ -94,6 +94,22 @@ Use these prompts after restarting OpenCode:
 @research Compare approaches and list evidence with confidence and open questions.
 ```
 
+## Local shell sanity (non-mutating)
+
+When running quick `opencode run` sanity checks, prefer ownership/routing prompts that do not request implementation. This avoids accidental workspace edits during smoke tests.
+
+```text
+@be A customer asks for button spacing and header nav visual polish. Do not edit code; decide ownership and delegation only.
+```
+
+```text
+@fe Build a new PostgreSQL migration and API endpoint for invoice exports. ownership only.
+```
+
+```text
+@design Implement this React component and fix TypeScript errors. Decide ownership only.
+```
+
 ## Specialist boundary regression
 
 Run the dedicated specialist sanity script whenever role routing, aliases, or agent prompts change:
