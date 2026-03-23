@@ -1,11 +1,11 @@
 #!/bin/sh
-# opencode-council installer v0.6.2
+# opencode-council installer v0.7.0
 # Install orchestration-workflows plugin + agent files for OpenCode.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/opencode-council/v0.6.2/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/opencode-council/v0.7.0/install.sh | bash
 #   # — or —
-#   curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/opencode-council/v0.6.2/install.sh -o install.sh
+#   curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/opencode-council/v0.7.0/install.sh -o install.sh
 #   bash install.sh
 #
 # Environment variables:
@@ -16,7 +16,7 @@ set -e
 
 # ─── Constants ───────────────────────────────────────────────────────────────
 
-VERSION="0.6.2"
+VERSION="0.7.0"
 REF="v${VERSION}"
 REPO_URL="https://github.com/marcel-tuinstra/opencode-council.git"
 RAW_BASE="https://raw.githubusercontent.com/marcel-tuinstra/opencode-council/${REF}"
@@ -41,10 +41,12 @@ contracts.ts
 data-lifecycle.ts
 debug.ts
 delegation-bridge.ts
+discovery-heuristics.ts
 durable-state-store.ts
 governance-policy.ts
 guardrail-thresholds.ts
 intent.ts
+internal-utils.ts
 lane-contract.ts
 lane-decomposition.ts
 lane-lifecycle.ts
@@ -354,8 +356,8 @@ download_with_git() {
 # ─── Success message ─────────────────────────────────────────────────────────
 
 print_success() {
-  # Count: 1 barrel + 50 modules + 10 agents = 61
-  _total=61
+  # Count: 1 barrel + 52 modules + 10 agents = 63
+  _total=63
 
   echo ""
   success "${BOLD}Done!${RESET}${GREEN} ${_total} files installed to ${INSTALL_DIR}/${RESET}"
