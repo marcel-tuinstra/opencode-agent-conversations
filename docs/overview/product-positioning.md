@@ -20,7 +20,7 @@ This plugin uses a **deliberation model**. When you mention multiple roles, they
 - MCP gating: tools only activate when explicitly mentioned
 - Budget governance with reason codes and policy profiles
 - Stable runtime compatibility and deprecation policy for the `v0.5.x` line
-- 10 specialized agents: CTO, CEO, PO, PM, DEV, FE, BE, UX, Research, Marketing
+- 13 specialized agents: CTO, CEO, PO, PM, DEV, FE, BE, UX, Design, QA, Reviewer, Research, Marketing
 - 197 passing tests with CI on every PR
 
 ## Coming next

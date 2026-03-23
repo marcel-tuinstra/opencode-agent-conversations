@@ -67,7 +67,8 @@ const PKG_VERSION = existsSync(pkgJsonPath)
 const KNOWN_AGENTS = existsSync(SRC_AGENTS_DIR)
   ? readdirSync(SRC_AGENTS_DIR).filter((f) => f.endsWith(".md"))
   : ["be.md", "ceo.md", "cto.md", "dev.md", "fe.md",
-     "marketing.md", "pm.md", "po.md", "research.md", "ux.md"];
+     "marketing.md", "pm.md", "po.md", "research.md", "ux.md",
+     "design.md", "qa.md", "reviewer.md"];
 
 // ---------------------------------------------------------------------------
 // CLI argument parsing (minimal -- no dependencies)

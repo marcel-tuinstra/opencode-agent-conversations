@@ -13,6 +13,7 @@ import type { WorkUnit } from "./work-unit";
 import { freezeList } from "./internal-utils";
 
 export type SupervisorRoutingConfidence = "low" | "medium" | "high";
+export type SupervisorLaneCapability = "unrestricted" | "writer" | "proposal-only";
 
 export type SupervisorRoutingAction =
   | "none"
@@ -40,6 +41,7 @@ export type RouteSupervisorWorkUnitResult = {
   leadRole: Role;
   confidence: SupervisorRoutingConfidence;
   laneId?: string;
+  laneCapability: SupervisorLaneCapability;
   assignedOwner?: string;
   nextAction: SupervisorRoutingAction;
   missingPrerequisites: readonly string[];
@@ -172,13 +174,18 @@ const resolveNextAction = (
   input: RouteSupervisorWorkUnitInput,
   laneId: string | undefined,
   missingPrerequisites: readonly string[],
-  confidence: SupervisorRoutingConfidence
+  confidence: SupervisorRoutingConfidence,
+  laneCapability: SupervisorLaneCapability
 ): SupervisorRoutingAction => {
   if (missingPrerequisites.length > 0) {
     return "wait-for-prerequisites";
   }
 
   if (confidence === "low") {
+    return "manual-triage";
+  }
+
+  if (laneCapability === "proposal-only") {
     return "manual-triage";
   }
 
@@ -229,8 +236,21 @@ export const routeSupervisorWorkUnit = (input: RouteSupervisorWorkUnitInput): Ro
   const executionPath: SupervisorExecutionPath = fallbackActive ? "safe-hold" : profile.path;
   const leadRole = fallbackActive ? profile.fallbackLeadRole : profile.leadRole;
   const laneId = laneDefinition?.laneId;
+  const laneCapability: SupervisorLaneCapability = (() => {
+    if (!laneId) {
+      return "unrestricted";
+    }
+    const lane = input.runState?.lanes.find((candidate) => candidate.laneId === laneId);
+    if (lane?.writeCapability === "writer") {
+      return "writer";
+    }
+    if (lane?.writeCapability === "proposal-only") {
+      return "proposal-only";
+    }
+    return "unrestricted";
+  })();
   const assignment = selectAssignedOwner(input, laneId);
-  const nextAction = resolveNextAction(input, laneId, missingPrerequisites, confidence);
+  const nextAction = resolveNextAction(input, laneId, missingPrerequisites, confidence, laneCapability);
   const reasonDetails: SupervisorReasonDetail[] = [];
   const fallbackReason = missingPrerequisites.length > 0
     ? "missing-prerequisites"
@@ -295,6 +315,12 @@ export const routeSupervisorWorkUnit = (input: RouteSupervisorWorkUnitInput): Ro
     }));
   }
 
+  if (laneCapability === "proposal-only") {
+    reasonDetails.push(createSupervisorReasonDetail("writer.proposal-only-enforced", {
+      laneId
+    }));
+  }
+
   return {
     workUnitId: input.workUnitId,
     intent,
@@ -302,6 +328,7 @@ export const routeSupervisorWorkUnit = (input: RouteSupervisorWorkUnitInput): Ro
     leadRole,
     confidence,
     laneId,
+    laneCapability,
     assignedOwner: assignment.owner,
     nextAction,
     missingPrerequisites,

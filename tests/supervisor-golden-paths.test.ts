@@ -21,6 +21,9 @@ const threadTargets: Record<Role, number> = {
   FE: 0,
   BE: 0,
   UX: 0,
+  DESIGN: 0,
+  QA: 0,
+  REVIEWER: 0,
   PO: 0,
   PM: 0,
   CEO: 0,
@@ -111,6 +114,8 @@ describe("supervisor golden paths", () => {
       laneId: "lane-1",
       activeRole: "DEV",
       writeAuthorityRole: "DEV",
+      writeCapability: "writer",
+      writerProvenance: [],
       handoffHistory: []
     };
 
@@ -203,6 +208,17 @@ describe("supervisor golden paths", () => {
       laneId: "lane-1",
       activeRole: "REVIEWER",
       writeAuthorityRole: "REVIEWER",
+      writeCapability: "writer",
+      writerProvenance: [
+        {
+          fromRole: "DEV",
+          toRole: "REVIEWER",
+          reasonCode: "writer.handoff",
+          reason: "Golden path coverage and targeted validation are complete.",
+          actor: "DEV",
+          occurredAt: expect.any(String)
+        }
+      ],
       handoffHistory: [
         {
           laneId: "lane-1",

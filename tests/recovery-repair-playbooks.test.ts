@@ -187,6 +187,33 @@ describe("recovery-repair-playbooks", () => {
     ]);
   });
 
+  it("classifies worktree orphans as quarantine flows to avoid unsafe automated repair", () => {
+    // Arrange
+    const runState = createRunState();
+    const report = createReconciliationReport();
+    report.orphans = [
+      {
+        worktreeId: "run-recovery:lane-1",
+        path: "/tmp/run-recovery/lane-1",
+        reason: "Worktree path exists but the durable lane binding is no longer trustworthy."
+      }
+    ];
+
+    // Act
+    const playbook = classifySupervisorRecoveryPlaybook({
+      runState,
+      laneId: "lane-1",
+      observedAt: "2026-03-13T16:06:00.000Z",
+      worktreeReconciliation: report
+    });
+
+    // Assert
+    expect(playbook.classification.failureClass).toBe("worktree-drift");
+    expect(playbook.classification.disposition).toBe("quarantine");
+    expect(playbook.classification.reasons).toContain("Worktree path exists but the durable lane binding is no longer trustworthy.");
+    expect(playbook.approvalRequest?.boundary).toBe("destructive");
+  });
+
   it("classifies merge conflicts as repair playbooks that reopen review prep", () => {
     // Arrange
     const runState = createRunState();
@@ -254,6 +281,64 @@ describe("recovery-repair-playbooks", () => {
     expect(playbook.classification.disposition).toBe("repair");
     expect(playbook.classification.reasons).toEqual(["Missing ready artifacts: pull-request, review-packet."]);
     expect(playbook.actions.map((action) => action.kind)).toEqual(["rebuild-artifacts", "reopen-review"]);
+  });
+
+  it("escalates partial completion when approvals are still pending", () => {
+    // Arrange
+    const seededRunState = createRunState();
+    const runState: SupervisorRunState = {
+      ...seededRunState,
+      approvals: [
+        {
+          approvalId: "lane-2-merge",
+          laneId: "lane-2",
+          status: "pending",
+          boundary: "merge",
+          requestedAction: "merge lane-2",
+          summary: "Need merge approval",
+          rationale: "Fail closed before mainline merge.",
+          requestedBy: "supervisor",
+          requestedAt: "2026-03-13T16:04:00.000Z",
+          updatedAt: "2026-03-13T16:04:00.000Z"
+        }
+      ],
+      artifacts: [
+        ...seededRunState.artifacts,
+        {
+          artifactId: "lane-2-pr",
+          laneId: "lane-2",
+          kind: "pull-request",
+          status: "ready",
+          uri: "https://github.com/example/repo/pull/522",
+          updatedAt: "2026-03-13T16:04:00.000Z"
+        },
+        {
+          artifactId: "lane-2-review",
+          laneId: "lane-2",
+          kind: "review-packet",
+          status: "ready",
+          uri: "docs/review-packets/lane-2.md",
+          updatedAt: "2026-03-13T16:04:00.000Z"
+        }
+      ]
+    };
+
+    // Act
+    const playbook = classifySupervisorRecoveryPlaybook({
+      runState,
+      laneId: "lane-2",
+      observedAt: "2026-03-13T16:06:00.000Z"
+    });
+
+    // Assert
+    expect(playbook.classification.failureClass).toBe("partial-completion");
+    expect(playbook.classification.disposition).toBe("escalate");
+    expect(playbook.classification.reasons).toContain("Pending approvals: lane-2-merge.");
+    expect(playbook.actions.map((action) => action.kind)).toEqual([
+      "pause-lane",
+      "request-approval",
+      "escalate-human"
+    ]);
   });
 
   it("maps each ChildSessionFailureCode to the expected SupervisorRecoveryFailureClass", () => {

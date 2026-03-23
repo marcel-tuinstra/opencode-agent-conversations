@@ -131,4 +131,24 @@ describe("supervisor-goal-plan", () => {
     expect(result.status).toBe("unsupported");
     expect(result.confidence).toBe("low");
   });
+
+  it("supports bounded bug-triage prompts", () => {
+    const result = planSupervisorGoal({
+      goal: "Triage SC-581 regression in the checkout API and propose a fix plan with validation steps."
+    });
+
+    expect(result.status).toBe("supported");
+    expect(result.confidence).toBe("high");
+    expect(result.reasons.some((reason: string) => /bounded bug-triage/i.test(reason))).toBe(true);
+  });
+
+  it("keeps broad app-wide bug hunts unsupported", () => {
+    const result = planSupervisorGoal({
+      goal: "Triage all bugs across the app and create a full bug backlog."
+    });
+
+    expect(result.status).toBe("unsupported");
+    expect(result.reasons.some((reason: string) => /app-wide bug hunts are unsupported/i.test(reason))).toBe(true);
+    expect(result.remediation.length).toBeGreaterThan(0);
+  });
 });

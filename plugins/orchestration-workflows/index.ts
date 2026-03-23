@@ -43,6 +43,7 @@ import {
 } from "./roles";
 import { getSupervisorPolicy, getSupervisorPolicyDiagnostics } from "./supervisor-config";
 import { createSupervisorReasonDetail, formatSupervisorReason } from "./reason-codes";
+import { createSupervisorAsyncDelegationRuntime } from "./supervisor-async-delegation";
 import {
   resetSessionState,
   sessionPolicy,
@@ -71,7 +72,7 @@ export const AgentConversations: Plugin = async (input: PluginInput) => {
 
   // Supervisor state per session
   const supervisorPlans = new Map<string, SupervisorPlanResult>();
-  const supervisorChildSessions = new Map<string, { sessionId: string; laneId: string; status: string }[]>();
+  const supervisorAsyncDelegation = createSupervisorAsyncDelegationRuntime();
   const policyDiagnostics = getSupervisorPolicyDiagnostics();
   if (policyDiagnostics.length > 0) {
     debugLog("supervisor.policy.diagnostics", {
@@ -136,6 +137,11 @@ export const AgentConversations: Plugin = async (input: PluginInput) => {
         const sessionId = message.info.sessionID;
         if (sessionId) {
           supervisorPlans.set(sessionId, plan);
+          supervisorAsyncDelegation.primeParent({
+            parentSessionId: sessionId,
+            planStatus: plan.status,
+            allowedLaneIds: (plan.laneDecomposition?.laneDefinitionsPreview ?? []).map((lane: { laneId: string }) => lane.laneId)
+          });
         }
 
         // Set session policy with supervisor mode
@@ -534,6 +540,30 @@ export const AgentConversations: Plugin = async (input: PluginInput) => {
             return JSON.stringify({ error: "No OpenCode client available. Cannot launch child sessions." });
           }
 
+          const launchStartedAt = new Date().toISOString();
+          const launchDecision = supervisorAsyncDelegation.beginLaunch({
+            parentSessionId: context.sessionID,
+            laneId: args.laneId,
+            role: args.role,
+            objective: args.objective,
+            occurredAt: launchStartedAt
+          });
+          if (!launchDecision.allowed) {
+            debugLog("supervisor.tool.launch_blocked", {
+              sessionId: context.sessionID,
+              laneId: args.laneId,
+              role: args.role,
+              reasonCode: launchDecision.reasonCode,
+              reason: launchDecision.reason
+            });
+            return JSON.stringify({
+              status: "blocked",
+              laneId: args.laneId,
+              reasonCode: launchDecision.reasonCode,
+              reason: launchDecision.reason
+            });
+          }
+
           try {
             const { createOpencodeClientRuntimeAdapter } = await import("./opencode-client-adapter");
             const adapter = createOpencodeClientRuntimeAdapter({
@@ -552,22 +582,33 @@ export const AgentConversations: Plugin = async (input: PluginInput) => {
               occurredAt: new Date().toISOString()
             });
 
-            // Track the child session
-            const parentSessionId = context.sessionID;
-            if (!supervisorChildSessions.has(parentSessionId)) {
-              supervisorChildSessions.set(parentSessionId, []);
-            }
-            supervisorChildSessions.get(parentSessionId)!.push({
-              sessionId: snapshot.runtimeSessionId,
+            const launchCommitted = supervisorAsyncDelegation.commitLaunch({
+              parentSessionId: context.sessionID,
               laneId: args.laneId,
-              status: "launched"
+              childSessionId: snapshot.runtimeSessionId,
+              occurredAt: new Date().toISOString()
             });
+            if (!launchCommitted.allowed) {
+              debugLog("supervisor.tool.launch_tracking_failed", {
+                sessionId: context.sessionID,
+                laneId: args.laneId,
+                childSessionId: snapshot.runtimeSessionId,
+                reasonCode: launchCommitted.reasonCode,
+                reason: launchCommitted.reason
+              });
+              return JSON.stringify({
+                status: "failed",
+                laneId: args.laneId,
+                error: launchCommitted.reason ?? "Failed to track launched child session."
+              });
+            }
 
             debugLog("supervisor.tool.child_launched", {
               sessionId: context.sessionID,
               childSessionId: snapshot.runtimeSessionId,
               laneId: args.laneId,
-              role: args.role
+              role: args.role,
+              laneState: launchCommitted.lane?.state
             });
 
             return JSON.stringify({
@@ -578,6 +619,12 @@ export const AgentConversations: Plugin = async (input: PluginInput) => {
               message: `Child session ${snapshot.runtimeSessionId} launched for lane ${args.laneId} with ${args.role} agent.`
             });
           } catch (error) {
+            supervisorAsyncDelegation.failLaunch({
+              parentSessionId: context.sessionID,
+              laneId: args.laneId,
+              reason: String(error),
+              occurredAt: new Date().toISOString()
+            });
             debugLog("supervisor.tool.launch_failed", {
               sessionId: context.sessionID,
               laneId: args.laneId,
@@ -595,36 +642,40 @@ export const AgentConversations: Plugin = async (input: PluginInput) => {
 
     event: async ({ event }: { event: any }) => {
       // Monitor child session lifecycle events
-      if (event?.properties?.sessionID) {
-        const childId = event.properties.sessionID;
-        // Update tracked child sessions
-        for (const [parentId, children] of supervisorChildSessions) {
-          const child = children.find((c) => c.sessionId === childId);
-          if (child) {
-            if (event.type === "session.idle" || event.type === "session.completed") {
-              child.status = "completed";
-              debugLog("supervisor.event.child_completed", {
-                parentSessionId: parentId,
-                childSessionId: childId,
-                laneId: child.laneId
-              });
-            } else if (event.type === "session.error") {
-              child.status = "failed";
-              debugLog("supervisor.event.child_failed", {
-                parentSessionId: parentId,
-                childSessionId: childId,
-                laneId: child.laneId
-              });
-            }
+      if (typeof event?.properties?.sessionID !== "string") {
+        return;
+      }
 
-            // Clean up supervisor state when all children are terminal
-            const allTerminal = children.every(c => c.status === "completed" || c.status === "failed");
-            if (allTerminal) {
-              supervisorPlans.delete(parentId);
-              supervisorChildSessions.delete(parentId);
-            }
-          }
-        }
+      const childId = event.properties.sessionID;
+      const decision = supervisorAsyncDelegation.applySessionEvent({
+        eventType: String(event?.type ?? ""),
+        childSessionId: childId,
+        occurredAt: new Date().toISOString()
+      });
+      if (!decision.matched || !decision.parentSessionId || !decision.laneId) {
+        return;
+      }
+
+      if (decision.transitioned && decision.nextState === "completed") {
+        debugLog("supervisor.event.child_completed", {
+          parentSessionId: decision.parentSessionId,
+          childSessionId: childId,
+          laneId: decision.laneId
+        });
+      }
+
+      if (decision.transitioned && decision.nextState === "failed") {
+        debugLog("supervisor.event.child_failed", {
+          parentSessionId: decision.parentSessionId,
+          childSessionId: childId,
+          laneId: decision.laneId
+        });
+      }
+
+      // Clean up supervisor state when all children are terminal
+      if (supervisorAsyncDelegation.allChildSessionsTerminal(decision.parentSessionId)) {
+        supervisorPlans.delete(decision.parentSessionId);
+        supervisorAsyncDelegation.clearParent(decision.parentSessionId);
       }
     }
   };

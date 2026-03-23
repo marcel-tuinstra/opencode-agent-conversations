@@ -196,6 +196,37 @@ describe("supervisor-delegation", () => {
     ]));
   });
 
+  it("rejects implementation ownership for the full non-execution roster", () => {
+    // Arrange
+    const managerRoles = ["CEO", "CTO", "PM", "PO", "RESEARCH", "MARKETING", "DESIGN", "QA", "REVIEWER"] as const;
+    const input = {
+      assignments: managerRoles.map((role) => ({
+        storyId: "sc-519-boundary",
+        role,
+        agentLabel: role,
+        worktreePath: `/tmp/wt-${role.toLowerCase()}`,
+        responsibilities: ["Implement the orchestration workflow"]
+      })),
+      integration: {
+        agentLabel: "INTEGRATION",
+        worktreePath: "/tmp/wt-integration",
+        responsibilities: ["Review outputs"]
+      }
+    };
+
+    // Act
+    const result = validateSupervisorDelegationPlan(input);
+
+    // Assert
+    expect(result.valid).toBe(false);
+    expect(result.violations).toEqual(expect.arrayContaining(
+      managerRoles.map((role) => (
+        `Assignment '${role}' cannot own implementation responsibilities directly; delegate that work to DEV, FE, BE, or UX.`
+      ))
+    ));
+    expect(result.violations).toContain("Implementation-scoped runs require at least one DEV, FE, BE, or UX assignment.");
+  });
+
   it("does not treat review and planning responsibilities as implementation ownership for manager roles", () => {
     // Arrange
     const input = {

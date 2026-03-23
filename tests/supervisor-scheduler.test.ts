@@ -14,6 +14,7 @@ import {
   createSupervisorDispatchLoop,
   createSupervisorLaneDefinitions
 } from "../plugins/orchestration-workflows/supervisor-scheduler";
+import { resolveSupervisorPolicy } from "../plugins/orchestration-workflows/supervisor-config";
 import { createLaneCompletionContract } from "../plugins/orchestration-workflows/lane-contract";
 import {
   createSupervisorSessionLifecycle,
@@ -1496,5 +1497,223 @@ describe("supervisor-scheduler", () => {
         action: "replace-session"
       }
     ]);
+  });
+
+  it("enforces single-writer policy by allowing one writer and holding non-writer lanes proposal-only", async () => {
+    const rootDir = createTempRoot();
+    const { store, repoRoot, worktreeRootDir } = await seedRun(rootDir);
+    const system = createFakeSystem();
+    const runtime = createFakeRuntime();
+    const provisioner = createSupervisorLaneWorktreeProvisioner({ repoRoot, worktreeRootDir, store, system });
+    const sessions = createSupervisorSessionLifecycle({ store, runtime });
+    const singleWriterPolicy = resolveSupervisorPolicy({ profile: "v1-single-writer" }).config;
+    const scheduler = createSupervisorDispatchLoop({
+      store,
+      provisioner,
+      sessions,
+      policy: { profile: singleWriterPolicy.profile, execution: singleWriterPolicy.execution }
+    });
+    const lanes = [
+      {
+        definition: {
+          laneId: "lane-1",
+          sequence: 1,
+          workUnitIds: ["sc-576-core"],
+          dependsOnLaneIds: [],
+          branch: "marceltuinstra/sc-576/lane-01"
+        }
+      },
+      {
+        definition: {
+          laneId: "lane-2",
+          sequence: 2,
+          workUnitIds: ["sc-576-review"],
+          dependsOnLaneIds: [],
+          branch: "marceltuinstra/sc-576/lane-02"
+        }
+      }
+    ] as const;
+
+    const pass = await scheduler.run({
+      runId: "run-alpha",
+      actor: "supervisor",
+      occurredAt: "2026-03-23T11:01:00.000Z",
+      repoRiskTier: "medium-moderate-risk",
+      lanes,
+      sessionOwners: ["developer-a", "developer-b"],
+      baseRef: "main"
+    });
+
+    expect(pass.decisions).toMatchObject([
+      {
+        laneId: "lane-1",
+        action: "provision-worktree",
+        writeCapability: "writer"
+      },
+      {
+        laneId: "lane-2",
+        status: "blocked",
+        writeCapability: "proposal-only",
+        writerLaneId: "lane-1"
+      }
+    ]);
+    expect(pass.decisions[1]?.reasons[0]).toContain("proposal-only/read-only");
+  });
+
+  it("keeps writer-lane failure retry on existing recovery path", async () => {
+    const rootDir = createTempRoot();
+    const { store, repoRoot, worktreeRootDir } = await seedRun(rootDir);
+    const system = createFakeSystem();
+    const runtime = createFakeRuntime();
+    const provisioner = createSupervisorLaneWorktreeProvisioner({ repoRoot, worktreeRootDir, store, system });
+    const sessions = createSupervisorSessionLifecycle({ store, runtime });
+    const singleWriterPolicy = resolveSupervisorPolicy({ profile: "v1-single-writer" }).config;
+    const scheduler = createSupervisorDispatchLoop({
+      store,
+      provisioner,
+      sessions,
+      policy: { profile: singleWriterPolicy.profile, execution: singleWriterPolicy.execution }
+    });
+    const lanes = [{
+      definition: {
+        laneId: "lane-1",
+        sequence: 1,
+        workUnitIds: ["sc-576-retry"],
+        dependsOnLaneIds: [],
+        branch: "marceltuinstra/sc-576/lane-01"
+      }
+    }] as const;
+
+    await scheduler.run({
+      runId: "run-alpha",
+      actor: "supervisor",
+      occurredAt: "2026-03-23T12:01:00.000Z",
+      repoRiskTier: "medium-moderate-risk",
+      lanes,
+      sessionOwners: ["developer-a"],
+      baseRef: "main"
+    });
+    await scheduler.run({
+      runId: "run-alpha",
+      actor: "supervisor",
+      occurredAt: "2026-03-23T12:02:00.000Z",
+      repoRiskTier: "medium-moderate-risk",
+      lanes,
+      sessionOwners: ["developer-a"],
+      baseRef: "main"
+    });
+    await sessions.detectStalledSession({
+      runId: "run-alpha",
+      laneId: "lane-1",
+      actor: "supervisor",
+      mutationId: "dispatch:lane-1:stalled:2026-03-23T12:08:00.000Z",
+      observedAt: "2026-03-23T12:08:00.000Z",
+      stallTimeoutMs: 60_000,
+      failureReason: "Writer lane stalled during execution."
+    });
+
+    const retryPass = await scheduler.run({
+      runId: "run-alpha",
+      actor: "supervisor",
+      occurredAt: "2026-03-23T12:10:00.000Z",
+      repoRiskTier: "medium-moderate-risk",
+      lanes,
+      sessionOwners: ["developer-a"],
+      baseRef: "main"
+    });
+
+    expect(retryPass.decisions).toMatchObject([
+      {
+        laneId: "lane-1",
+        action: "replace-session",
+        writeCapability: "writer"
+      }
+    ]);
+  });
+
+  it("supports writer reassignment and abort directives with provenance reasons", async () => {
+    const rootDir = createTempRoot();
+    const { store, repoRoot, worktreeRootDir } = await seedRun(rootDir);
+    const system = createFakeSystem();
+    const runtime = createFakeRuntime();
+    const provisioner = createSupervisorLaneWorktreeProvisioner({ repoRoot, worktreeRootDir, store, system });
+    const sessions = createSupervisorSessionLifecycle({ store, runtime });
+    const singleWriterPolicy = resolveSupervisorPolicy({ profile: "v1-single-writer" }).config;
+    const scheduler = createSupervisorDispatchLoop({
+      store,
+      provisioner,
+      sessions,
+      policy: { profile: singleWriterPolicy.profile, execution: singleWriterPolicy.execution }
+    });
+    const lanes = [
+      {
+        definition: {
+          laneId: "lane-1",
+          sequence: 1,
+          workUnitIds: ["sc-576-primary"],
+          dependsOnLaneIds: [],
+          branch: "marceltuinstra/sc-576/lane-01"
+        }
+      },
+      {
+        definition: {
+          laneId: "lane-2",
+          sequence: 2,
+          workUnitIds: ["sc-576-secondary"],
+          dependsOnLaneIds: [],
+          branch: "marceltuinstra/sc-576/lane-02"
+        }
+      }
+    ] as const;
+
+    await scheduler.run({
+      runId: "run-alpha",
+      actor: "supervisor",
+      occurredAt: "2026-03-23T13:01:00.000Z",
+      repoRiskTier: "medium-moderate-risk",
+      lanes,
+      sessionOwners: ["developer-a", "developer-b"],
+      baseRef: "main"
+    });
+
+    const reassignPass = await scheduler.run({
+      runId: "run-alpha",
+      actor: "supervisor",
+      occurredAt: "2026-03-23T13:02:00.000Z",
+      repoRiskTier: "medium-moderate-risk",
+      lanes,
+      sessionOwners: ["developer-a", "developer-b"],
+      writerDirective: {
+        action: "reassign",
+        laneId: "lane-2",
+        reasonCode: "writer.reassigned",
+        reason: "Move writer authority to lane-2 for integration-first sequencing.",
+        provenance: "sc-576-reassign"
+      },
+      baseRef: "main"
+    });
+
+    const abortPass = await scheduler.run({
+      runId: "run-alpha",
+      actor: "supervisor",
+      occurredAt: "2026-03-23T13:03:00.000Z",
+      repoRiskTier: "medium-moderate-risk",
+      lanes,
+      sessionOwners: ["developer-a", "developer-b"],
+      writerDirective: {
+        action: "abort",
+        reasonCode: "writer.aborted",
+        reason: "Stop write operations pending operator intervention.",
+        provenance: "sc-576-abort"
+      },
+      baseRef: "main"
+    });
+
+    expect(reassignPass.decisions).toMatchObject([
+      { laneId: "lane-1", writeCapability: "proposal-only", writerLaneId: "lane-2" },
+      { laneId: "lane-2", writeCapability: "writer" }
+    ]);
+    expect(abortPass.decisions.every((decision) => decision.writeCapability === "proposal-only")).toBe(true);
+    expect(abortPass.decisions.every((decision) => decision.status === "blocked")).toBe(true);
   });
 });

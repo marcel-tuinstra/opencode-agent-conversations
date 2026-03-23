@@ -273,8 +273,18 @@ describe("detectDelegationPlanSource", () => {
 
 describe("delegation-bridge constants", () => {
   it("MANAGER_ROLES contains the expected roles", () => {
-    expect(MANAGER_ROLES).toEqual(expect.arrayContaining(["CEO", "CTO", "PM", "PO", "MARKETING", "RESEARCH"]));
-    expect(MANAGER_ROLES).toHaveLength(6);
+    expect(MANAGER_ROLES).toEqual(expect.arrayContaining([
+      "CEO",
+      "CTO",
+      "PM",
+      "PO",
+      "MARKETING",
+      "RESEARCH",
+      "DESIGN",
+      "QA",
+      "REVIEWER"
+    ]));
+    expect(MANAGER_ROLES).toHaveLength(9);
   });
 
   it("IMPLEMENTATION_ROLES contains the expected roles", () => {

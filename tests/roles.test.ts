@@ -15,6 +15,9 @@ describe("roles", () => {
     const frontend = normalizeRole("frontend");
     const backend = normalizeRole("be");
     const ux = normalizeRole("ui-ux-reviewer");
+    const design = normalizeRole("design");
+    const qa = normalizeRole("tester");
+    const reviewer = normalizeRole("reviewer");
     const cto = normalizeRole("cto");
     const unknown = normalizeRole("unknown");
 
@@ -23,6 +26,9 @@ describe("roles", () => {
     expect(frontend).toBe("FE");
     expect(backend).toBe("BE");
     expect(ux).toBe("UX");
+    expect(design).toBe("DESIGN");
+    expect(qa).toBe("QA");
+    expect(reviewer).toBe("REVIEWER");
     expect(cto).toBe("CTO");
     expect(unknown).toBeNull();
   });
@@ -36,6 +42,17 @@ describe("roles", () => {
 
     // Assert
     expect(roles).toEqual(["CTO", "FE", "BE", "UX", "PM"]);
+  });
+
+  it("detects design, qa, and reviewer mentions", () => {
+    // Arrange
+    const text = "@design @qa @reviewer";
+
+    // Act
+    const roles = detectRolesFromMentions(text);
+
+    // Assert
+    expect(roles).toEqual(["DESIGN", "QA", "REVIEWER"]);
   });
 
   it("ignores file references", () => {

@@ -7,7 +7,7 @@ import {
   getBudgetProfileFromEnv
 } from "./budget-profiles";
 import { debugLog } from "./debug";
-import type { Intent, Role } from "./types";
+import { SUPPORTED_ROLES, type Intent, type Role } from "./types";
 
 type RepoRiskTier = "small-high-risk" | "medium-moderate-risk" | "large-mature";
 type MergeMode = "manual" | "auto-merge";
@@ -82,6 +82,8 @@ export type SupervisorExecutionPolicyInput = {
   requireAgentWorktreeBinding?: boolean;
   requireDedicatedIntegrationAgent?: boolean;
   integrationAgentLabel?: string;
+  writerConcurrencyProfile?: "unrestricted" | "single-writer";
+  nonWriterMode?: "full-access" | "proposal-only";
 };
 
 export type SupervisorExecutionPolicy = {
@@ -91,6 +93,8 @@ export type SupervisorExecutionPolicy = {
   requireAgentWorktreeBinding: boolean;
   requireDedicatedIntegrationAgent: boolean;
   integrationAgentLabel: string;
+  writerConcurrencyProfile: "unrestricted" | "single-writer";
+  nonWriterMode: "full-access" | "proposal-only";
 };
 
 export type SupervisorProtectedPathOutcome = "allow" | "requires-human" | "deny";
@@ -199,7 +203,7 @@ export type SupervisorPolicyInput = {
 };
 
 export type ResolvedSupervisorPolicy = {
-  profile: "v1-safe";
+  profile: "v1-safe" | "v1-single-writer";
   budgetProfile: BudgetProfileName;
   roleAliases: Record<string, Role>;
   providers: {
@@ -316,6 +320,13 @@ const DEFAULT_POLICY_INPUT: SupervisorPolicyInput = {
     "ui-ux": "UX",
     uiux: "UX",
     "ui-ux-reviewer": "UX",
+    design: "DESIGN",
+    designer: "DESIGN",
+    qa: "QA",
+    test: "QA",
+    tester: "QA",
+    review: "REVIEWER",
+    reviewer: "REVIEWER",
     po: "PO",
     pm: "PM",
     ceo: "CEO",
@@ -394,7 +405,9 @@ const DEFAULT_POLICY_INPUT: SupervisorPolicyInput = {
     requireDelegationLog: true,
     requireAgentWorktreeBinding: true,
     requireDedicatedIntegrationAgent: true,
-    integrationAgentLabel: "INTEGRATION"
+    integrationAgentLabel: "INTEGRATION",
+    writerConcurrencyProfile: "unrestricted",
+    nonWriterMode: "full-access"
   },
   protectedPaths: {
     defaultOutcome: "deny",
@@ -584,7 +597,9 @@ export const DEFAULT_SUPERVISOR_EXECUTION = Object.freeze({
   requireDelegationLog: DEFAULT_POLICY_INPUT.execution!.requireDelegationLog!,
   requireAgentWorktreeBinding: DEFAULT_POLICY_INPUT.execution!.requireAgentWorktreeBinding!,
   requireDedicatedIntegrationAgent: DEFAULT_POLICY_INPUT.execution!.requireDedicatedIntegrationAgent!,
-  integrationAgentLabel: DEFAULT_POLICY_INPUT.execution!.integrationAgentLabel!
+  integrationAgentLabel: DEFAULT_POLICY_INPUT.execution!.integrationAgentLabel!,
+  writerConcurrencyProfile: DEFAULT_POLICY_INPUT.execution!.writerConcurrencyProfile!,
+  nonWriterMode: DEFAULT_POLICY_INPUT.execution!.nonWriterMode!
 }) as Readonly<ResolvedSupervisorPolicy["execution"]>;
 export const DEFAULT_SUPERVISOR_PROTECTED_PATHS = Object.freeze({
   defaultOutcome: DEFAULT_POLICY_INPUT.protectedPaths!.defaultOutcome!,
@@ -709,7 +724,9 @@ const cloneDefaultPolicy = (): ResolvedSupervisorPolicy => {
       requireDelegationLog: DEFAULT_SUPERVISOR_EXECUTION.requireDelegationLog,
       requireAgentWorktreeBinding: DEFAULT_SUPERVISOR_EXECUTION.requireAgentWorktreeBinding,
       requireDedicatedIntegrationAgent: DEFAULT_SUPERVISOR_EXECUTION.requireDedicatedIntegrationAgent,
-      integrationAgentLabel: DEFAULT_SUPERVISOR_EXECUTION.integrationAgentLabel
+      integrationAgentLabel: DEFAULT_SUPERVISOR_EXECUTION.integrationAgentLabel,
+      writerConcurrencyProfile: DEFAULT_SUPERVISOR_EXECUTION.writerConcurrencyProfile,
+      nonWriterMode: DEFAULT_SUPERVISOR_EXECUTION.nonWriterMode
     },
     protectedPaths: {
       defaultOutcome: DEFAULT_SUPERVISOR_PROTECTED_PATHS.defaultOutcome,
@@ -753,7 +770,7 @@ const isRecord = (value: unknown): value is Record<string, unknown> => {
 };
 
 const isSupportedRole = (value: string): value is Role => {
-  return ["CTO", "DEV", "FE", "BE", "UX", "PO", "PM", "CEO", "MARKETING", "RESEARCH"].includes(value);
+  return (SUPPORTED_ROLES as readonly string[]).includes(value);
 };
 
 const isSupportedExecutionPath = (value: string): value is SupervisorExecutionPath => {
@@ -847,14 +864,20 @@ export const resolveSupervisorPolicy = (
     return { config, diagnostics, source, valid: false };
   }
 
-  if (input.profile !== undefined && input.profile !== DEFAULT_SUPERVISOR_PROFILE) {
-    pushDiagnostic(
-      diagnostics,
-      "profile",
-      `Unsupported profile '${String(input.profile)}'; falling back to '${DEFAULT_SUPERVISOR_PROFILE}'.`,
-      "error",
-      `Set profile to '${DEFAULT_SUPERVISOR_PROFILE}'.`
-    );
+  if (input.profile !== undefined) {
+    if (input.profile === "v1-single-writer") {
+      config.profile = "v1-single-writer";
+      config.execution.writerConcurrencyProfile = "single-writer";
+      config.execution.nonWriterMode = "proposal-only";
+    } else if (input.profile !== DEFAULT_SUPERVISOR_PROFILE) {
+      pushDiagnostic(
+        diagnostics,
+        "profile",
+        `Unsupported profile '${String(input.profile)}'; falling back to '${DEFAULT_SUPERVISOR_PROFILE}'.`,
+        "error",
+        `Set profile to '${DEFAULT_SUPERVISOR_PROFILE}' or 'v1-single-writer'.`
+      );
+    }
   }
 
   // --- Budget profile resolution ---
@@ -1279,6 +1302,30 @@ export const resolveSupervisorPolicy = (
         }
       }
 
+      if (input.execution.writerConcurrencyProfile !== undefined) {
+        if (input.execution.writerConcurrencyProfile === "unrestricted" || input.execution.writerConcurrencyProfile === "single-writer") {
+          config.execution.writerConcurrencyProfile = input.execution.writerConcurrencyProfile;
+        } else {
+          pushDiagnostic(
+            diagnostics,
+            "execution.writerConcurrencyProfile",
+            `Unsupported writer concurrency profile '${String(input.execution.writerConcurrencyProfile)}'.`
+          );
+        }
+      }
+
+      if (input.execution.nonWriterMode !== undefined) {
+        if (input.execution.nonWriterMode === "full-access" || input.execution.nonWriterMode === "proposal-only") {
+          config.execution.nonWriterMode = input.execution.nonWriterMode;
+        } else {
+          pushDiagnostic(
+            diagnostics,
+            "execution.nonWriterMode",
+            `Unsupported non-writer mode '${String(input.execution.nonWriterMode)}'.`
+          );
+        }
+      }
+
       if (config.execution.mode === "delegate-only" && config.execution.allowSupervisorDirectEdits) {
         pushDiagnostic(
           diagnostics,
@@ -1286,6 +1333,15 @@ export const resolveSupervisorPolicy = (
           "Delegate-only mode cannot allow direct supervisor edits; reverting to false."
         );
         config.execution.allowSupervisorDirectEdits = false;
+      }
+
+      if (config.execution.writerConcurrencyProfile === "single-writer" && config.execution.nonWriterMode !== "proposal-only") {
+        pushDiagnostic(
+          diagnostics,
+          "execution.nonWriterMode",
+          "Single-writer mode requires proposal-only non-writer enforcement; reverting to 'proposal-only'."
+        );
+        config.execution.nonWriterMode = "proposal-only";
       }
     }
   }

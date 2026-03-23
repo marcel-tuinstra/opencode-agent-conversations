@@ -19,6 +19,9 @@ describe("supervisor-config", () => {
     expect(result.config.roleAliases.frontend).toBe("FE");
     expect(result.config.roleAliases.backend).toBe("BE");
     expect(result.config.roleAliases.ui).toBe("UX");
+    expect(result.config.roleAliases.design).toBe("DESIGN");
+    expect(result.config.roleAliases.tester).toBe("QA");
+    expect(result.config.roleAliases.reviewer).toBe("REVIEWER");
     expect(result.config.limits.lanes.activeCapsByTier["medium-moderate-risk"]).toBe(3);
     expect(result.config.execution).toEqual({
       mode: "delegate-only",
@@ -26,7 +29,9 @@ describe("supervisor-config", () => {
       requireDelegationLog: true,
       requireAgentWorktreeBinding: true,
       requireDedicatedIntegrationAgent: true,
-      integrationAgentLabel: "INTEGRATION"
+      integrationAgentLabel: "INTEGRATION",
+      writerConcurrencyProfile: "unrestricted",
+      nonWriterMode: "full-access"
     });
     expect(result.config.approvalGates.mergeMode).toBe("manual");
     expect(result.config.protectedPaths.defaultOutcome).toBe("deny");
@@ -91,7 +96,9 @@ describe("supervisor-config", () => {
       requireDelegationLog: false,
       requireAgentWorktreeBinding: false,
       requireDedicatedIntegrationAgent: false,
-      integrationAgentLabel: "MERGE"
+      integrationAgentLabel: "MERGE",
+      writerConcurrencyProfile: "unrestricted",
+      nonWriterMode: "full-access"
     });
     expect(result.config.protectedPaths).toEqual({
       defaultOutcome: "requires-human",
@@ -148,7 +155,9 @@ describe("supervisor-config", () => {
       requireDelegationLog: true,
       requireAgentWorktreeBinding: true,
       requireDedicatedIntegrationAgent: true,
-      integrationAgentLabel: "INTEGRATION"
+      integrationAgentLabel: "INTEGRATION",
+      writerConcurrencyProfile: "unrestricted",
+      nonWriterMode: "full-access"
     });
     expect(result.config.protectedPaths.defaultOutcome).toBe("deny");
     expect(result.config.budget.governance.escalationThresholdPercent).toBe(120);
@@ -201,6 +210,17 @@ describe("supervisor-config", () => {
     expect(result.config.execution.allowSupervisorDirectEdits).toBe(true);
     expect(result.config.execution.integrationAgentLabel).toBe("MERGE");
     rmSync(tempRoot, { recursive: true, force: true });
+  });
+
+  it("enables single-writer semantics when v1-single-writer profile is selected", () => {
+    const result = resolveSupervisorPolicy({
+      profile: "v1-single-writer"
+    }, "single-writer-profile-test");
+
+    expect(result.valid).toBe(true);
+    expect(result.config.profile).toBe("v1-single-writer");
+    expect(result.config.execution.writerConcurrencyProfile).toBe("single-writer");
+    expect(result.config.execution.nonWriterMode).toBe("proposal-only");
   });
 
   it("fails safe when the repo-local policy file is unreadable JSON", () => {

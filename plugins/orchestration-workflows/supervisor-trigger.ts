@@ -6,6 +6,7 @@ import {
   DISCOVERY_CUE_REGEX,
   isDiscoveryStyleGoal
 } from "./discovery-heuristics";
+import { isBoundedBugTriageGoal } from "./bug-triage-heuristics";
 import {
   decomposeSupervisorGoalIntoLanes,
   type SupervisorLaneDecompositionResult
@@ -46,7 +47,7 @@ export const detectSupervisorTrigger = (
 
 const STRONG_SEGMENT_SPLIT_REGEX = /;\s*|\n+/;
 
-const EXECUTION_LIST_CUE_PATTERN = "build|implement|fix|refactor|design|plan|investigate|analy[sz]e|draft|deliver|create|update|write|add|remove|migrate|optimi[sz]e|ship|document|test|validate|map|size";
+const EXECUTION_LIST_CUE_PATTERN = "build|implement|fix|refactor|design|plan|investigate|analy[sz]e|draft|deliver|create|update|write|add|remove|migrate|optimi[sz]e|ship|document|test|validate|map|size|triage|debug|diagnose|reproduce|isolate";
 const EXECUTION_LIST_CUE_REGEX = new RegExp(`\\b(${EXECUTION_LIST_CUE_PATTERN})\\b`, "i");
 const SYNTHESIS_JOINER_REGEX = /\b(and|plus|with)\b/i;
 const DISCOVERY_LEADING_VERB_REGEX =
@@ -206,15 +207,30 @@ const buildDiscoveryWorkUnitObjectives = (goalText: string): string[] => {
   return workUnits.slice(0, 4);
 };
 
+const buildBugTriageWorkUnitObjectives = (goalText: string): string[] => {
+  const normalizedGoal = normalizeGoalText(goalText);
+
+  return [
+    `Establish reproduction scope, severity, and affected surface for ${normalizedGoal}`,
+    titleCaseFirst(normalizedGoal),
+    "Isolate likely root cause, propose the safest fix approach, and define validation steps"
+  ];
+};
+
 export const buildWorkUnitsFromGoal = (
   goalText: string,
   intent = "mixed"
 ): LanePlanningWorkUnit[] => {
   const segments = splitIntoSegments(goalText);
   const isDiscoveryStyle = isDiscoveryStyleGoal(goalText, intent);
+  const isBoundedBugTriage = isBoundedBugTriageGoal(goalText);
 
   if (shouldPreserveExecutionList(goalText, segments, isDiscoveryStyle)) {
     return buildSequentialWorkUnits(segments);
+  }
+
+  if (isBoundedBugTriage) {
+    return buildSequentialWorkUnits(buildBugTriageWorkUnitObjectives(goalText));
   }
 
   if (isDiscoveryStyle) {

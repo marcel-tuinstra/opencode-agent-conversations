@@ -190,6 +190,9 @@ export type {
 export type {
   LaneTurnHandoffContract,
   LaneTurnHandoffInput,
+  LaneWriteCapability,
+  LaneWriterProvenanceEntry,
+  LaneWriterReasonCode,
   LaneTurnOwnership,
   LaneTurnRole,
   LaneTurnTransferScope
@@ -332,6 +335,7 @@ export {
   assertLaneTurnOwner,
   canRoleWriteToLane,
   createLaneTurnHandoffContract,
+  designateLaneWriter,
   transferLaneTurn
 } from "./orchestration-workflows/turn-ownership.ts";
 export {

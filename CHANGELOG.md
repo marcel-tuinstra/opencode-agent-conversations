@@ -5,6 +5,23 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-03-23
+
+### Added
+
+- Three bundled first-party agent personas: `design`, `qa`, and `reviewer` (13 total bundled personas)
+- Bounded bug-triage support in `@supervisor` planning for symptom-based, scoped investigation prompts
+- Async delegation lifecycle primitive for supervisor child sessions with deterministic state transitions
+- Dedicated supervisor recovery runbook and release-gate testing guidance
+- Single-writer supervisor profile support for many-reader/one-writer execution in `0.7.x`
+
+### Changed
+
+- Installer/init manifests and verification now include 13 bundled agents
+- Supervisor planning and system instructions now distinguish bounded bug triage from unsupported open-ended bug hunts
+- Recovery and regression coverage expanded for partial failure, cancellation/recovery, and role-boundary enforcement
+- Reason-code and scheduler/routing outputs now include writer-policy and enforcement context under single-writer execution
+
 ## [0.6.2] - 2026-03-21
 
 ### Added
@@ -114,10 +131,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Runtime-visible budget checkpoints and handoff reminders
 - Intent detection and weighted turn targeting
 
-[0.4.0]: https://github.com/marcel-tuinstra/opencode-council/releases/tag/v0.4.0
-[0.5.0]: https://github.com/marcel-tuinstra/opencode-council/releases/tag/v0.5.0
+[0.7.0]: https://github.com/marcel-tuinstra/opencode-council/releases/tag/v0.7.0
 [0.6.2]: https://github.com/marcel-tuinstra/opencode-council/releases/tag/v0.6.2
 [0.6.0]: https://github.com/marcel-tuinstra/opencode-council/releases/tag/v0.6.0
+[0.5.0]: https://github.com/marcel-tuinstra/opencode-council/releases/tag/v0.5.0
+[0.4.0]: https://github.com/marcel-tuinstra/opencode-council/releases/tag/v0.4.0
 [0.3.0]: https://github.com/marcel-tuinstra/opencode-council/releases/tag/v0.3.0
 [0.2.0]: https://github.com/marcel-tuinstra/opencode-council/releases/tag/v0.2.0
 [0.1.0]: https://github.com/marcel-tuinstra/opencode-council/releases/tag/v0.1.0
