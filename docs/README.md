@@ -21,3 +21,4 @@
 
 - [Testing guide](./testing/testing.md) -- test structure, running tests, manual prompts
 - [Role sanity script](./testing/role-sanity-script.md) -- specialist role boundary scoring
+- [Supervisor recovery runbook](./testing/supervisor-recovery-runbook.md) -- fault classes, recovery actions, and GA blockers

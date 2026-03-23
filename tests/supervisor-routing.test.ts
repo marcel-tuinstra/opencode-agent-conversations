@@ -15,14 +15,21 @@ const createRunState = (): SupervisorRunState => ({
     updatedAt: "2026-03-13T10:00:00.000Z"
   },
   lanes: [
-    {
-      laneId: "lane-1",
-      state: "active",
-      branch: "supervisor/lane-01",
-      worktreeId: "run-alpha:lane-1",
-      sessionId: "session-1",
-      updatedAt: "2026-03-13T10:00:00.000Z"
-    }
+      {
+        laneId: "lane-1",
+        state: "active",
+        branch: "supervisor/lane-01",
+        writeCapability: "writer",
+        writerAssignment: {
+          reasonCode: "writer.designated",
+          reason: "Designated lane-1 as writer lane.",
+          assignedBy: "supervisor",
+          assignedAt: "2026-03-13T10:00:00.000Z"
+        },
+        worktreeId: "run-alpha:lane-1",
+        sessionId: "session-1",
+        updatedAt: "2026-03-13T10:00:00.000Z"
+      }
   ],
   worktrees: [
     {
@@ -94,6 +101,7 @@ describe("supervisor-routing", () => {
       leadRole: "BE",
       confidence: "high",
       laneId: "lane-1",
+      laneCapability: "writer",
       assignedOwner: "alice",
       nextAction: "none"
     });
@@ -181,6 +189,7 @@ describe("supervisor-routing", () => {
 
     // Assert
     expect(result.executionPath).toBe("execute");
+    expect(result.laneCapability).toBe("unrestricted");
     expect(result.assignedOwner).toBe("bob");
     expect(result.nextAction).toBe("launch-session");
     expect(result.reasonDetails.map((detail) => detail.code)).toContain("assignment.deterministic-owner");
@@ -217,6 +226,7 @@ describe("supervisor-routing", () => {
 
     // Assert
     expect(result.executionPath).toBe("safe-hold");
+    expect(result.laneCapability).toBe("unrestricted");
     expect(result.nextAction).toBe("wait-for-prerequisites");
     expect(result.missingPrerequisites).toEqual(["sc-399"]);
     expect(result.decisionEvidence.fallbackReason).toBe("missing-prerequisites");
@@ -243,6 +253,7 @@ describe("supervisor-routing", () => {
     expect(result.intent).toBe("mixed");
     expect(result.confidence).toBe("low");
     expect(result.executionPath).toBe("safe-hold");
+    expect(result.laneCapability).toBe("unrestricted");
     expect(result.leadRole).toBe("CTO");
     expect(result.nextAction).toBe("manual-triage");
     expect(result.thresholdEvents).toEqual([

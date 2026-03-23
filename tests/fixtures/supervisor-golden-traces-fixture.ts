@@ -442,6 +442,172 @@ const scenarios: readonly GoldenScenarioFixture[] = [
         workflowStages: ["intake", "dispatch", "dispatch", "recovery", "approval", "recovery"]
       }
     }
+  },
+  {
+    id: "partial-failure",
+    name: "partial failure",
+    workUnits: [
+      {
+        id: "sc-519-partial-foundation",
+        dependsOn: [],
+        signals: {
+          fileOverlap: "medium",
+          coupling: "medium",
+          blastRadius: "adjacent",
+          unknownCount: 1,
+          testIsolation: "partial"
+        },
+        draft: {
+          objective: "Drive a dependency foundation lane to review-ready.",
+          acceptanceCriteria: ["Foundation lane reaches review-ready with valid handoff evidence."],
+          riskTags: ["workflow", "handoff"],
+          source: {
+            kind: "ad-hoc",
+            title: "Partial failure foundation",
+            reference: "fixture:partial-foundation"
+          }
+        }
+      },
+      {
+        id: "sc-519-partial-follow-up",
+        dependsOn: ["sc-519-partial-foundation"],
+        signals: {
+          fileOverlap: "medium",
+          coupling: "medium",
+          blastRadius: "adjacent",
+          unknownCount: 1,
+          testIsolation: "partial"
+        },
+        draft: {
+          objective: "Keep the dependent lane fail-closed when handoff evidence is incomplete.",
+          dependencies: [
+            {
+              description: "Wait for the foundation lane.",
+              reference: "sc-519-partial-foundation"
+            }
+          ],
+          acceptanceCriteria: ["Dependent lane remains blocked when review packet evidence is incomplete."],
+          riskTags: ["workflow", "governance"],
+          source: {
+            kind: "ad-hoc",
+            title: "Partial failure dependent lane",
+            reference: "fixture:partial-follow-up"
+          }
+        }
+      }
+    ],
+    expectedTrace: {
+      scenarioId: "partial-failure",
+      plan: {
+        lanes: [
+          {
+            lane: 1,
+            workUnitIds: ["sc-519-partial-foundation"],
+            dependsOnLaneIds: []
+          },
+          {
+            lane: 2,
+            workUnitIds: ["sc-519-partial-follow-up"],
+            dependsOnLaneIds: ["lane-1"]
+          }
+        ],
+        dependencyGraph: [
+          {
+            id: "sc-519-partial-foundation",
+            lane: 1,
+            blockedBy: [],
+            unblocks: ["sc-519-partial-follow-up"]
+          },
+          {
+            id: "sc-519-partial-follow-up",
+            lane: 2,
+            blockedBy: ["sc-519-partial-foundation"],
+            unblocks: []
+          }
+        ]
+      },
+      governance: {
+        outcome: "repair",
+        route: "repair-lane",
+        source: "explicit-policy"
+      },
+      final: {
+        stage: "review",
+        status: "ready",
+        nextAction: "prepare-review",
+        runStatus: "review_ready",
+        laneStates: [
+          { laneId: "lane-1", state: "review_ready" },
+          { laneId: "lane-2", state: "planned" }
+        ],
+        actionTrace: ["provision-worktree", "launch-session"],
+        workflowStages: ["intake", "dispatch", "dispatch", "review"]
+      }
+    }
+  },
+  {
+    id: "cancellation-recovery",
+    name: "cancellation recovery",
+    workUnits: [
+      {
+        id: "sc-519-cancel-recover",
+        dependsOn: [],
+        signals: {
+          fileOverlap: "medium",
+          coupling: "medium",
+          blastRadius: "adjacent",
+          unknownCount: 1,
+          testIsolation: "partial"
+        },
+        draft: {
+          objective: "Cancel an active lane session and ensure deterministic recovery path remains intact.",
+          acceptanceCriteria: [
+            "Cancellation records a terminal failed session.",
+            "Dispatch loop replaces the cancelled session on the next advance."
+          ],
+          riskTags: ["recovery", "cancellation"],
+          source: {
+            kind: "ad-hoc",
+            title: "Cancellation recovery lane",
+            reference: "fixture:cancellation-recovery"
+          }
+        }
+      }
+    ],
+    expectedTrace: {
+      scenarioId: "cancellation-recovery",
+      plan: {
+        lanes: [
+          {
+            lane: 1,
+            workUnitIds: ["sc-519-cancel-recover"],
+            dependsOnLaneIds: []
+          }
+        ],
+        dependencyGraph: [
+          {
+            id: "sc-519-cancel-recover",
+            lane: 1,
+            blockedBy: [],
+            unblocks: []
+          }
+        ]
+      },
+      governance: {
+        outcome: "accept",
+        route: "continue",
+        source: "policy-default"
+      },
+      final: {
+        stage: "recovery",
+        status: "ready",
+        nextAction: "continue-dispatch",
+        runStatus: "active",
+        laneStates: [{ laneId: "lane-1", state: "active" }],
+        actionTrace: ["provision-worktree", "launch-session", "replace-session"],
+        workflowStages: ["intake", "dispatch", "dispatch", "recovery"]
+      }
+    }
   }
 ];
 

@@ -222,6 +222,27 @@ describe("supervisor-trigger", () => {
       );
       expect(result.workUnits.some((unit: { workUnit: { objective: string } }) => /pricing options/i.test(unit.workUnit.objective))).toBe(true);
     });
+
+    it("creates bounded bug-triage work units for scoped prompts", () => {
+      const result = buildSupervisorPlan(
+        "triage SC-581 regression in the checkout service and propose a fix plan"
+      );
+
+      expect(result.status).toBe("supported");
+      expect(result.workUnits).toHaveLength(3);
+      expect(result.workUnits[0]!.workUnit.objective).toContain("reproduction scope");
+      expect(result.workUnits[1]!.workUnit.objective).toContain("Triage SC-581 regression in the checkout service and propose a fix plan");
+      expect(result.workUnits[2]!.workUnit.objective).toContain("root cause");
+    });
+
+    it("rejects broad app-wide bug hunts", () => {
+      const result = buildSupervisorPlan(
+        "triage all bugs across the application and produce a complete bug list"
+      );
+
+      expect(result.status).toBe("unsupported");
+      expect(result.warnings.some((warning: string) => /app-wide bug hunts are unsupported/i.test(warning))).toBe(true);
+    });
   });
 
   describe("formatSupervisorPreview", () => {
@@ -386,6 +407,17 @@ describe("supervisor-trigger", () => {
 
       expect(instruction).toContain("unsupported");
       expect(instruction).toContain("Do not launch");
+    });
+
+    it("uses bounded bug-triage execution instructions for scoped bug prompts", () => {
+      const plan = buildSupervisorPlan("triage SC-581 regression in the checkout service");
+
+      const instruction = buildSupervisorSystemInstruction(plan);
+
+      expect(instruction).toContain("bounded to the named issue or subsystem");
+      expect(instruction).toContain("do not convert this into an app-wide bug hunt");
+      expect(instruction).toContain("repro notes");
+      expect(instruction).toContain("root-cause confidence");
     });
   });
 });

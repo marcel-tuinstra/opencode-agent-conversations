@@ -45,6 +45,7 @@ import {
   type ReviewRoutingPolicyDecision
 } from "./review-coordination";
 import { freezeList, assertNonEmpty, findLane, findWorktree, findSession } from "./internal-utils";
+import { getSupervisorPolicy, type ResolvedSupervisorPolicy } from "./supervisor-config";
 
 export type SupervisorLaneDefinition = {
   laneId: string;
@@ -93,11 +94,22 @@ export type SupervisorDispatchLaneDecision = {
   action: SupervisorDispatchAction;
   nextAction: SupervisorApprovalNextAction;
   assignedOwner?: string;
+  writeCapability?: "writer" | "proposal-only";
+  writerLaneId?: string;
+  writerReasonCode?: string;
   reasons: readonly string[];
   reviewRouting?: ReviewRoutingDecision;
   lane: SupervisorLaneRecord;
   worktree?: SupervisorWorktreeRecord;
   session?: SupervisorSessionRecord;
+};
+
+export type SupervisorWriterDirective = {
+  action: "designate" | "handoff" | "reassign" | "abort";
+  laneId?: string;
+  reasonCode: string;
+  reason: string;
+  provenance?: string;
 };
 
 export type SupervisorReviewRoutingPolicyEvaluatorInput = {
@@ -122,6 +134,7 @@ export type RunSupervisorDispatchLoopInput = {
   sessionOwners: readonly string[];
   maxActiveLanes?: number;
   baseRef?: string;
+  writerDirective?: SupervisorWriterDirective;
 };
 
 export type RunSupervisorDispatchLoopResult = {
@@ -134,6 +147,7 @@ export type CreateSupervisorDispatchLoopOptions = {
   provisioner: SupervisorLaneWorktreeProvisioner;
   sessions: SupervisorSessionLifecycle;
   reviewRoutingPolicyEvaluator?: SupervisorReviewRoutingPolicyEvaluator;
+  policy?: Pick<ResolvedSupervisorPolicy, "profile" | "execution">;
 };
 
 
@@ -332,6 +346,95 @@ const findChildSessionForLane = (
     .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))[0];
 };
 
+const isSingleWriterPolicyEnabled = (policy: Pick<ResolvedSupervisorPolicy, "profile" | "execution">): boolean => (
+  policy.profile === "v1-single-writer" || policy.execution.writerConcurrencyProfile === "single-writer"
+);
+
+const resolveWriterLaneId = (state: SupervisorRunState): string | undefined => state.lanes
+  .find((lane) => lane.writeCapability === "writer")
+  ?.laneId;
+
+const defaultWriterReasonCode = (action: SupervisorWriterDirective["action"]): string => {
+  switch (action) {
+    case "handoff":
+      return "writer.handoff";
+    case "reassign":
+      return "writer.reassigned";
+    case "abort":
+      return "writer.aborted";
+    default:
+      return "writer.designated";
+  }
+};
+
+const applyWriterDirective = async (input: {
+  store: SupervisorStateStore;
+  runId: string;
+  actor: string;
+  occurredAt: string;
+  state: SupervisorRunState;
+  directive?: SupervisorWriterDirective;
+}): Promise<{ state: SupervisorRunState; writerLaneId?: string; reasonCode?: string; reason?: string }> => {
+  const activeWriterLaneId = resolveWriterLaneId(input.state);
+  const directive = input.directive;
+
+  if (!directive && activeWriterLaneId) {
+    return { state: input.state, writerLaneId: activeWriterLaneId };
+  }
+
+  const fallbackLaneId = input.state.lanes
+    .slice()
+    .sort((left, right) => left.laneId.localeCompare(right.laneId))[0]
+    ?.laneId;
+  const nextWriterLaneId = directive?.action === "abort"
+    ? undefined
+    : directive?.laneId ?? activeWriterLaneId ?? fallbackLaneId;
+  const reasonCode = directive?.reasonCode ?? defaultWriterReasonCode(directive?.action ?? "designate");
+  const reason = directive?.reason ?? (
+    nextWriterLaneId
+      ? `Single-writer policy designated ${nextWriterLaneId} as the writer lane.`
+      : "Single-writer policy cleared the writer lane via explicit abort."
+  );
+
+  const laneUpserts = input.state.lanes.map((lane) => Object.freeze({
+    ...lane,
+    writeCapability: nextWriterLaneId && lane.laneId === nextWriterLaneId ? "writer" as const : "proposal-only" as const,
+    writerAssignment: nextWriterLaneId && lane.laneId === nextWriterLaneId
+      ? Object.freeze({
+          reasonCode,
+          reason,
+          assignedBy: input.actor,
+          assignedAt: input.occurredAt,
+          previousWriterLaneId: activeWriterLaneId,
+          provenance: directive?.provenance
+        })
+      : lane.writerAssignment,
+    updatedAt: lane.updatedAt
+  }));
+
+  await input.store.commitMutation(input.runId, {
+    mutationId: `dispatch:writer-policy:${input.occurredAt}`,
+    actor: input.actor,
+    summary: nextWriterLaneId
+      ? `Apply single-writer designation for lane '${nextWriterLaneId}'.`
+      : "Abort active single-writer designation.",
+    occurredAt: input.occurredAt,
+    laneUpserts,
+    sideEffects: [
+      "single-writer-policy",
+      nextWriterLaneId ? "single-writer-designated" : "single-writer-aborted",
+      `single-writer-reason:${reasonCode}`
+    ]
+  });
+
+  const nextState = await input.store.getRunState(input.runId);
+  if (!nextState) {
+    throw new Error(`Cannot dispatch unknown supervisor run '${input.runId}'.`);
+  }
+
+  return { state: nextState, writerLaneId: nextWriterLaneId, reasonCode, reason };
+};
+
 export type EvaluateRetryDecisionResult = {
   action: "retry" | "exhausted" | "skip";
   reason: string;
@@ -443,7 +546,7 @@ const buildDecision = (
   assignedOwner: string | undefined,
   reasons: readonly string[],
   lane: SupervisorLaneRecord,
-  extras?: Pick<Partial<SupervisorDispatchLaneDecision>, "reviewRouting" | "worktree" | "session">
+  extras?: Pick<Partial<SupervisorDispatchLaneDecision>, "reviewRouting" | "worktree" | "session" | "writeCapability" | "writerLaneId" | "writerReasonCode">
 ): SupervisorDispatchLaneDecision => ({
   laneId,
   status,
@@ -451,6 +554,7 @@ const buildDecision = (
   action,
   nextAction,
   assignedOwner,
+  writeCapability: extras?.writeCapability ?? lane.writeCapability,
   reasons,
   lane,
   ...extras,
@@ -468,11 +572,37 @@ export const createSupervisorDispatchLoop = (
     const runId = assertNonEmpty(input.runId, "run id");
     const actor = assertNonEmpty(input.actor, "actor");
     const occurredAt = assertNonEmpty(input.occurredAt, "dispatch timestamp");
+    const supervisorPolicy = options.policy ?? {
+      profile: getSupervisorPolicy().profile,
+      execution: getSupervisorPolicy().execution
+    };
+    const singleWriterEnabled = isSingleWriterPolicyEnabled(supervisorPolicy);
     const policy = resolveLanePolicy(input.repoRiskTier, input.maxActiveLanes === undefined
       ? undefined
       : { maxActiveLanes: input.maxActiveLanes });
 
     await ensureLaneDefinitions(store, runId, actor, occurredAt, input.lanes);
+
+    let writerLaneId: string | undefined;
+    let writerReasonCode: string | undefined;
+    let writerReason: string | undefined;
+    if (singleWriterEnabled) {
+      const state = await store.getRunState(runId);
+      if (!state) {
+        throw new Error(`Cannot dispatch unknown supervisor run '${runId}'.`);
+      }
+      const writerPolicy = await applyWriterDirective({
+        store,
+        runId,
+        actor,
+        occurredAt,
+        state,
+        directive: input.writerDirective
+      });
+      writerLaneId = writerPolicy.writerLaneId;
+      writerReasonCode = writerPolicy.reasonCode;
+      writerReason = writerPolicy.reason;
+    }
 
     const decisions: SupervisorDispatchLaneDecision[] = [];
 
@@ -495,6 +625,45 @@ export const createSupervisorDispatchLoop = (
       const dependencyStatus = summarizeDependencyStates(state, laneInput.definition.dependsOnLaneIds);
       const waitingOn = freezeList((laneInput.waitingOn ?? []).map((item) => item.trim()).filter(Boolean));
       const assignedOwner = selectSessionOwner(laneInput, state, input.sessionOwners);
+
+      if (singleWriterEnabled && supervisorPolicy.execution.nonWriterMode === "proposal-only" && lane.laneId !== writerLaneId) {
+        let action: SupervisorDispatchAction = "none";
+        if (session?.status === "active") {
+          session = (await sessions.pauseSession({
+            runId,
+            laneId: lane.laneId,
+            actor,
+            mutationId: `dispatch:${lane.laneId}:single-writer-pause:${occurredAt}`,
+            occurredAt,
+            summary: `Pause non-writer lane '${lane.laneId}' under single-writer policy.`
+          })).session;
+          action = "pause-session";
+        }
+        if (lane.state === "active") {
+          lane = await commitLaneState(
+            store,
+            runId,
+            actor,
+            occurredAt,
+            lane,
+            "waiting",
+            `dispatch:${lane.laneId}:single-writer-wait:${occurredAt}`,
+            `Hold non-writer lane '${lane.laneId}' in proposal-only mode.`
+          );
+        }
+        reasons.push(`Lane '${lane.laneId}' is proposal-only/read-only under the active single-writer policy.`);
+        if (writerReason) {
+          reasons.push(writerReason);
+        }
+        decisions.push(buildDecision(lane.laneId, "blocked", lane.state, action, "pause", assignedOwner, freezeList(reasons), lane, {
+          worktree,
+          session,
+          writeCapability: "proposal-only",
+          writerLaneId,
+          writerReasonCode: writerReasonCode ?? "writer.proposal-only-enforced"
+        }));
+        continue;
+      }
 
       if (laneInput.complete) {
         lane = await commitLaneState(

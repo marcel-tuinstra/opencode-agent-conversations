@@ -294,6 +294,8 @@ const buildLaneRecord = (
   laneId: input.laneId,
   state: input.laneState,
   branch: input.branch,
+  writeCapability: previousLane?.writeCapability,
+  writerAssignment: previousLane?.writerAssignment,
   worktreeId,
   sessionId: previousLane?.sessionId,
   updatedAt: input.occurredAt

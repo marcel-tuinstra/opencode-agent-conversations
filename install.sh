@@ -93,6 +93,9 @@ pm.md
 po.md
 research.md
 ux.md
+design.md
+qa.md
+reviewer.md
 "
 
 # ─── Color helpers ───────────────────────────────────────────────────────────
@@ -355,8 +358,8 @@ download_with_git() {
 # ─── Success message ─────────────────────────────────────────────────────────
 
 print_success() {
-  # Count: 1 barrel + 51 modules + 10 agents = 62
-  _total=62
+  # Count: 1 barrel + 51 modules + 13 agents = 65
+  _total=65
 
   echo ""
   success "${BOLD}Done!${RESET}${GREEN} ${_total} files installed to ${INSTALL_DIR}/${RESET}"

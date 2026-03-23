@@ -1,4 +1,5 @@
 import { isDiscoveryStyleGoal } from "./discovery-heuristics";
+import { isBoundedBugTriageGoal } from "./bug-triage-heuristics";
 import type { SupervisorPlanResult } from "./supervisor-trigger";
 import type { SupervisorLaneDefinition } from "./supervisor-scheduler";
 import { getSupervisorPolicy } from "./supervisor-config";
@@ -24,6 +25,7 @@ export const buildSupervisorSystemInstruction = (
   const policy = getSupervisorPolicy();
   const lines: string[] = [];
   const discoveryPlan = isDiscoveryOrientedPlan(plan);
+  const boundedBugTriagePlan = isBoundedBugTriageGoal(plan.goalPlan.goal);
 
   lines.push("You are operating in Supervisor mode.");
   lines.push("");
@@ -79,7 +81,10 @@ export const buildSupervisorSystemInstruction = (
   lines.push("## Execution Protocol");
   lines.push("");
   lines.push("Execute lanes in order. For each lane, use the `supervisor` tool to launch a child session.");
-  if (discoveryPlan) {
+  if (boundedBugTriagePlan) {
+    lines.push("Keep bug triage bounded to the named issue or subsystem; do not convert this into an app-wide bug hunt.");
+    lines.push("Each lane should produce concrete triage evidence (repro notes, likely root cause, proposed fix path, and validation plan).");
+  } else if (discoveryPlan) {
     lines.push("Keep the plan bounded and synthesis-oriented; do not turn this into an open-ended brainstorm.");
     lines.push("Each lane should produce concrete findings, comparisons, recommendations, assumptions, and scoped next steps when relevant.");
   } else {
@@ -102,7 +107,9 @@ export const buildSupervisorSystemInstruction = (
   lines.push(`- Escalation mode: ${policy.approvalGates.escalationMode}`);
   lines.push("");
 
-  if (discoveryPlan) {
+  if (boundedBugTriagePlan) {
+    lines.push("Report progress after each lane with repro status, root-cause confidence, proposed fix scope, and validation updates.");
+  } else if (discoveryPlan) {
     lines.push("Report progress after each lane with findings, recommendation shifts, assumptions, and next-step scope.");
   } else {
     lines.push("Report progress after each lane completes.");

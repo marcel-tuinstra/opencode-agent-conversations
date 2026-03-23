@@ -3,6 +3,7 @@ import type { Role } from "./types";
 export type SupervisorReasonCategory =
   | "route-selection"
   | "assignment"
+  | "writer-policy"
   | "fallback"
   | "budget-escalation"
   | "approval-pause"
@@ -17,6 +18,11 @@ export type SupervisorReasonCode =
   | "assignment.sticky-session-owner"
   | "assignment.deterministic-owner"
   | "assignment.weighted-turns"
+  | "writer.designated"
+  | "writer.reassigned"
+  | "writer.handoff"
+  | "writer.aborted"
+  | "writer.proposal-only-enforced"
   | "fallback.missing-prerequisites"
   | "fallback.low-confidence"
   | "fallback.compaction-guardrail"
@@ -100,6 +106,11 @@ const REASON_TABLE: Record<SupervisorReasonCode, ReasonEntry> = {
   "assignment.sticky-session-owner": { category: "assignment", build: (c) => ({ short: "Existing owner kept.", explanation: `Kept ${or(c.owner, "the existing lane owner")} assigned because the lane already has an attached runtime owner.` }) },
   "assignment.deterministic-owner": { category: "assignment", build: (c) => ({ short: "Deterministic owner assigned.", explanation: `Assigned ${or(c.owner, "the selected owner")} with a stable deterministic selection so repeated routing keeps the same owner.` }) },
   "assignment.weighted-turns": { category: "assignment", build: (c) => { const roles = rl(c.roles); const plan = c.targets && roles.length > 0 ? formatTurnPlan(c.targets, roles) : ""; const lead = c.leadRole ? ` Lead ${c.leadRole} opens and closes.` : ""; return { short: "Weighted turn plan assigned.", explanation: (plan ? `Assigned turns with the weighted plan ${plan}.${lead}` : `Assigned turns with the detected role weighting.${lead}`).trim() }; } },
+  "writer.designated": { category: "writer-policy", build: (c) => ({ short: "Writer lane designated.", explanation: `Designated ${or(c.laneId, "a lane")} as the single writer lane.${c.actionReason ? ` ${c.actionReason}` : ""}`.trim() }) },
+  "writer.reassigned": { category: "writer-policy", build: (c) => ({ short: "Writer lane reassigned.", explanation: `Reassigned single-writer authority to ${or(c.laneId, "a lane")}${c.actionReason ? ` because ${c.actionReason}` : ""}.` }) },
+  "writer.handoff": { category: "writer-policy", build: (c) => ({ short: "Writer handoff applied.", explanation: `Handed off single-writer authority to ${or(c.laneId, "a lane")}${c.actionReason ? ` with rationale: ${c.actionReason}` : ""}.` }) },
+  "writer.aborted": { category: "writer-policy", build: (c) => ({ short: "Writer lane aborted.", explanation: `Cleared active writer authority${c.actionReason ? ` because ${c.actionReason}` : " due to an explicit abort directive"}.` }) },
+  "writer.proposal-only-enforced": { category: "writer-policy", build: (c) => ({ short: "Proposal-only enforcement.", explanation: `${or(c.laneId, "Lane")} is restricted to proposal-only/read-only execution under the active single-writer policy.` }) },
   "fallback.missing-prerequisites": { category: "fallback", build: (c) => ({ short: "Prerequisites still missing.", explanation: `Held execution on a safe fallback path because prerequisite references are still missing: ${c.missingPrerequisites?.join(", ") ?? "required prerequisites"}.` }) },
   "fallback.low-confidence": { category: "fallback", build: (c) => ({ short: "Routing confidence is low.", explanation: c.confidence ? `Held execution on a safe fallback path because routing confidence stayed ${c.confidence}.` : "Held execution on a safe fallback path because routing confidence stayed too low." }) },
   "fallback.compaction-guardrail": { category: "fallback", build: () => ({ short: "Compaction skipped.", explanation: "Full context kept because compaction would not save enough space." }) },

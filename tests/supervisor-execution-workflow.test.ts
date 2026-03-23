@@ -980,4 +980,128 @@ describe("supervisor-execution-workflow", () => {
     // delegation.started (1) + delegation.completed (1) + budget-exceeded (1) = 3
     expect(emitCallCount.value).toBe(3);
   });
+
+  it("keeps recovery idempotent and avoids orphaned lane/session state", async () => {
+    // Arrange
+    const rootDir = createTempRoot();
+    const repoRoot = path.join(rootDir, "repo");
+    const worktreeRootDir = path.join(rootDir, "worktrees");
+    mkdirSync(repoRoot, { recursive: true });
+
+    const store = createFileBackedSupervisorStateStore({ rootDir: path.join(rootDir, "state") });
+    const system = createFakeSystem();
+    const runtime = createFakeRuntime();
+    const provisioner = createSupervisorLaneWorktreeProvisioner({ repoRoot, worktreeRootDir, store, system });
+    const sessions = createSupervisorSessionLifecycle({ store, runtime });
+    const dispatchLoop = createSupervisorDispatchLoop({ store, provisioner, sessions });
+    const workflow = createSupervisorExecutionWorkflow({ store, dispatchLoop });
+    const workUnits = [
+      {
+        id: "fault-lane",
+        workUnit: normalizeWorkUnit({
+          objective: "Recover one stalled lane without duplicate retries.",
+          acceptanceCriteria: [
+            "Stalled sessions are replaced exactly once per recovery mutation.",
+            "Lane/session/worktree bindings stay coherent after retry."
+          ],
+          source: {
+            kind: "ad-hoc",
+            title: "Recovery idempotency"
+          }
+        }),
+        dependsOn: [],
+        signals: {
+          fileOverlap: "medium" as const,
+          coupling: "medium" as const,
+          blastRadius: "adjacent" as const,
+          unknownCount: 1,
+          testIsolation: "partial" as const
+        }
+      }
+    ];
+
+    const bootstrap = await workflow.bootstrapRun({
+      runId: "run-sc-522-idempotent-recovery",
+      actor: "supervisor",
+      occurredAt: "2026-03-15T10:00:00.000Z",
+      objective: "Ensure recovery retries do not create duplicate or orphaned durable state.",
+      goal: "Recover a stalled lane once and keep state coherent.",
+      workUnits,
+      readyDependencyReferences: []
+    });
+
+    for (const occurredAt of [
+      "2026-03-15T10:01:00.000Z",
+      "2026-03-15T10:02:00.000Z",
+      "2026-03-15T10:03:00.000Z",
+      "2026-03-15T10:04:00.000Z",
+      "2026-03-15T10:05:00.000Z"
+    ]) {
+      await workflow.advanceRun({
+        runId: "run-sc-522-idempotent-recovery",
+        actor: "supervisor",
+        occurredAt,
+        repoRiskTier: "medium-moderate-risk",
+        lanes: bootstrap.dispatchPlan.laneInputs,
+        sessionOwners: ["DEV"],
+        baseRef: "origin/main"
+      });
+    }
+    const preStallState = await store.getRunState("run-sc-522-idempotent-recovery");
+    const preStallLane = preStallState?.lanes[0];
+    const targetLaneId = preStallLane?.laneId;
+    expect(targetLaneId).toBeTruthy();
+    expect(preStallLane?.worktreeId).toBeTruthy();
+    expect(preStallLane?.sessionId).toBeTruthy();
+
+    await sessions.detectStalledSession({
+      runId: "run-sc-522-idempotent-recovery",
+      laneId: targetLaneId!,
+      actor: "supervisor",
+      mutationId: `${targetLaneId}:stall`,
+      observedAt: "2026-03-15T10:09:00.000Z",
+      stallTimeoutMs: 5 * 60 * 1000,
+      failureReason: "Heartbeat timed out during delegated implementation."
+    });
+
+    // Act
+    await workflow.advanceRun({
+      runId: "run-sc-522-idempotent-recovery",
+      actor: "supervisor",
+      occurredAt: "2026-03-15T10:10:00.000Z",
+      workflowMutationId: "workflow:run-sc-522-idempotent-recovery:recovery-pass-1",
+      repoRiskTier: "medium-moderate-risk",
+      lanes: bootstrap.dispatchPlan.laneInputs,
+      sessionOwners: ["DEV"],
+      baseRef: "origin/main"
+    });
+    await workflow.advanceRun({
+      runId: "run-sc-522-idempotent-recovery",
+      actor: "supervisor",
+      occurredAt: "2026-03-15T10:10:00.000Z",
+      workflowMutationId: "workflow:run-sc-522-idempotent-recovery:recovery-pass-1",
+      repoRiskTier: "medium-moderate-risk",
+      lanes: bootstrap.dispatchPlan.laneInputs,
+      sessionOwners: ["DEV"],
+      baseRef: "origin/main"
+    });
+    const state = await store.getRunState("run-sc-522-idempotent-recovery");
+
+    // Assert
+    expect(state).toBeTruthy();
+    expect(state?.sessions.filter((session) => session.status === "active")).toHaveLength(1);
+    expect(state?.sessions.filter((session) => session.status === "replaced")).toHaveLength(1);
+
+    const lane = state?.lanes.find((candidate) => candidate.laneId === targetLaneId);
+    const activeSession = state?.sessions.find((session) => session.status === "active");
+    expect(lane?.sessionId).toBe(activeSession?.sessionId);
+    expect(activeSession?.replacementOfSessionId).toBe(`run-sc-522-idempotent-recovery:${targetLaneId}:session-01`);
+
+    // GA blocker checks: no silent data loss and no duplicate side effects for replacement
+    const replacementMutations = state?.auditLog.filter((entry) => entry.mutationId === `dispatch:${targetLaneId}:replace:2026-03-15T10:10:00.000Z`) ?? [];
+    expect(replacementMutations).toHaveLength(1);
+    const worktreeBinding = state?.worktrees.find((worktree) => worktree.laneId === targetLaneId);
+    expect(worktreeBinding?.status).toBe("active");
+    expect(lane?.worktreeId).toBe(worktreeBinding?.worktreeId);
+  });
 });

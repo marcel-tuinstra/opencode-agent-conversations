@@ -2,7 +2,7 @@
 
 [![CI](https://github.com/marcel-tuinstra/opencode-council/actions/workflows/ci.yml/badge.svg)](https://github.com/marcel-tuinstra/opencode-council/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/marcel-tuinstra/opencode-council/releases)
+[![Version](https://img.shields.io/badge/version-0.7.0-blue.svg)](https://github.com/marcel-tuinstra/opencode-council/releases)
 [![OpenCode Plugin](https://img.shields.io/badge/OpenCode-Plugin-green.svg)](https://github.com/sst/opencode)
 
 **AI agents that debate before they act.**
@@ -36,7 +36,7 @@ Restart OpenCode, then try:
 | Delegation mode | `@cto delegate [prompt]` -- lead agent plans and coordinates specialists |
 | MCP gating | Sentry, GitHub, Shortcut only activate when explicitly mentioned |
 | Governance | Budget limits, reason codes, and [policy profiles](./docs/guides/policy-profiles.md) |
-| 10 agents | CTO, CEO, PO, PM, DEV, FE, BE, UX, Research, Marketing ([personas](./agents/)) |
+| 13 agents | CTO, CEO, PO, PM, DEV, FE, BE, UX, Design, QA, Reviewer, Research, Marketing ([personas](./agents/)) |
 
 ## Stable Contract
 
@@ -75,9 +75,9 @@ npx opencode-council uninstall   # Clean removal
 
 ## Roadmap
 
-**Now (v0.5.0):** Deliberative orchestration, delegation mode, MCP gating, budget governance, 10 agent personas, one-command install, and a defined compatibility policy for the stable runtime contract.
+**Now (v0.7.0):** Deliberative orchestration, delegation mode, MCP gating, budget governance, 13 bundled first-party agent personas, one-command install, and a defined compatibility policy for the stable runtime contract.
 
-**Next:** Governed parallel execution (supervisor mode) and async delegation with governance.
+**Next (v0.8.0-rc.1):** Documentation hardening, positioning polish, and release-readiness packaging toward GA.
 
 ## Documentation
 
@@ -97,7 +97,7 @@ npx opencode-council uninstall   # Clean removal
 npm install && npm test
 ```
 
-197 tests, CI on every PR. See the [testing guide](./docs/testing/testing.md) for conventions.
+500+ tests, CI on every PR. See the [testing guide](./docs/testing/testing.md) for conventions.
 
 ## Contact
 

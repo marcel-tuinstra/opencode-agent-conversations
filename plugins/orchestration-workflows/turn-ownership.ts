@@ -2,6 +2,13 @@ import type { Role } from "./types";
 import { assertNonEmpty as assertNonEmptyValue } from "./internal-utils";
 
 export type LaneTurnRole = Role | "TESTER" | "REVIEWER" | (string & {});
+export type LaneWriteCapability = "writer" | "proposal-only";
+export type LaneWriterReasonCode =
+  | "writer.initial-designation"
+  | "writer.handoff"
+  | "writer.reassignment"
+  | "writer.failure-recovery"
+  | "writer.abort";
 
 export type LaneTurnTransferScope = "implementation" | "test" | "review" | "release-readiness" | "docs";
 
@@ -9,7 +16,18 @@ export type LaneTurnOwnership = {
   laneId: string;
   activeRole: LaneTurnRole;
   writeAuthorityRole: LaneTurnRole;
+  writeCapability?: LaneWriteCapability;
+  writerProvenance?: LaneWriterProvenanceEntry[];
   handoffHistory: LaneTurnHandoffContract[];
+};
+
+export type LaneWriterProvenanceEntry = {
+  fromRole?: LaneTurnRole;
+  toRole?: LaneTurnRole;
+  reasonCode: LaneWriterReasonCode;
+  reason: string;
+  actor: string;
+  occurredAt: string;
 };
 
 export type LaneTurnHandoffInput = {
@@ -23,6 +41,11 @@ export type LaneTurnHandoffInput = {
   nextRequiredEvidence: readonly string[];
   evidenceAttached: readonly string[];
   openQuestions?: string[];
+  transferWriteAuthority?: boolean;
+  writerReasonCode?: Exclude<LaneWriterReasonCode, "writer.abort" | "writer.initial-designation">;
+  writerReason?: string;
+  writerActor?: string;
+  writerOccurredAt?: string;
 };
 
 export type LaneTurnHandoffContract = LaneTurnHandoffInput & {
@@ -66,6 +89,36 @@ export const createLaneTurnHandoffContract = (input: LaneTurnHandoffInput): Lane
   openQuestions: (input.openQuestions ?? []).map((value) => value.trim()).filter((value) => value.length > 0)
 });
 
+export const designateLaneWriter = (
+  ownership: LaneTurnOwnership,
+  input: {
+    nextWriterRole?: LaneTurnRole;
+    reasonCode: LaneWriterReasonCode;
+    reason: string;
+    actor: string;
+    occurredAt: string;
+  }
+): LaneTurnOwnership => {
+  const nextWriterRole = input.nextWriterRole;
+
+  return {
+    ...ownership,
+    writeAuthorityRole: nextWriterRole ?? ownership.writeAuthorityRole,
+    writeCapability: nextWriterRole ? "writer" : "proposal-only",
+    writerProvenance: [
+      ...(ownership.writerProvenance ?? []),
+      {
+        fromRole: ownership.writeAuthorityRole,
+        toRole: nextWriterRole,
+        reasonCode: input.reasonCode,
+        reason: assertNonEmptyValue(input.reason, "writer designation reason"),
+        actor: assertNonEmptyValue(input.actor, "writer designation actor"),
+        occurredAt: assertNonEmptyValue(input.occurredAt, "writer designation timestamp")
+      }
+    ]
+  };
+};
+
 export const transferLaneTurn = (
   ownership: LaneTurnOwnership,
   handoffInput: LaneTurnHandoffInput
@@ -78,10 +131,26 @@ export const transferLaneTurn = (
 
   assertLaneTurnOwner(handoff.currentOwner, ownership);
 
+  const transferWriteAuthority = handoffInput.transferWriteAuthority ?? true;
+  const nextWriteAuthorityRole = transferWriteAuthority ? handoff.nextOwner : ownership.writeAuthorityRole;
+  const writerProvenance = [...(ownership.writerProvenance ?? [])];
+  if (transferWriteAuthority) {
+    writerProvenance.push({
+      fromRole: ownership.writeAuthorityRole,
+      toRole: handoff.nextOwner,
+      reasonCode: handoffInput.writerReasonCode ?? "writer.handoff",
+      reason: assertNonEmptyValue(handoffInput.writerReason ?? handoff.transferTrigger, "writer handoff reason"),
+      actor: assertNonEmptyValue(handoffInput.writerActor ?? String(handoff.currentOwner), "writer handoff actor"),
+      occurredAt: assertNonEmptyValue(handoffInput.writerOccurredAt ?? new Date().toISOString(), "writer handoff timestamp")
+    });
+  }
+
   return {
     laneId: ownership.laneId,
     activeRole: handoff.nextOwner,
-    writeAuthorityRole: handoff.nextOwner,
+    writeAuthorityRole: nextWriteAuthorityRole,
+    writeCapability: nextWriteAuthorityRole === handoff.nextOwner ? "writer" : "proposal-only",
+    writerProvenance,
     handoffHistory: [...ownership.handoffHistory, handoff]
   };
 };

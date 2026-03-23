@@ -3,6 +3,7 @@ import {
   assertLaneTurnOwner,
   canRoleWriteToLane,
   createLaneTurnHandoffContract,
+  designateLaneWriter,
   transferLaneTurn,
   type LaneTurnOwnership
 } from "../plugins/orchestration-workflows/turn-ownership";
@@ -11,6 +12,8 @@ const activeDevTurn: LaneTurnOwnership = {
   laneId: "lane-1",
   activeRole: "DEV",
   writeAuthorityRole: "DEV",
+  writeCapability: "writer",
+  writerProvenance: [],
   handoffHistory: []
 };
 
@@ -92,6 +95,41 @@ describe("turn-ownership", () => {
       "DEV->TESTER",
       "TESTER->DEV"
     ]);
+  });
+
+  it("supports writer reassignment provenance without changing active owner", () => {
+    const reassigned = designateLaneWriter(activeDevTurn, {
+      nextWriterRole: "TESTER",
+      reasonCode: "writer.reassignment",
+      reason: "DEV lane hit a flaky runtime failure and handoff was requested.",
+      actor: "supervisor",
+      occurredAt: "2026-03-23T10:00:00.000Z"
+    });
+
+    expect(reassigned.activeRole).toBe("DEV");
+    expect(reassigned.writeAuthorityRole).toBe("TESTER");
+    expect(reassigned.writeCapability).toBe("writer");
+    expect(reassigned.writerProvenance).toHaveLength(1);
+    expect(reassigned.writerProvenance?.[0]?.reasonCode).toBe("writer.reassignment");
+  });
+
+  it("allows handoff without write authority transfer for proposal-only reviewers", () => {
+    const handoff = transferLaneTurn(activeDevTurn, {
+      laneId: "lane-1",
+      currentOwner: "DEV",
+      nextOwner: "REVIEWER",
+      transferScope: "review",
+      transferTrigger: "Move to review while keeping writer authority on DEV.",
+      deltaSummary: "Review pass before integrating code edits.",
+      risks: ["Reviewer should not write code in single-writer mode."],
+      nextRequiredEvidence: ["Review packet"],
+      evidenceAttached: ["docs/review-packet.md"],
+      transferWriteAuthority: false
+    });
+
+    expect(handoff.activeRole).toBe("REVIEWER");
+    expect(handoff.writeAuthorityRole).toBe("DEV");
+    expect(handoff.writeCapability).toBe("proposal-only");
   });
 
   it("rejects handoffs that omit required risks or evidence expectations", () => {

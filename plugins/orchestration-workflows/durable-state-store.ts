@@ -46,6 +46,15 @@ export type SupervisorLaneRecord = {
   laneId: string;
   state: LaneLifecycleState;
   branch: string;
+  writeCapability?: "writer" | "proposal-only";
+  writerAssignment?: {
+    reasonCode: string;
+    reason: string;
+    assignedBy: string;
+    assignedAt: string;
+    previousWriterLaneId?: string;
+    provenance?: string;
+  };
   worktreeId?: string;
   sessionId?: string;
   updatedAt: string;
@@ -194,6 +203,23 @@ const normalizeLaneRecord = (input: SupervisorLaneRecord): SupervisorLaneRecord 
   laneId: assertNonEmpty(input.laneId, "lane id"),
   state: input.state,
   branch: assertNonEmpty(input.branch, "lane branch"),
+  ...(input.writeCapability ? { writeCapability: input.writeCapability } : {}),
+  ...(input.writerAssignment
+    ? {
+        writerAssignment: freezeRecord({
+          reasonCode: assertNonEmpty(input.writerAssignment.reasonCode, "lane writer assignment reason code"),
+          reason: assertNonEmpty(input.writerAssignment.reason, "lane writer assignment reason"),
+          assignedBy: assertNonEmpty(input.writerAssignment.assignedBy, "lane writer assignment actor"),
+          assignedAt: assertTimestamp(input.writerAssignment.assignedAt, "lane writer assignment timestamp"),
+          previousWriterLaneId: input.writerAssignment.previousWriterLaneId
+            ? assertNonEmpty(input.writerAssignment.previousWriterLaneId, "lane previous writer lane id")
+            : undefined,
+          provenance: input.writerAssignment.provenance
+            ? assertNonEmpty(input.writerAssignment.provenance, "lane writer assignment provenance")
+            : undefined
+        })
+      }
+    : {}),
   worktreeId: input.worktreeId ? assertNonEmpty(input.worktreeId, "lane worktree id") : undefined,
   sessionId: input.sessionId ? assertNonEmpty(input.sessionId, "lane session id") : undefined,
   updatedAt: assertTimestamp(input.updatedAt, "lane updated timestamp")

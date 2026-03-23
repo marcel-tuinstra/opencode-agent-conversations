@@ -1,4 +1,5 @@
 import { INTENT_ROLE_WEIGHTS } from "./constants";
+import { assessBugTriageGoal } from "./bug-triage-heuristics";
 import { isDiscoveryStyleGoal } from "./discovery-heuristics";
 import { detectIntent } from "./intent";
 import { getSupervisorPolicy } from "./supervisor-config";
@@ -36,8 +37,8 @@ export type PlanSupervisorGoalResult = {
   remediation: readonly string[];
 };
 
-const ACTION_REGEX = /\b(implement|build|fix|refactor|design|plan|investigate|analy[sz]e|draft|ship|deliver|create|update|migrate|optimi[sz]e|test|validate|document|research|explore|scope|define|identify|assess|evaluate|compare|synthesize|recommend|benchmark|map|size)\b/i;
-const DELIVERABLE_REGEX = /\b(pull request|pr|test|docs?|release|workflow|story|lane|runbook|policy|dashboard|playbook|plan|mvp|persona|audience|icp|competitor analysis|brief|prd|requirements?|recommendation|findings|shortlist|options?|decision memo|summary|patterns?)\b/i;
+const ACTION_REGEX = /\b(implement|build|fix|refactor|design|plan|investigate|analy[sz]e|draft|ship|deliver|create|update|migrate|optimi[sz]e|test|validate|document|research|explore|scope|define|identify|assess|evaluate|compare|synthesize|recommend|benchmark|map|size|triage|debug|diagnose|reproduce|isolate)\b/i;
+const DELIVERABLE_REGEX = /\b(pull request|pr|test|docs?|release|workflow|story|lane|runbook|policy|dashboard|playbook|plan|mvp|persona|audience|icp|competitor analysis|brief|prd|requirements?|recommendation|findings|shortlist|options?|decision memo|summary|patterns?|root cause|repro(?:duction)?|fix plan|patch)\b/i;
 const OPEN_ENDED_IDEATION_REGEX = /\b(brainstorm|ideate|blue-sky|startup ideas?)\b/i;
 const UNBOUNDED_DISCOVERY_REGEX = /\b(entire|whole|full|all(?:\s+of)?)\b[\s\S]{0,40}\b(market|landscape|industry|category|space)\b/i;
 const LONG_HORIZON_STRATEGY_REGEX = /\b(?:\d{1,2}[- ]month|annual|year(?:ly)?|long[- ]term|multi[- ]year)\s+strategy\b/i;
@@ -126,8 +127,13 @@ const resolveAmbiguity = (
   intent: Intent,
   hasActionVerb: boolean,
   hasDeliverableCue: boolean,
-  hasDiscoveryCue: boolean
+  hasDiscoveryCue: boolean,
+  isBoundedBugTriageGoal: boolean
 ): boolean => {
+  if (isBoundedBugTriageGoal) {
+    return false;
+  }
+
   if (goal.trim().length < 20) {
     return true;
   }
@@ -258,7 +264,15 @@ export const planSupervisorGoal = (input: PlanSupervisorGoalInput): PlanSupervis
   const hasDiscoveryCue = isDiscoveryStyleGoal(goal, intent);
   const complexityCueCount = countRegexMatches(goal, COMPLEXITY_CUES_REGEX);
   const riskCueCount = countRegexMatches(goal, RISK_CUES_REGEX);
-  const ambiguous = resolveAmbiguity(goal, intent, hasActionVerb, hasDeliverableCue, hasDiscoveryCue);
+  const bugTriageAssessment = assessBugTriageGoal(goal);
+  const ambiguous = resolveAmbiguity(
+    goal,
+    intent,
+    hasActionVerb,
+    hasDeliverableCue,
+    hasDiscoveryCue,
+    bugTriageAssessment.isBoundedBugTriageGoal
+  );
   const confidence = resolveConfidence(intent, hasActionVerb, hasDeliverableCue, hasDiscoveryCue, ambiguous);
   const budgetClass = resolveBudgetClass(complexityCueCount, riskCueCount, goal.length);
   const approvalBoundaries = detectApprovalBoundaries(goal);
@@ -270,6 +284,30 @@ export const planSupervisorGoal = (input: PlanSupervisorGoalInput): PlanSupervis
 
   if (approvalBoundaries.length > 0) {
     reasons.push(`Detected approval boundaries: ${approvalBoundaries.join(", ")}.`);
+  }
+
+  if (bugTriageAssessment.isBoundedBugTriageGoal) {
+    reasons.push("Detected bounded bug-triage scope.");
+  }
+
+  if (bugTriageAssessment.isBroadBugHunt) {
+    return {
+      status: "unsupported",
+      goal,
+      intent,
+      confidence,
+      budgetClass,
+      laneCount: 0,
+      requiresApproval: approvalBoundaries.length > 0,
+      approvalBoundaries,
+      recommendedRoles: Object.freeze([]),
+      reasons: dedupeStrings(reasons.concat("Broad app-wide bug hunts are unsupported for supervisor planning.")),
+      remediation: Object.freeze([
+        "Narrow to one bug scope (for example: one issue ID, one regression, or one component/service flow).",
+        "State the expected triage outcome (for example: repro notes, likely root cause, fix plan, and validation steps).",
+        "Keep work bounded to a contained area instead of a full-app sweep."
+      ])
+    };
   }
 
   if (ambiguous) {

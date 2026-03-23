@@ -10,7 +10,7 @@ import type { SupervisorExecutionPolicy } from "./supervisor-config.ts";
 // ---------------------------------------------------------------------------
 
 /** Roles that should not own implementation work. */
-export const MANAGER_ROLES: readonly Role[] = ["CEO", "CTO", "PM", "PO", "MARKETING", "RESEARCH"] as const;
+export const MANAGER_ROLES: readonly Role[] = ["CEO", "CTO", "PM", "PO", "MARKETING", "RESEARCH", "DESIGN", "QA", "REVIEWER"] as const;
 
 /** Roles that own implementation. */
 export const IMPLEMENTATION_ROLES: readonly Role[] = ["DEV", "FE", "BE", "UX"] as const;
@@ -61,7 +61,9 @@ const defaultExecutionPolicy: SupervisorExecutionPolicy = {
   requireDelegationLog: true,
   requireAgentWorktreeBinding: true,
   requireDedicatedIntegrationAgent: false,
-  integrationAgentLabel: "INTEGRATION"
+  integrationAgentLabel: "INTEGRATION",
+  writerConcurrencyProfile: "unrestricted",
+  nonWriterMode: "full-access"
 };
 
 // ---------------------------------------------------------------------------

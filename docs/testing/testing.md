@@ -11,6 +11,27 @@ npm test
 
 The GitHub Actions workflow in `.github/workflows/ci.yml` runs these tests on Node 22 and 24 for every push and pull request.
 
+### Supervisor orchestration regression release gate
+
+For supervisor-heavy releases, run this focused gate before opening/merging:
+
+```bash
+npm test -- tests/supervisor-golden-traces.test.ts tests/supervisor-execution-workflow.test.ts tests/supervisor-delegation.test.ts
+npm run typecheck
+```
+
+What this gate covers:
+
+- deterministic end-to-end orchestration traces (happy path, retry/resume, partial failure, cancellation/recovery)
+- execution workflow checkpoint behavior (dispatch, recovery, approval, review, completion)
+- role-boundary guardrails across the expanded non-execution roster (`CEO`, `CTO`, `PM`, `PO`, `RESEARCH`, `MARKETING`, `DESIGN`, `QA`, `REVIEWER`)
+
+## Supervisor recovery validation
+
+For fault-injection, recovery completion semantics, and GA-blocking invariants (silent data loss, duplicate side effects, orphaned lane/session bindings), use the dedicated runbook:
+
+- [`supervisor-recovery-runbook.md`](./supervisor-recovery-runbook.md)
+
 ## Role Parsing
 
 - `@cto @dev` should detect both roles and produce thread mode.
@@ -80,3 +101,5 @@ Run the dedicated specialist sanity script whenever role routing, aliases, or ag
 - [`role-sanity-script.md`](./role-sanity-script.md)
 
 This script verifies refusal quality, reroute accuracy, ownership clarity, and supervisor purity across `DEV`, `FE`, `BE`, and `UX`.
+
+When role-boundary heuristics change, pair this manual script with the automated non-execution roster regression in `tests/supervisor-delegation.test.ts`.

@@ -97,6 +97,11 @@ describe("public contract guardrails", () => {
     expectTypeOf<SessionPolicy>().toEqualTypeOf<SourceSessionPolicy>();
   });
 
+  it("publishes 13 bundled first-party roles in the stable barrel", () => {
+    expect(packageRoot.SUPPORTED_ROLES).toHaveLength(13);
+    expect(packageRoot.SUPPORTED_ROLES).toEqual(expect.arrayContaining(["DESIGN", "QA", "REVIEWER"]));
+  });
+
   it("exports supervisor symbols from the experimental supervisor barrel", () => {
     expect(supervisorRoot.createSupervisorDispatchPlan).toBe(createSupervisorDispatchPlan);
     expect(supervisorRoot.createFileBackedSupervisorStateStore).toBe(createFileBackedSupervisorStateStore);

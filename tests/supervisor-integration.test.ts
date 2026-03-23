@@ -337,6 +337,35 @@ describe("supervisor integration (Wave 4)", () => {
       const parsed = JSON.parse(result);
       expect(parsed.error).toContain("No OpenCode client available");
     });
+
+    it("blocks launch when no supervisor plan is active for the parent session", async () => {
+      const client = {
+        session: {
+          create: vi.fn().mockResolvedValue({ data: { id: "child-unused" } }),
+          promptAsync: vi.fn().mockResolvedValue(undefined),
+          status: vi.fn().mockResolvedValue({ data: {} }),
+          abort: vi.fn().mockResolvedValue(undefined),
+          children: vi.fn().mockResolvedValue({ data: [] }),
+          messages: vi.fn().mockResolvedValue({ data: [] }),
+          get: vi.fn().mockResolvedValue({ data: { id: "child-unused", status: "idle" } })
+        }
+      } as any;
+
+      const hooks = await AgentConversations(createMockPluginInput({ client }));
+      const sessionID = "test-session-tool-governance-parent-check";
+
+      const toolDef = hooks.tool!.supervisor_launch as any;
+      const result = JSON.parse(
+        await toolDef.execute(
+          { laneId: "lane-1", objective: "Build auth", role: "DEV" },
+          { sessionID }
+        )
+      );
+
+      expect(result.status).toBe("blocked");
+      expect(result.reasonCode).toBe("governance.parent-missing");
+      expect(client.session.create).not.toHaveBeenCalled();
+    });
   });
 
   describe("event hook — child session monitoring", () => {
@@ -954,6 +983,28 @@ describe("supervisor integration (Wave 4)", () => {
       const textIO = createTextCompleteIO(parentId, "Response");
       await hooks["experimental.text.complete"]!(textIO.input, textIO.output);
       expect(textIO.output.text).not.toContain("[Supervisor] Plan");
+    });
+
+    it("blocks duplicate in-flight launches for the same lane", async () => {
+      const parentId = "test-event-duplicate-lane-parent";
+      const childId = "test-event-duplicate-lane-child";
+
+      const { hooks } = await setupSupervisorWithChild({
+        parentSessionId: parentId,
+        childSessionId: childId,
+        laneId: "lane-1"
+      });
+
+      const toolDef = hooks.tool!.supervisor_launch as any;
+      const duplicateLaunch = JSON.parse(
+        await toolDef.execute(
+          { laneId: "lane-1", objective: "Build auth again", role: "DEV" },
+          { sessionID: parentId }
+        )
+      );
+
+      expect(duplicateLaunch.status).toBe("blocked");
+      expect(duplicateLaunch.reasonCode).toBe("governance.lane-in-flight");
     });
   });
 
