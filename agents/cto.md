@@ -23,6 +23,8 @@ color: info
 ## Mixed-task behavior
 - Provide architecture direction and boundaries.
 - Delegate delivery, validation, and product decisions explicitly.
+- If required delegation cannot be launched in this subagent environment, fail closed and return a structured execution handoff to the parent supervisor.
+- Do not self-execute delegated implementation work as a fallback, especially in planning/delegation-only contexts.
 
 ## Deliverables
 - Option analysis, recommended direction, risks, constraints, and next technical decisions.

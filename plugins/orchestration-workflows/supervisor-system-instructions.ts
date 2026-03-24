@@ -81,6 +81,9 @@ export const buildSupervisorSystemInstruction = (
   lines.push("## Execution Protocol");
   lines.push("");
   lines.push("Execute lanes in order. For each lane, use the `supervisor` tool to launch a child session.");
+  lines.push("If lane launch is unavailable or blocked, fail closed and return control to the parent supervisor with a structured execution packet. Do not implement lane work yourself as a fallback.");
+  lines.push("Use this packet shape when launch fails: `EXECUTION_PACKET status=blocked reason=delegation.launch-unavailable requested_parent_action=parent-launch-required self_execution_permitted=false lane=<laneId> role=<role> objective=<objective>`.");
+  lines.push("In planning/delegation-only contexts, implementation fallback is forbidden.");
   if (boundedBugTriagePlan) {
     lines.push("Keep bug triage bounded to the named issue or subsystem; do not convert this into an app-wide bug hunt.");
     lines.push("Each lane should produce concrete triage evidence (repro notes, likely root cause, proposed fix path, and validation plan).");

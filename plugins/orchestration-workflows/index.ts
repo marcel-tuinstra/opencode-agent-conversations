@@ -537,7 +537,15 @@ export const AgentConversations: Plugin = async (input: PluginInput) => {
         },
         async execute(args: { laneId: string; objective: string; role: string }, context: { sessionID: string }) {
           if (!opencodeClient) {
-            return JSON.stringify({ error: "No OpenCode client available. Cannot launch child sessions." });
+            return JSON.stringify({
+              status: "blocked",
+              laneId: args.laneId,
+              reasonCode: "delegation.launch-unavailable",
+              reason: "No OpenCode client available. Cannot launch child sessions.",
+              requestedParentAction: "parent-launch-required",
+              selfExecutionPermitted: false,
+              packetType: "EXECUTION_PACKET"
+            });
           }
 
           const launchStartedAt = new Date().toISOString();
@@ -596,12 +604,16 @@ export const AgentConversations: Plugin = async (input: PluginInput) => {
                 reasonCode: launchCommitted.reasonCode,
                 reason: launchCommitted.reason
               });
-              return JSON.stringify({
-                status: "failed",
-                laneId: args.laneId,
-                error: launchCommitted.reason ?? "Failed to track launched child session."
-              });
-            }
+            return JSON.stringify({
+              status: "failed",
+              laneId: args.laneId,
+              reasonCode: "delegation.launch-tracking-failed",
+              reason: launchCommitted.reason ?? "Failed to track launched child session.",
+              requestedParentAction: "parent-launch-required",
+              selfExecutionPermitted: false,
+              packetType: "EXECUTION_PACKET"
+            });
+          }
 
             debugLog("supervisor.tool.child_launched", {
               sessionId: context.sessionID,
@@ -633,7 +645,11 @@ export const AgentConversations: Plugin = async (input: PluginInput) => {
             return JSON.stringify({
               status: "failed",
               laneId: args.laneId,
-              error: String(error)
+              reasonCode: "delegation.launch-error",
+              reason: String(error),
+              requestedParentAction: "parent-launch-required",
+              selfExecutionPermitted: false,
+              packetType: "EXECUTION_PACKET"
             });
           }
         }

@@ -327,7 +327,7 @@ describe("supervisor integration (Wave 4)", () => {
       expect(typeof toolDef.execute).toBe("function");
     });
 
-    it("supervisor_launch returns error when no client is available", async () => {
+    it("supervisor_launch returns blocked execution packet when no client is available", async () => {
       const hooks = await AgentConversations(createMockPluginInput({ client: undefined as any }));
       const toolDef = hooks.tool!.supervisor_launch as any;
       const result = await toolDef.execute(
@@ -335,7 +335,12 @@ describe("supervisor integration (Wave 4)", () => {
         { sessionID: "test-session-tool-1" }
       );
       const parsed = JSON.parse(result);
-      expect(parsed.error).toContain("No OpenCode client available");
+      expect(parsed.status).toBe("blocked");
+      expect(parsed.reasonCode).toBe("delegation.launch-unavailable");
+      expect(parsed.reason).toContain("No OpenCode client available");
+      expect(parsed.requestedParentAction).toBe("parent-launch-required");
+      expect(parsed.selfExecutionPermitted).toBe(false);
+      expect(parsed.packetType).toBe("EXECUTION_PACKET");
     });
 
     it("blocks launch when no supervisor plan is active for the parent session", async () => {

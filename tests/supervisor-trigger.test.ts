@@ -362,6 +362,9 @@ describe("supervisor-trigger", () => {
       const instruction = buildSupervisorSystemInstruction(plan);
 
       expect(instruction).toContain("Execute lanes in order. For each lane, use the `supervisor` tool to launch a child session.");
+      expect(instruction).toContain("If lane launch is unavailable or blocked, fail closed and return control to the parent supervisor");
+      expect(instruction).toContain("EXECUTION_PACKET status=blocked reason=delegation.launch-unavailable");
+      expect(instruction).toContain("In planning/delegation-only contexts, implementation fallback is forbidden.");
       expect(instruction).toContain("Budget class:");
       expect(instruction).toContain("Report progress after each lane completes.");
     });
