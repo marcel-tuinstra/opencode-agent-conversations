@@ -109,9 +109,9 @@ describe("output", () => {
     const updated = appendSupervisorDecisionNotes(text, ["CTO", "DEV"], targets, "multi-role-thread");
 
     // Assert
-    expect(updated).toContain("route.multi-role-thread");
-    expect(updated).toContain("assignment.weighted-turns");
-    expect(updated).toContain("CTO:2 DEV:1");
+    expect(updated).toContain("[Supervisor] routed as multi-role thread across: CTO, DEV.");
+    expect(updated).not.toContain("route.multi-role-thread");
+    expect(updated).not.toContain("assignment.weighted-turns");
   });
 
   it("omits orchestrator-additions line when addedByOrchestrator is empty", () => {
@@ -127,7 +127,9 @@ describe("output", () => {
     });
 
     // Assert
-    expect(updated).toMatch(/delegated.*by CTO/);
+    expect(updated).toContain("routed as delegated thread across: CTO, DEV.");
+    expect(updated).toContain("delegated by CTO: DEV.");
+    expect(updated).toContain("delegated wave 1 by CTO: DEV.");
     expect(updated).not.toContain("provenance.orchestrator-additions");
   });
 
@@ -141,8 +143,8 @@ describe("output", () => {
     });
 
     // Assert
-    expect(updated).toContain("route.multi-role-thread");
-    expect(updated).toContain("requested by user: CTO, DEV");
+    expect(updated).toContain("routed as multi-role thread across: CTO, DEV.");
+    expect(updated).toContain("requested by user: CTO, DEV.");
   });
 
   it("extracts delegated roles and removes marker", () => {

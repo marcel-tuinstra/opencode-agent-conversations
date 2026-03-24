@@ -334,6 +334,43 @@ export const applyBudgetAction = (
   return `${truncated}\n\n${formatSupervisorReason(createSupervisorReasonDetail("budget.output-truncate", { actionReason: reason }))}`;
 };
 
+const buildSupervisorThreadSummary = (
+  roles: readonly Role[],
+  route: "multi-role-thread" | "delegated-thread",
+  provenance: SupervisorDecisionProvenance
+): string => {
+  const parts: string[] = [];
+  const routeLabel = route === "delegated-thread" ? "delegated thread" : "multi-role thread";
+
+  parts.push(`routed as ${routeLabel} across: ${roles.join(", ")}.`);
+
+  if (provenance.requestedByUser && provenance.requestedByUser.length > 0) {
+    parts.push(`requested by user: ${formatProvenanceRoles(provenance.requestedByUser)}.`);
+  }
+
+  if (provenance.delegatedBy && provenance.delegatedRoles && provenance.delegatedRoles.length > 0) {
+    parts.push(`delegated by ${provenance.delegatedBy}: ${provenance.delegatedRoles.join(", ")}.`);
+    const effectiveWaves = provenance.waves && provenance.waves.length > 0
+      ? provenance.waves
+      : [{ wave: 1, roles: [...provenance.delegatedRoles] as Role[], goal: "", dependsOn: [] as number[] }];
+
+    for (const wave of effectiveWaves) {
+      const waveRoles = wave.roles.length > 0 ? wave.roles.join(", ") : formatProvenanceRoles(provenance.delegatedRoles);
+      parts.push(`delegated wave ${wave.wave} by ${provenance.delegatedBy}: ${waveRoles}.`);
+    }
+  }
+
+  if (provenance.addedByOrchestrator && provenance.addedByOrchestrator.length > 0) {
+    parts.push(`added by orchestrator: ${formatProvenanceRoles(provenance.addedByOrchestrator)}.`);
+  }
+
+  if (provenance.maxParallelAgents !== undefined && provenance.maxParallelAgents > 0) {
+    parts.push(`max parallel agents: ${provenance.maxParallelAgents}.`);
+  }
+
+  return `[Supervisor] ${parts.join(" ")}`;
+};
+
 const rewriteOrchestratorNarration = (
   text: string,
   delegatedBy: Role,
@@ -354,6 +391,7 @@ const rewriteOrchestratorNarration = (
       rewritten.push(line);
       continue;
     }
+
     if (!injectedLaunchLine) {
       rewritten.push(`[Supervisor] delegation.launch: delegated launch by ${delegatedBy}: ${delegatedRoles.join(", ")}.`);
       injectedLaunchLine = true;
@@ -366,7 +404,7 @@ const rewriteOrchestratorNarration = (
 export const appendSupervisorDecisionNotes = (
   text: string,
   roles: Role[],
-  targets: Record<Role, number>,
+  _targets: Record<Role, number>,
   route: "multi-role-thread" | "delegated-thread",
   provenance: SupervisorDecisionProvenance = {}
 ): string => {
@@ -378,45 +416,6 @@ export const appendSupervisorDecisionNotes = (
     ? rewriteOrchestratorNarration(text, provenance.delegatedBy, provenance.delegatedRoles)
     : text;
 
-  const routeCode = route === "delegated-thread" ? "route.delegated-thread" : "route.multi-role-thread";
-  const routeLine = formatSupervisorReason(createSupervisorReasonDetail(routeCode, { roles }));
-  const assignmentLine = formatSupervisorReason(createSupervisorReasonDetail("assignment.weighted-turns", {
-    leadRole: roles[0],
-    roles,
-    targets
-  }));
-
-  const provenanceLines: string[] = [];
-  if (provenance.requestedByUser && provenance.requestedByUser.length > 0) {
-    provenanceLines.push(
-      `[Supervisor] provenance.requested-by-user: requested by user: ${formatProvenanceRoles(provenance.requestedByUser)}.`
-    );
-  }
-
-  if (provenance.delegatedBy && provenance.delegatedRoles && provenance.delegatedRoles.length > 0) {
-    const effectiveWaves = provenance.waves && provenance.waves.length > 0
-      ? provenance.waves
-      : [{ wave: 1, roles: [...provenance.delegatedRoles] as Role[], goal: "", dependsOn: [] as number[] }];
-
-    for (const wave of effectiveWaves) {
-      const waveRoles = wave.roles.length > 0 ? wave.roles.join(", ") : formatProvenanceRoles(provenance.delegatedRoles);
-      provenanceLines.push(
-        `[Supervisor] provenance.delegated-wave: delegated wave ${wave.wave} by ${provenance.delegatedBy}: ${waveRoles}.`
-      );
-    }
-  }
-
-  if (provenance.addedByOrchestrator && provenance.addedByOrchestrator.length > 0) {
-    provenanceLines.push(
-      `[Supervisor] provenance.orchestrator-additions: added by orchestrator: ${formatProvenanceRoles(provenance.addedByOrchestrator)}.`
-    );
-  }
-
-  if (provenance.maxParallelAgents !== undefined && provenance.maxParallelAgents > 0) {
-    provenanceLines.push(
-      `[Supervisor] provenance.max-parallel: max parallel agents: ${provenance.maxParallelAgents}.`
-    );
-  }
-
-  return `${processedText}\n\n---\n${routeLine}\n${assignmentLine}${provenanceLines.length > 0 ? `\n${provenanceLines.join("\n")}` : ""}`;
+  const summaryLine = buildSupervisorThreadSummary(roles, route, provenance);
+  return `${processedText}\n\n---\n${summaryLine}`;
 };

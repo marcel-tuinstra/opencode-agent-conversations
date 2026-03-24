@@ -88,21 +88,15 @@ Useful events include:
 
 ### Supervisor notes in output
 
-When the runtime adds operator-facing notes, it uses a stable human-readable format:
+For multi-role threads, the runtime appends a compact single-line summary by default:
 
-- `[Supervisor] route.*` for route selection
-- `[Supervisor] assignment.*` for turn ownership or assignment decisions
-- `[Supervisor] delegation.launch` and `[Supervisor] provenance.*` when delegation expanded the thread
-- `[Supervisor] budget.*`, `approval.*`, or `blocked.*` when a guardrail changed or paused behavior
+- `[Supervisor] Routed as ... across: ...`
 
-Treat the explanation text as the primary signal. The reason code is a short audit label that helps operators scan logs and transcripts.
+Detailed route/assignment/provenance audit labels are kept out of the default transcript to reduce noise.
 
-Common provenance lines:
+Guardrail notices still render explicitly when behavior is blocked or constrained:
 
-- `provenance.requested-by-user` means the user explicitly asked for those roles
-- `provenance.delegated-wave` means a lead role delegated downstream work
-- `provenance.orchestrator-additions` means the orchestrator added supporting roles
-- `provenance.max-parallel` records the applied parallelism cap
+- `[Supervisor] budget.*`, `approval.*`, or `blocked.*`
 
 ### Common scenarios
 

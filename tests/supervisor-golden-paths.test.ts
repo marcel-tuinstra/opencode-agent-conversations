@@ -280,8 +280,7 @@ describe("supervisor golden paths", () => {
       "[MCP] blocked.mcp-access: Blocked the MCP action: GitHub MCP evidence has not run yet for this session..",
       "",
       "---",
-      "[Supervisor] route.multi-role-thread: Routed this checkpoint through a threaded discussion because multiple roles stayed active: CTO, DEV.",
-      "[Supervisor] assignment.weighted-turns: Assigned turns with the weighted plan CTO:2 DEV:1. Lead CTO opens and closes."
+      "[Supervisor] routed as multi-role thread across: CTO, DEV."
     ].join("\n"));
   });
 
