@@ -108,7 +108,7 @@ describe("turn-ownership", () => {
 
     expect(reassigned.activeRole).toBe("DEV");
     expect(reassigned.writeAuthorityRole).toBe("TESTER");
-    expect(reassigned.writeCapability).toBe("writer");
+    expect(reassigned.writeCapability).toBe("proposal-only");
     expect(reassigned.writerProvenance).toHaveLength(1);
     expect(reassigned.writerProvenance?.[0]?.reasonCode).toBe("writer.reassignment");
   });

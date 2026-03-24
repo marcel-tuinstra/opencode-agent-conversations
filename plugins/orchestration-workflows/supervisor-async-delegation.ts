@@ -1,5 +1,3 @@
-import { getSupervisorPolicy } from "./supervisor-config.ts";
-
 export type SupervisorAsyncDelegationPlanStatus = "supported" | "unsupported";
 
 export type SupervisorAsyncDelegationLaneState =
@@ -203,11 +201,6 @@ export const createSupervisorAsyncDelegationRuntime = () => {
         reasonCode: "governance.lane-in-flight",
         reason: `Lane '${laneId}' already has an in-flight child session.`
       };
-    }
-
-    const requireDelegationLog = getSupervisorPolicy().execution.requireDelegationLog;
-    if (!requireDelegationLog) {
-      return { allowed: true };
     }
 
     return { allowed: true };

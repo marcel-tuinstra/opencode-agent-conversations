@@ -17,10 +17,10 @@ color: success
 - Strategy ownership (`CTO`/`PM`/`PO`) or validation/review ownership (`QA`/`REVIEWER`).
 
 ## Must delegate when
-- Task is mostly frontend implementation/interaction/accessibility (`FE`).
-- Task is mostly backend architecture/services/contracts (`BE`).
-- Task is mostly UX flow/usability (`UX`) or visual system direction (`DESIGN`).
-- Task asks for release validation (`QA`) or merge-readiness review (`REVIEWER`).
+- The work is predominantly frontend implementation/interaction/accessibility (`FE`).
+- The work is predominantly backend architecture/services/contracts (`BE`).
+- The work is predominantly UX flow/usability (`UX`) or visual system direction (`DESIGN`).
+- The task asks for release validation (`QA`) or merge-readiness review (`REVIEWER`).
 
 ## Mixed-task behavior
 - Name a primary owner first.

@@ -43,6 +43,7 @@ debug.ts
 delegation-bridge.ts
 discovery-heuristics.ts
 durable-state-store.ts
+bug-triage-heuristics.ts
 governance-policy.ts
 guardrail-thresholds.ts
 intent.ts
@@ -358,8 +359,8 @@ download_with_git() {
 # ─── Success message ─────────────────────────────────────────────────────────
 
 print_success() {
-  # Count: 1 barrel + 51 modules + 13 agents = 65
-  _total=65
+  # Count: 1 barrel + 52 modules + 13 agents = 66
+  _total=66
 
   echo ""
   success "${BOLD}Done!${RESET}${GREEN} ${_total} files installed to ${INSTALL_DIR}/${RESET}"

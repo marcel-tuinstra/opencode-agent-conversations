@@ -140,6 +140,7 @@ describe("supervisor-goal-plan", () => {
     expect(result.status).toBe("supported");
     expect(result.confidence).toBe("high");
     expect(result.reasons.some((reason: string) => /bounded bug-triage/i.test(reason))).toBe(true);
+    expect(result.remediation).toEqual([]);
   });
 
   it("keeps broad app-wide bug hunts unsupported", () => {

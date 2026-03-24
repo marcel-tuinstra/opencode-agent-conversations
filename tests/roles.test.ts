@@ -46,13 +46,24 @@ describe("roles", () => {
 
   it("detects design, qa, and reviewer mentions", () => {
     // Arrange
-    const text = "@design @qa @reviewer";
+    const text = "@design @qa @tester @reviewer";
 
     // Act
     const roles = detectRolesFromMentions(text);
 
     // Assert
     expect(roles).toEqual(["DESIGN", "QA", "REVIEWER"]);
+  });
+
+  it("treats @tester as a QA mention alias", () => {
+    // Arrange
+    const text = "@tester";
+
+    // Act
+    const roles = detectRolesFromMentions(text);
+
+    // Assert
+    expect(roles).toEqual(["QA"]);
   });
 
   it("ignores file references", () => {

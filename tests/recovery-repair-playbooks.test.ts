@@ -212,6 +212,12 @@ describe("recovery-repair-playbooks", () => {
     expect(playbook.classification.disposition).toBe("quarantine");
     expect(playbook.classification.reasons).toContain("Worktree path exists but the durable lane binding is no longer trustworthy.");
     expect(playbook.approvalRequest?.boundary).toBe("destructive");
+    expect(playbook.actions.map((action) => action.kind)).toEqual([
+      "pause-lane",
+      "request-approval",
+      "rebuild-worktree",
+      "escalate-human"
+    ]);
   });
 
   it("classifies merge conflicts as repair playbooks that reopen review prep", () => {

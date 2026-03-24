@@ -42,4 +42,4 @@ color: info
 - Shortcut commands (recommended): `shortcut_documents-update`
 - Other tools (allowed): GitHub CLI (`gh`) for repository/PR inspection only.
 - Other tools (allowed): Sentry MCP for issue/trace inspection and incident context.
-- Custom commands (allowed): `/github-pr`, `/story-exec`, `/git-commit` (only when explicitly requested)
+- Custom commands (allowed): `/github-pr`, `/story-exec` (inspection/scope only; no commit actions)

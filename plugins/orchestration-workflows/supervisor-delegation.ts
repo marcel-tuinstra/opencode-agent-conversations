@@ -1,9 +1,9 @@
 import { getSupervisorPolicy, type SupervisorExecutionPolicy } from "./supervisor-config";
 import type { Role } from "./types";
 import { freezeList, freezeRecord } from "./internal-utils";
+import { MANAGER_ROLES } from "./role-constants.ts";
 
 const EXECUTION_ROLES = Object.freeze(["DEV", "FE", "BE", "UX"] as const satisfies readonly Role[]);
-const MANAGER_ROLES = Object.freeze(["CEO", "CTO", "PM", "PO", "RESEARCH", "MARKETING", "DESIGN", "QA", "REVIEWER"] as const satisfies readonly Role[]);
 const IMPLEMENTATION_VERB_REGEX = /\b(implement|build|code|fix|ship|write|deliver|develop|patch|refactor|debug|wire up|test|validate|run)\b/i;
 const IMPLEMENTATION_TARGET_REGEX = /\b(feature|fix|workflow|implementation|migration|api client|client|integration|patch|release flow|release candidate|tests?|flow|generator)\b/i;
 const EXPLICIT_IMPLEMENTATION_PHRASE_REGEXES = Object.freeze([

@@ -223,6 +223,21 @@ describe("supervisor-config", () => {
     expect(result.config.execution.nonWriterMode).toBe("proposal-only");
   });
 
+  it("coerces non-writer mode to proposal-only when single-writer execution is enabled", () => {
+    const result = resolveSupervisorPolicy({
+      profile: "v1-safe",
+      execution: {
+        writerConcurrencyProfile: "single-writer",
+        nonWriterMode: "full-access"
+      }
+    }, "single-writer-non-writer-coercion-test");
+
+    expect(result.valid).toBe(false);
+    expect(result.config.execution.writerConcurrencyProfile).toBe("single-writer");
+    expect(result.config.execution.nonWriterMode).toBe("proposal-only");
+    expect(result.diagnostics.some((entry) => entry.path === "execution.nonWriterMode")).toBe(true);
+  });
+
   it("fails safe when the repo-local policy file is unreadable JSON", () => {
     const tempRoot = mkdtempSync(join(tmpdir(), "supervisor-policy-invalid-json-"));
     const policyPath = join(tempRoot, DEFAULT_SUPERVISOR_POLICY_PATH);

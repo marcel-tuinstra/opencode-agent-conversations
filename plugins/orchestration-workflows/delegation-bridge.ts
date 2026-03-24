@@ -3,14 +3,14 @@ import type {
   SupervisorDelegationAssignmentInput,
   SupervisorDelegationPlanInput
 } from "./supervisor-delegation.ts";
+import { MANAGER_ROLES } from "./role-constants.ts";
 import type { SupervisorExecutionPolicy } from "./supervisor-config.ts";
 
 // ---------------------------------------------------------------------------
 // Constants
 // ---------------------------------------------------------------------------
 
-/** Roles that should not own implementation work. */
-export const MANAGER_ROLES: readonly Role[] = ["CEO", "CTO", "PM", "PO", "MARKETING", "RESEARCH", "DESIGN", "QA", "REVIEWER"] as const;
+export { MANAGER_ROLES };
 
 /** Roles that own implementation. */
 export const IMPLEMENTATION_ROLES: readonly Role[] = ["DEV", "FE", "BE", "UX"] as const;

@@ -412,7 +412,7 @@ const applyWriterDirective = async (input: {
     updatedAt: lane.updatedAt
   }));
 
-  await input.store.commitMutation(input.runId, {
+  const nextState = await input.store.commitMutation(input.runId, {
     mutationId: `dispatch:writer-policy:${input.occurredAt}`,
     actor: input.actor,
     summary: nextWriterLaneId
@@ -426,11 +426,6 @@ const applyWriterDirective = async (input: {
       `single-writer-reason:${reasonCode}`
     ]
   });
-
-  const nextState = await input.store.getRunState(input.runId);
-  if (!nextState) {
-    throw new Error(`Cannot dispatch unknown supervisor run '${input.runId}'.`);
-  }
 
   return { state: nextState, writerLaneId: nextWriterLaneId, reasonCode, reason };
 };

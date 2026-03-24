@@ -652,7 +652,20 @@ export const AgentConversations: Plugin = async (input: PluginInput) => {
         childSessionId: childId,
         occurredAt: new Date().toISOString()
       });
+      if (!decision.matched) {
+        debugLog("supervisor.event.child_unmatched", {
+          childSessionId: childId,
+          eventType: String(event?.type ?? "")
+        });
+      }
       if (!decision.matched || !decision.parentSessionId || !decision.laneId) {
+        debugLog("supervisor.event.unmatched_or_incomplete", {
+          childSessionId: childId,
+          eventType: String(event?.type ?? ""),
+          matched: decision.matched,
+          parentSessionId: decision.parentSessionId ?? null,
+          laneId: decision.laneId ?? null
+        });
         return;
       }
 

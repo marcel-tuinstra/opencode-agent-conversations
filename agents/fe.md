@@ -18,10 +18,10 @@ color: success
 - Product prioritization and QA signoff.
 
 ## Must delegate when
-- Task requires backend contract/service ownership (`BE`).
-- Task requires usability-flow definition or IA decisions (`UX`).
-- Task requires visual direction and design-system intent (`DESIGN`).
-- Task is primarily validation/release verdict (`QA`) or review verdict (`REVIEWER`).
+- The task requires backend contract/service ownership (`BE`).
+- The task requires usability-flow definition or IA decisions (`UX`).
+- The task requires visual direction and design-system intent (`DESIGN`).
+- The task is primarily a validation/release verdict (`QA`) or review verdict (`REVIEWER`).
 
 ## Mixed-task behavior
 - Implement only frontend-owned scope.

@@ -84,6 +84,9 @@ describe("cli bundled agents install and verify", () => {
 
       const pluginModuleCount = countFilesRecursive(join(repoRoot, "plugins", "orchestration-workflows"));
       const bundledAgentCount = readdirSync(join(repoRoot, "agents")).filter((file) => file.endsWith(".md")).length;
+      // The leading `1` accounts for the top-level plugin barrel file
+      // (plugins/orchestration-workflows.ts), in addition to all module files
+      // and bundled agent profiles.
       const expectedTotal = 1 + pluginModuleCount + bundledAgentCount;
 
       expect(expectedTotal).toBeGreaterThan(60);

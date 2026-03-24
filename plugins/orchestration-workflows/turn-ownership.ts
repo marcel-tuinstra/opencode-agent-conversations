@@ -100,11 +100,13 @@ export const designateLaneWriter = (
   }
 ): LaneTurnOwnership => {
   const nextWriterRole = input.nextWriterRole;
+  const writeAuthorityRole = nextWriterRole ?? ownership.writeAuthorityRole;
+  const writeCapability: LaneWriteCapability = writeAuthorityRole === ownership.activeRole ? "writer" : "proposal-only";
 
   return {
     ...ownership,
-    writeAuthorityRole: nextWriterRole ?? ownership.writeAuthorityRole,
-    writeCapability: nextWriterRole ? "writer" : "proposal-only",
+    writeAuthorityRole,
+    writeCapability,
     writerProvenance: [
       ...(ownership.writerProvenance ?? []),
       {
