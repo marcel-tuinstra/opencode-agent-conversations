@@ -1,0 +1,17 @@
+{
+  "platform": "opencode",
+  "install": {
+    "type": "copy",
+    "sources": [
+      "plugins/orchestration-workflows.ts",
+      "plugins/orchestration-workflows",
+      "agents"
+    ],
+    "destination": "~/.opencode"
+  },
+  "runtime": {
+    "promptInjection": "native",
+    "toolGating": "native",
+    "worktrees": "native"
+  }
+}

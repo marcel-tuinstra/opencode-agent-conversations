@@ -1,0 +1,15 @@
+{
+  "platform": "codex",
+  "install": {
+    "type": "copy",
+    "sources": [
+      "generated/codex/agents"
+    ],
+    "destination": "~/.codex/agents/agent-council"
+  },
+  "runtime": {
+    "promptInjection": "adapter",
+    "toolGating": "adapter",
+    "worktrees": "adapter"
+  }
+}

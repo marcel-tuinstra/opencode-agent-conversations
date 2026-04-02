@@ -1,0 +1,15 @@
+{
+  "platform": "claude-code",
+  "install": {
+    "type": "copy",
+    "sources": [
+      "generated/claude-code/agents"
+    ],
+    "destination": "~/.claude/agents/agent-council"
+  },
+  "runtime": {
+    "promptInjection": "adapter",
+    "toolGating": "adapter",
+    "worktrees": "adapter"
+  }
+}
