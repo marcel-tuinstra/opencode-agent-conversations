@@ -25,5 +25,9 @@
     "promptInjection": "native",
     "toolGating": "native",
     "worktrees": "native"
+  },
+  "detect": {
+    "binaries": ["opencode"],
+    "homeMarkers": [".opencode"]
   }
 }

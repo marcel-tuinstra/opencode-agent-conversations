@@ -47,6 +47,7 @@ const SRC_PLUGIN_BARREL = join(repoRoot, "plugins", "orchestration-workflows.ts"
 const SRC_PLUGIN_DIR    = join(repoRoot, "plugins", "orchestration-workflows");
 const SRC_AGENTS_DIR    = join(repoRoot, "agents");
 const SRC_GENERATED_OPENCODE_AGENTS = join(repoRoot, "generated", "opencode", "agents");
+const SRC_GENERATED_OPENCODE_SKILLS = join(repoRoot, "generated", "opencode", "skills");
 const ADAPTER_MANIFESTS = {
   "opencode": join(repoRoot, "packages", "adapter-opencode", "manifest.json"),
   "claude-code": join(repoRoot, "packages", "adapter-claude-code", "manifest.json"),
@@ -56,12 +57,14 @@ const ADAPTER_MANIFESTS = {
 const DEST_BASE        = join(homedir(), ".opencode");
 const DEST_PLUGINS_DIR = join(DEST_BASE, "plugins");
 const DEST_AGENTS_DIR  = join(DEST_BASE, "agents");
+const DEST_SKILLS_DIR  = join(DEST_BASE, "skills", "agent-council");
 const DEST_PLUGIN_SUB  = join(DEST_PLUGINS_DIR, "orchestration-workflows");
 
 const PLATFORM_IDS = ["opencode", "claude-code", "codex"];
 const SRC_OPENCODE_AGENTS_DIR = existsSync(SRC_GENERATED_OPENCODE_AGENTS)
   ? SRC_GENERATED_OPENCODE_AGENTS
   : SRC_AGENTS_DIR;
+const SRC_OPENCODE_SKILLS_DIR = SRC_GENERATED_OPENCODE_SKILLS;
 
 // ---------------------------------------------------------------------------
 // Package version (read from package.json)
@@ -80,6 +83,10 @@ const KNOWN_AGENTS = existsSync(SRC_OPENCODE_AGENTS_DIR)
   ? readdirSync(SRC_OPENCODE_AGENTS_DIR).filter((f) => f.endsWith(".md"))
   : ["be.md", "ceo.md", "cto.md", "dev.md", "fe.md",
      "marketing.md", "pm.md", "po.md", "research.md", "ux.md"];
+
+const KNOWN_SKILLS = existsSync(SRC_OPENCODE_SKILLS_DIR)
+  ? readdirSync(SRC_OPENCODE_SKILLS_DIR).filter((f) => !f.startsWith("."))
+  : ["deliberate"];
 
 // ---------------------------------------------------------------------------
 // CLI argument parsing (minimal -- no dependencies)
@@ -234,53 +241,18 @@ function sha256(filePath) {
 }
 
 function printPlan() {
+  const manifest = buildManifest();
   console.log(colors.cyan("  Would copy:"));
-  console.log(`    ${colors.dim(relative(process.cwd(), SRC_PLUGIN_BARREL))}`);
-  console.log(`      -> ${colors.dim(join(DEST_PLUGINS_DIR, "orchestration-workflows.ts"))}`);
-  console.log("");
-  console.log(`    ${colors.dim(relative(process.cwd(), SRC_PLUGIN_DIR) + "/  (recursive)")}`);
-  console.log(`      -> ${colors.dim(join(DEST_PLUGINS_DIR, "orchestration-workflows") + "/")}`);
-  console.log("");
-
-  const agentFiles = readdirSync(SRC_OPENCODE_AGENTS_DIR).filter((f) => f.endsWith(".md"));
-  for (const file of agentFiles) {
-    console.log(`    ${colors.dim(join("agents", file))}`);
-    console.log(`      -> ${colors.dim(join(DEST_AGENTS_DIR, file))}`);
+  for (const entry of manifest) {
+    console.log(`    ${colors.dim(relative(process.cwd(), entry.src))}`);
+    console.log(`      -> ${colors.dim(entry.dest)}`);
   }
   console.log("");
 }
 
 /** Build the full manifest of source -> dest file pairs. */
 function buildManifest() {
-  const manifest = [];
-
-  // 1. Barrel file
-  manifest.push({
-    src:  SRC_PLUGIN_BARREL,
-    dest: join(DEST_PLUGINS_DIR, "orchestration-workflows.ts"),
-    label: "plugins/orchestration-workflows.ts",
-  });
-
-  // 2. Plugin directory files
-  for (const relFile of collectFiles(SRC_PLUGIN_DIR)) {
-    manifest.push({
-      src:  join(SRC_PLUGIN_DIR, relFile),
-      dest: join(DEST_PLUGIN_SUB, relFile),
-      label: join("plugins/orchestration-workflows", relFile),
-    });
-  }
-
-  // 3. Agent files
-  const agentFiles = readdirSync(SRC_OPENCODE_AGENTS_DIR).filter((f) => f.endsWith(".md"));
-  for (const file of agentFiles) {
-    manifest.push({
-      src:  join(SRC_OPENCODE_AGENTS_DIR, file),
-      dest: join(DEST_AGENTS_DIR, file),
-      label: join("agents", file),
-    });
-  }
-
-  return manifest;
+  return buildCopyManifestFromAdapter("opencode");
 }
 
 function validateSource(path, label) {
@@ -298,6 +270,7 @@ function validateSources() {
   validateSource(SRC_PLUGIN_BARREL, "Plugin barrel file");
   validateSource(SRC_PLUGIN_DIR, "Plugin directory");
   validateSource(SRC_OPENCODE_AGENTS_DIR, "OpenCode agents directory");
+  validateSource(SRC_OPENCODE_SKILLS_DIR, "OpenCode skills directory");
 }
 
 function printBanner() {
@@ -312,6 +285,7 @@ function printSources() {
   console.log(`    ${colors.dim(relative(process.cwd(), SRC_PLUGIN_BARREL))}`);
   console.log(`    ${colors.dim(relative(process.cwd(), SRC_PLUGIN_DIR) + "/")}`);
   console.log(`    ${colors.dim(relative(process.cwd(), SRC_OPENCODE_AGENTS_DIR) + "/")}`);
+  console.log(`    ${colors.dim(relative(process.cwd(), SRC_OPENCODE_SKILLS_DIR) + "/")}`);
   console.log("");
 }
 
@@ -319,6 +293,7 @@ function printDestinations() {
   console.log(colors.cyan("  Destination:"));
   console.log(`    ${colors.dim(DEST_PLUGINS_DIR + "/")}`);
   console.log(`    ${colors.dim(DEST_AGENTS_DIR + "/")}`);
+  console.log(`    ${colors.dim(DEST_SKILLS_DIR + "/")}`);
   console.log("");
 }
 
@@ -358,11 +333,22 @@ function hasCommand(binary) {
 }
 
 function detectPlatforms() {
-  return {
-    opencode: existsSync(DEST_BASE) || hasCommand("opencode"),
-    "claude-code": existsSync(join(homedir(), ".claude")) || hasCommand("claude"),
-    codex: existsSync(join(homedir(), ".codex")) || hasCommand("codex")
+  const output = {
+    opencode: false,
+    "claude-code": false,
+    codex: false
   };
+
+  for (const platformId of PLATFORM_IDS) {
+    const adapterManifest = readJson(ADAPTER_MANIFESTS[platformId]);
+    const markers = adapterManifest.detect?.homeMarkers ?? [];
+    const binaries = adapterManifest.detect?.binaries ?? [];
+    const markerDetected = markers.some((marker) => existsSync(join(homedir(), marker)));
+    const binaryDetected = binaries.some((binary) => hasCommand(binary));
+    output[platformId] = markerDetected || binaryDetected;
+  }
+
+  return output;
 }
 
 function normalizePlatformSelection(input) {
@@ -611,6 +597,9 @@ async function cmdUninstallOpenCode({ standalone = true } = {}) {
   for (const agent of KNOWN_AGENTS) {
     console.log(`    ${colors.dim(join(DEST_AGENTS_DIR, agent))}`);
   }
+  for (const skill of KNOWN_SKILLS) {
+    console.log(`    ${colors.dim(join(DEST_SKILLS_DIR, skill))}`);
+  }
   console.log("");
 
   if (FLAG_DRY_RUN) {
@@ -668,6 +657,13 @@ async function cmdUninstallOpenCode({ standalone = true } = {}) {
   }
   if (agentCount > 0) {
     console.log(colors.green(`  Removed ${colors.dim("agents/  (" + agentCount + " profiles)")}`));
+  }
+
+  if (existsSync(DEST_SKILLS_DIR)) {
+    const skillFileCount = countFiles(DEST_SKILLS_DIR);
+    rmSync(DEST_SKILLS_DIR, { recursive: true, force: true });
+    removed += skillFileCount;
+    console.log(colors.green(`  Removed ${colors.dim("skills/agent-council/  (" + skillFileCount + " files)")}`));
   }
 
   const elapsed = Date.now() - t0;
@@ -913,6 +909,7 @@ async function cmdInstallOpenCode({ mode = "init", standalone = true }) {
     // Ensure destination directories exist
     mkdirSync(DEST_PLUGINS_DIR, { recursive: true });
     mkdirSync(DEST_AGENTS_DIR, { recursive: true });
+    mkdirSync(DEST_SKILLS_DIR, { recursive: true });
 
     // 1. Copy plugin barrel file
     const destBarrel = join(DEST_PLUGINS_DIR, "orchestration-workflows.ts");
@@ -934,6 +931,15 @@ async function cmdInstallOpenCode({ mode = "init", standalone = true }) {
       copiedFiles++;
     }
     console.log(colors.green(`  Copied  ${colors.dim(`agents/  (${agentFiles.length} profiles)`)}`));
+
+    // 4. Copy generated skills directory
+    if (existsSync(DEST_SKILLS_DIR)) {
+      rmSync(DEST_SKILLS_DIR, { recursive: true, force: true });
+    }
+    cpSync(SRC_OPENCODE_SKILLS_DIR, DEST_SKILLS_DIR, { recursive: true, force: true });
+    const skillFileCount = countFiles(SRC_OPENCODE_SKILLS_DIR);
+    copiedFiles += skillFileCount;
+    console.log(colors.green(`  Copied  ${colors.dim(`skills/agent-council/  (${skillFileCount} files)`)}`));
 
   } catch (err) {
     console.error("");
