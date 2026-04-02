@@ -1,0 +1,11 @@
+---
+name: deliberate
+description: Run structured multi-agent deliberation using Frame, Challenge, and Synthesize phases
+---
+
+## Deliberation Protocol
+- Select relevant specialist roles from the agent-council roster
+- Run Frame phase to map constraints and assumptions
+- Run Challenge phase where specialists critique each other
+- Run Synthesize phase with consensus and trade-offs
+- Return explicit recommendation, risks, and next actions

@@ -7,8 +7,20 @@ export const CLAUDE_CODE_ADAPTER: AdapterDescriptor = {
   id: CLAUDE_CODE_ADAPTER_ID,
   install: {
     type: "copy",
-    sources: ["generated/claude-code/agents"],
-    destination: "~/.claude/agents/agent-council"
+    entries: [
+      {
+        source: "generated/claude-code/agents",
+        destination: "~/.claude/agents/agent-council"
+      },
+      {
+        source: "generated/claude-code/skills",
+        destination: "~/.claude/skills/agent-council"
+      },
+      {
+        source: "generated/claude-code/.claude-plugin",
+        destination: "~/.claude/plugins/agent-council"
+      }
+    ]
   },
   runtime: {
     promptInjection: "adapter",

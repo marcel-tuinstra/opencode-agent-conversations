@@ -9,8 +9,10 @@ type AdapterManifest = {
   platform: string;
   install: {
     type: "copy";
-    sources: string[];
-    destination: string;
+    entries: Array<{
+      source: string;
+      destination: string;
+    }>;
   };
   runtime: {
     promptInjection: string;

@@ -7,8 +7,20 @@ export const CODEX_ADAPTER: AdapterDescriptor = {
   id: CODEX_ADAPTER_ID,
   install: {
     type: "copy",
-    sources: ["generated/codex/agents"],
-    destination: "~/.codex/agents/agent-council"
+    entries: [
+      {
+        source: "generated/codex/agents",
+        destination: "~/.codex/agents/agent-council"
+      },
+      {
+        source: "generated/codex/skills",
+        destination: "~/.codex/skills/agent-council"
+      },
+      {
+        source: "generated/codex/.codex-plugin",
+        destination: "~/.codex/plugins/agent-council"
+      }
+    ]
   },
   runtime: {
     promptInjection: "adapter",

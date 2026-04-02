@@ -10,6 +10,7 @@ const __dirname = resolve(__filename, "..");
 const repoRoot = resolve(__dirname, "../../..");
 
 const sharedAgentsDir = join(repoRoot, "shared", "agents");
+const sharedSkillsDir = join(repoRoot, "shared", "skills");
 const generatedRoot = join(repoRoot, "generated");
 
 const validateAgent = (agent, sourceFile) => {
@@ -87,6 +88,63 @@ const renderOpenCodeAgent = (agent) => {
   ].join("\n");
 };
 
+const normalizeSkill = (sourceFile, content) => {
+  const parsed = loadYaml(content);
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error(`Invalid YAML object in ${sourceFile}`);
+  }
+
+  const protocol = Array.isArray(parsed.protocol)
+    ? parsed.protocol.map((line) => String(line).trim()).filter((line) => line.length > 0)
+    : [];
+
+  const skill = {
+    name: String(parsed.name ?? "").trim(),
+    description: String(parsed.description ?? "").trim(),
+    protocol
+  };
+
+  if (!skill.name || !skill.description || skill.protocol.length === 0) {
+    throw new Error(`Skill ${sourceFile} requires name, description, and protocol[]`);
+  }
+
+  return skill;
+};
+
+const renderSkillMarkdown = (skill) => {
+  const protocolLines = skill.protocol.map((line) => `- ${line}`);
+  return [
+    "---",
+    `name: ${skill.name}`,
+    `description: ${skill.description}`,
+    "---",
+    "",
+    "## Deliberation Protocol",
+    ...protocolLines,
+    ""
+  ].join("\n");
+};
+
+const writeSkills = (skills, targetRoot) => {
+  for (const skill of skills) {
+    const skillDir = join(targetRoot, "skills", skill.name);
+    ensureDir(skillDir);
+    writeFileSync(join(skillDir, "SKILL.md"), renderSkillMarkdown(skill), "utf8");
+  }
+};
+
+const writePluginManifest = (targetRoot, fileName, runtime) => {
+  const manifestDir = join(targetRoot, fileName.startsWith(".") ? fileName : `.${fileName}`);
+  ensureDir(manifestDir);
+  const pluginJson = {
+    name: "agent-council",
+    version: "1.0.0",
+    runtime,
+    generatedAt: new Date().toISOString()
+  };
+  writeFileSync(join(manifestDir, "plugin.json"), JSON.stringify(pluginJson, null, 2) + "\n", "utf8");
+};
+
 const ensureDir = (path) => {
   mkdirSync(path, { recursive: true });
 };
@@ -98,10 +156,22 @@ const build = () => {
     return normalizeAgent(file, readFileSync(absolutePath, "utf8"));
   });
 
+  const skillFiles = readdirSync(sharedSkillsDir).filter((entry) => entry.endsWith(".yaml"));
+  const skills = skillFiles.map((file) => {
+    const absolutePath = join(sharedSkillsDir, file);
+    return normalizeSkill(file, readFileSync(absolutePath, "utf8"));
+  });
+
   const targets = {
     opencode: join(generatedRoot, "opencode", "agents"),
     "claude-code": join(generatedRoot, "claude-code", "agents"),
     codex: join(generatedRoot, "codex", "agents")
+  };
+
+  const roots = {
+    opencode: join(generatedRoot, "opencode"),
+    "claude-code": join(generatedRoot, "claude-code"),
+    codex: join(generatedRoot, "codex")
   };
 
   ensureDir(targets.opencode);
@@ -114,9 +184,17 @@ const build = () => {
     writeFileSync(join(targets.codex, `${agent.name}.toml`), renderCodexAgent(agent), "utf8");
   }
 
+  writeSkills(skills, roots.opencode);
+  writeSkills(skills, roots["claude-code"]);
+  writeSkills(skills, roots.codex);
+
+  writePluginManifest(roots["claude-code"], ".claude-plugin", "claude-code");
+  writePluginManifest(roots.codex, ".codex-plugin", "codex");
+
   const manifest = {
     generatedAt: new Date().toISOString(),
     count: agents.length,
+    skills: skills.map((skill) => ({ name: skill.name, description: skill.description })),
     agents: agents.map((agent) => ({ name: agent.name, description: agent.description }))
   };
 

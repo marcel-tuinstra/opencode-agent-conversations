@@ -4,8 +4,10 @@ export type CapabilitySupport = "native" | "adapter" | "bridge" | "gap";
 
 export type AdapterInstallSpec = {
   type: "copy";
-  sources: readonly string[];
-  destination: string;
+  entries: readonly {
+    source: string;
+    destination: string;
+  }[];
 };
 
 export type AdapterRuntimeCapabilities = {

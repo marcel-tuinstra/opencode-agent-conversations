@@ -14,7 +14,7 @@ import {
   rmSync,
   lstatSync,
 } from "node:fs";
-import { join, dirname, relative, resolve } from "node:path";
+import { join, dirname, relative, resolve, basename } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
@@ -47,16 +47,16 @@ const SRC_PLUGIN_BARREL = join(repoRoot, "plugins", "orchestration-workflows.ts"
 const SRC_PLUGIN_DIR    = join(repoRoot, "plugins", "orchestration-workflows");
 const SRC_AGENTS_DIR    = join(repoRoot, "agents");
 const SRC_GENERATED_OPENCODE_AGENTS = join(repoRoot, "generated", "opencode", "agents");
-const SRC_GENERATED_CLAUDE_AGENTS = join(repoRoot, "generated", "claude-code", "agents");
-const SRC_GENERATED_CODEX_AGENTS = join(repoRoot, "generated", "codex", "agents");
+const ADAPTER_MANIFESTS = {
+  "opencode": join(repoRoot, "packages", "adapter-opencode", "manifest.json"),
+  "claude-code": join(repoRoot, "packages", "adapter-claude-code", "manifest.json"),
+  "codex": join(repoRoot, "packages", "adapter-codex", "manifest.json")
+};
 
 const DEST_BASE        = join(homedir(), ".opencode");
 const DEST_PLUGINS_DIR = join(DEST_BASE, "plugins");
 const DEST_AGENTS_DIR  = join(DEST_BASE, "agents");
 const DEST_PLUGIN_SUB  = join(DEST_PLUGINS_DIR, "orchestration-workflows");
-
-const DEST_CLAUDE_AGENTS_DIR = join(homedir(), ".claude", "agents", "agent-council");
-const DEST_CODEX_AGENTS_DIR = join(homedir(), ".codex", "agents", "agent-council");
 
 const PLATFORM_IDS = ["opencode", "claude-code", "codex"];
 const SRC_OPENCODE_AGENTS_DIR = existsSync(SRC_GENERATED_OPENCODE_AGENTS)
@@ -437,6 +437,55 @@ async function resolveTargetPlatforms() {
 
   const detected = detectPlatforms();
   return await promptPlatforms(detected);
+}
+
+function readJson(path) {
+  return JSON.parse(readFileSync(path, "utf8"));
+}
+
+function resolveHomePath(value) {
+  if (value.startsWith("~/")) {
+    return join(homedir(), value.slice(2));
+  }
+  return value;
+}
+
+function buildCopyManifestFromAdapter(platformId) {
+  const manifestPath = ADAPTER_MANIFESTS[platformId];
+  const adapterManifest = readJson(manifestPath);
+  if (!adapterManifest.install || adapterManifest.install.type !== "copy") {
+    throw new Error(`Unsupported install spec for ${platformId}`);
+  }
+
+  const entries = adapterManifest.install.entries ?? [];
+  const output = [];
+
+  for (const entry of entries) {
+    const sourcePath = join(repoRoot, entry.source);
+    const destinationPath = resolveHomePath(entry.destination);
+    validateSource(sourcePath, `Adapter source (${platformId}: ${entry.source})`);
+
+    const sourceStat = lstatSync(sourcePath);
+    if (sourceStat.isDirectory()) {
+      const files = collectFiles(sourcePath);
+      for (const relFile of files) {
+        output.push({
+          src: join(sourcePath, relFile),
+          dest: join(destinationPath, relFile),
+          label: join(entry.source, relFile)
+        });
+      }
+      continue;
+    }
+
+    output.push({
+      src: sourcePath,
+      dest: join(destinationPath, basename(sourcePath)),
+      label: entry.source
+    });
+  }
+
+  return output;
 }
 
 /** Create .bak copies of every destination file that exists. */
@@ -958,15 +1007,6 @@ async function cmdInstallOpenCode({ mode = "init", standalone = true }) {
   }
 }
 
-function buildSimpleManifest(sourceDir, destinationDir) {
-  validateSource(sourceDir, `Generated source directory (${sourceDir})`);
-  return collectFiles(sourceDir).map((relFile) => ({
-    src: join(sourceDir, relFile),
-    dest: join(destinationDir, relFile),
-    label: relFile
-  }));
-}
-
 function copyManifest(manifest) {
   for (const entry of manifest) {
     mkdirSync(dirname(entry.dest), { recursive: true });
@@ -992,96 +1032,59 @@ function verifyManifest(manifest) {
   return { ok, missing, changed, total: manifest.length };
 }
 
-async function cmdInstallClaudeCode({ mode = "init" }) {
-  const sourceDir = SRC_GENERATED_CLAUDE_AGENTS;
-  const destinationDir = DEST_CLAUDE_AGENTS_DIR;
-  const manifest = buildSimpleManifest(sourceDir, destinationDir);
+async function cmdInstallPlatformFromManifest(platformId, { mode = "init" } = {}) {
+  const manifest = buildCopyManifestFromAdapter(platformId);
 
   if (FLAG_DRY_RUN) {
-    console.log(colors.yellow(`  [claude-code] Dry run -- would install ${manifest.length} files into ${destinationDir}`));
+    console.log(colors.yellow(`  [${platformId}] Dry run -- would install ${manifest.length} files.`));
     return;
   }
 
   if (!FLAG_FORCE && mode === "init") {
-    const yes = await confirm(colors.cyan("  [claude-code] Proceed with install? [Y/n] "));
+    const yes = await confirm(colors.cyan(`  [${platformId}] Proceed with install? [Y/n] `));
     if (!yes) {
-      console.log(colors.yellow("  [claude-code] Skipped by user."));
+      console.log(colors.yellow(`  [${platformId}] Skipped by user.`));
       return;
     }
   }
 
   copyManifest(manifest);
-  console.log(colors.green(`  [claude-code] Installed ${manifest.length} files to ${destinationDir}`));
+  console.log(colors.green(`  [${platformId}] Installed ${manifest.length} files.`));
 }
 
-async function cmdInstallCodex({ mode = "init" }) {
-  const sourceDir = SRC_GENERATED_CODEX_AGENTS;
-  const destinationDir = DEST_CODEX_AGENTS_DIR;
-  const manifest = buildSimpleManifest(sourceDir, destinationDir);
-
-  if (FLAG_DRY_RUN) {
-    console.log(colors.yellow(`  [codex] Dry run -- would install ${manifest.length} files into ${destinationDir}`));
-    return;
-  }
-
-  if (!FLAG_FORCE && mode === "init") {
-    const yes = await confirm(colors.cyan("  [codex] Proceed with install? [Y/n] "));
-    if (!yes) {
-      console.log(colors.yellow("  [codex] Skipped by user."));
-      return;
-    }
-  }
-
-  copyManifest(manifest);
-  console.log(colors.green(`  [codex] Installed ${manifest.length} files to ${destinationDir}`));
-}
-
-function cmdVerifyClaudeCode() {
-  const manifest = buildSimpleManifest(SRC_GENERATED_CLAUDE_AGENTS, DEST_CLAUDE_AGENTS_DIR);
+function cmdVerifyPlatformFromManifest(platformId) {
+  const manifest = buildCopyManifestFromAdapter(platformId);
   const result = verifyManifest(manifest);
   const status = result.missing > 0 || result.changed > 0 ? colors.yellow("needs refresh") : colors.green("healthy");
-  console.log(`  [claude-code] ${status} ${colors.dim(`(ok ${result.ok}/${result.total}, missing ${result.missing}, changed ${result.changed})`)}`);
+  console.log(`  [${platformId}] ${status} ${colors.dim(`(ok ${result.ok}/${result.total}, missing ${result.missing}, changed ${result.changed})`)}`);
   return result;
 }
 
-function cmdVerifyCodex() {
-  const manifest = buildSimpleManifest(SRC_GENERATED_CODEX_AGENTS, DEST_CODEX_AGENTS_DIR);
-  const result = verifyManifest(manifest);
-  const status = result.missing > 0 || result.changed > 0 ? colors.yellow("needs refresh") : colors.green("healthy");
-  console.log(`  [codex] ${status} ${colors.dim(`(ok ${result.ok}/${result.total}, missing ${result.missing}, changed ${result.changed})`)}`);
-  return result;
-}
+async function cmdUninstallPlatformFromManifest(platformId) {
+  const manifest = buildCopyManifestFromAdapter(platformId);
+  const rootDestinations = Array.from(new Set(
+    manifest.map((entry) => entry.dest).map((destPath) => dirname(destPath))
+  )).sort((a, b) => b.length - a.length);
 
-async function cmdUninstallClaudeCode() {
   if (FLAG_DRY_RUN) {
-    console.log(colors.yellow(`  [claude-code] Dry run -- would remove ${DEST_CLAUDE_AGENTS_DIR}`));
+    for (const destination of rootDestinations) {
+      console.log(colors.yellow(`  [${platformId}] Dry run -- would remove ${destination}`));
+    }
     return;
   }
+
   if (!FLAG_FORCE) {
-    const yes = await confirm(colors.cyan("  [claude-code] Proceed with uninstall? [Y/n] "));
+    const yes = await confirm(colors.cyan(`  [${platformId}] Proceed with uninstall? [Y/n] `));
     if (!yes) {
-      console.log(colors.yellow("  [claude-code] Skipped by user."));
+      console.log(colors.yellow(`  [${platformId}] Skipped by user.`));
       return;
     }
   }
-  rmSync(DEST_CLAUDE_AGENTS_DIR, { recursive: true, force: true });
-  console.log(colors.green(`  [claude-code] Removed ${DEST_CLAUDE_AGENTS_DIR}`));
-}
 
-async function cmdUninstallCodex() {
-  if (FLAG_DRY_RUN) {
-    console.log(colors.yellow(`  [codex] Dry run -- would remove ${DEST_CODEX_AGENTS_DIR}`));
-    return;
+  for (const destination of rootDestinations) {
+    rmSync(destination, { recursive: true, force: true });
+    console.log(colors.green(`  [${platformId}] Removed ${destination}`));
   }
-  if (!FLAG_FORCE) {
-    const yes = await confirm(colors.cyan("  [codex] Proceed with uninstall? [Y/n] "));
-    if (!yes) {
-      console.log(colors.yellow("  [codex] Skipped by user."));
-      return;
-    }
-  }
-  rmSync(DEST_CODEX_AGENTS_DIR, { recursive: true, force: true });
-  console.log(colors.green(`  [codex] Removed ${DEST_CODEX_AGENTS_DIR}`));
 }
 
 async function cmdInstall({ mode = "init" }) {
@@ -1096,11 +1099,11 @@ async function cmdInstall({ mode = "init" }) {
       continue;
     }
     if (target === "claude-code") {
-      await cmdInstallClaudeCode({ mode });
+      await cmdInstallPlatformFromManifest(target, { mode });
       continue;
     }
     if (target === "codex") {
-      await cmdInstallCodex({ mode });
+      await cmdInstallPlatformFromManifest(target, { mode });
       continue;
     }
   }
@@ -1122,14 +1125,14 @@ async function cmdVerify() {
       continue;
     }
     if (target === "claude-code") {
-      const result = cmdVerifyClaudeCode();
+      const result = cmdVerifyPlatformFromManifest(target);
       if (result.missing > 0 || result.changed > 0) {
         hasIssues = true;
       }
       continue;
     }
     if (target === "codex") {
-      const result = cmdVerifyCodex();
+      const result = cmdVerifyPlatformFromManifest(target);
       if (result.missing > 0 || result.changed > 0) {
         hasIssues = true;
       }
@@ -1154,11 +1157,11 @@ async function cmdUninstall() {
       continue;
     }
     if (target === "claude-code") {
-      await cmdUninstallClaudeCode();
+      await cmdUninstallPlatformFromManifest(target);
       continue;
     }
     if (target === "codex") {
-      await cmdUninstallCodex();
+      await cmdUninstallPlatformFromManifest(target);
       continue;
     }
   }

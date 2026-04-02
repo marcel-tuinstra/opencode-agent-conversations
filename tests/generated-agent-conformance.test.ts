@@ -15,6 +15,12 @@ const sharedAgentsDir = fileURLToPath(new URL("../shared/agents", import.meta.ur
 const generatedOpenCodeDir = fileURLToPath(new URL("../generated/opencode/agents", import.meta.url));
 const generatedClaudeDir = fileURLToPath(new URL("../generated/claude-code/agents", import.meta.url));
 const generatedCodexDir = fileURLToPath(new URL("../generated/codex/agents", import.meta.url));
+const sharedSkillsDir = fileURLToPath(new URL("../shared/skills", import.meta.url));
+const generatedOpenCodeSkillsDir = fileURLToPath(new URL("../generated/opencode/skills", import.meta.url));
+const generatedClaudeSkillsDir = fileURLToPath(new URL("../generated/claude-code/skills", import.meta.url));
+const generatedCodexSkillsDir = fileURLToPath(new URL("../generated/codex/skills", import.meta.url));
+const generatedClaudePluginPath = fileURLToPath(new URL("../generated/claude-code/.claude-plugin/plugin.json", import.meta.url));
+const generatedCodexPluginPath = fileURLToPath(new URL("../generated/codex/.codex-plugin/plugin.json", import.meta.url));
 
 const firstNonEmptyLine = (value: string): string => {
   for (const line of value.split(/\r?\n/)) {
@@ -66,5 +72,38 @@ describe("generated agent conformance", () => {
       expect(codexBody).toContain(`description = "${agent.description}"`);
       expect(codexBody).toContain(instructionLead);
     }
+  });
+
+  it("keeps generated skill artifacts and plugin manifests in sync", () => {
+    const skillFiles = readdirSync(sharedSkillsDir).filter((file) => file.endsWith(".yaml"));
+    expect(skillFiles.length).toBeGreaterThan(0);
+
+    for (const file of skillFiles) {
+      const absolute = `${sharedSkillsDir}/${file}`;
+      const parsed = loadYaml(readFileSync(absolute, "utf8")) as { name: string; description: string };
+
+      const opencodePath = `${generatedOpenCodeSkillsDir}/${parsed.name}/SKILL.md`;
+      const claudePath = `${generatedClaudeSkillsDir}/${parsed.name}/SKILL.md`;
+      const codexPath = `${generatedCodexSkillsDir}/${parsed.name}/SKILL.md`;
+
+      expect(existsSync(opencodePath), `missing ${opencodePath.replace(repoRoot + "/", "")}`).toBe(true);
+      expect(existsSync(claudePath), `missing ${claudePath.replace(repoRoot + "/", "")}`).toBe(true);
+      expect(existsSync(codexPath), `missing ${codexPath.replace(repoRoot + "/", "")}`).toBe(true);
+
+      expect(readFileSync(opencodePath, "utf8")).toContain(parsed.description);
+      expect(readFileSync(claudePath, "utf8")).toContain(parsed.description);
+      expect(readFileSync(codexPath, "utf8")).toContain(parsed.description);
+    }
+
+    expect(existsSync(generatedClaudePluginPath)).toBe(true);
+    expect(existsSync(generatedCodexPluginPath)).toBe(true);
+
+    const claudePlugin = JSON.parse(readFileSync(generatedClaudePluginPath, "utf8")) as { name: string; runtime: string };
+    const codexPlugin = JSON.parse(readFileSync(generatedCodexPluginPath, "utf8")) as { name: string; runtime: string };
+
+    expect(claudePlugin.name).toBe("agent-council");
+    expect(claudePlugin.runtime).toBe("claude-code");
+    expect(codexPlugin.name).toBe("agent-council");
+    expect(codexPlugin.runtime).toBe("codex");
   });
 });

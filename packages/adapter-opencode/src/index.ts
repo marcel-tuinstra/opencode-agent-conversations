@@ -7,12 +7,24 @@ export const OPENCODE_ADAPTER: AdapterDescriptor = {
   id: OPENCODE_ADAPTER_ID,
   install: {
     type: "copy",
-    sources: [
-      "plugins/orchestration-workflows.ts",
-      "plugins/orchestration-workflows",
-      "generated/opencode/agents"
-    ],
-    destination: "~/.opencode"
+    entries: [
+      {
+        source: "plugins/orchestration-workflows.ts",
+        destination: "~/.opencode/plugins"
+      },
+      {
+        source: "plugins/orchestration-workflows",
+        destination: "~/.opencode/plugins/orchestration-workflows"
+      },
+      {
+        source: "generated/opencode/agents",
+        destination: "~/.opencode/agents"
+      },
+      {
+        source: "generated/opencode/skills",
+        destination: "~/.opencode/skills/agent-council"
+      }
+    ]
   },
   runtime: {
     promptInjection: "native",
