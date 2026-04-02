@@ -1,0 +1,46 @@
+{
+  "generatedAt": "2026-04-02T15:05:33.858Z",
+  "count": 10,
+  "agents": [
+    {
+      "name": "be",
+      "description": "Build backend services, APIs, integrations, and data flows"
+    },
+    {
+      "name": "ceo",
+      "description": "Define high-level strategy, priorities, and success metrics"
+    },
+    {
+      "name": "cto",
+      "description": "Define technical strategy, architecture direction, and non-functional requirements"
+    },
+    {
+      "name": "dev",
+      "description": "Implement full-stack code changes, fix bugs, and ship working features"
+    },
+    {
+      "name": "fe",
+      "description": "Build production-ready frontend experiences, components, and interactions"
+    },
+    {
+      "name": "marketing",
+      "description": "Craft messaging, positioning, and launch content"
+    },
+    {
+      "name": "pm",
+      "description": "Plan delivery, sequence work, and manage scope and risks"
+    },
+    {
+      "name": "po",
+      "description": "Define product outcomes, requirements, and acceptance criteria"
+    },
+    {
+      "name": "research",
+      "description": "Investigate options, gather evidence, and surface risks and unknowns"
+    },
+    {
+      "name": "ux",
+      "description": "Review UX, UI quality, and interaction design with a critical product eye"
+    }
+  ]
+}

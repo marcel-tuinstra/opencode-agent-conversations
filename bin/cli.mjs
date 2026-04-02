@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 
-// opencode-council installer CLI
+// agent-council installer CLI
 // Zero dependencies -- Node.js stdlib only
 // Cross-platform: macOS, Linux, Windows (stretch)
 
@@ -115,10 +115,11 @@ const FLAG_BACKUP  = flags.includes("--backup") || flags.includes("-b");
 
 function printHelp() {
   console.log(`
-${colors.bold("opencode-council")} ${colors.dim(`v${PKG_VERSION}`)}
+${colors.bold("agent-council")} ${colors.dim(`v${PKG_VERSION}`)}
 
 ${colors.cyan("Usage:")}
-  npx opencode-council <command> [options]
+  npx agent-council <command> [options]
+  npx opencode-council <command> [options] ${colors.dim("(legacy alias)")}
 
 ${colors.cyan("Commands:")}
   init        Install plugin + agent files into ~/.opencode
@@ -267,7 +268,7 @@ function validateSources() {
 
 function printBanner() {
   console.log("");
-  console.log(colors.bold("  opencode-council") + " " + colors.dim(`v${PKG_VERSION}`));
+  console.log(colors.bold("  agent-council") + " " + colors.dim(`v${PKG_VERSION}`));
   console.log(colors.dim("  ------------------------------------------"));
   console.log("");
 }
@@ -343,7 +344,7 @@ function prunePluginDir(dryRun) {
 // ---------------------------------------------------------------------------
 
 function cmdVersion() {
-  console.log(`opencode-council v${PKG_VERSION}`);
+  console.log(`agent-council v${PKG_VERSION}`);
   process.exit(0);
 }
 
@@ -402,7 +403,7 @@ function cmdVerify() {
   if (missing === 0 && mismatch === 0) {
     console.log(colors.green(colors.bold("  All files match. Installation is healthy.")));
   } else {
-    console.log(colors.yellow("  Run `npx opencode-council refresh` to repair."));
+    console.log(colors.yellow("  Run `npx agent-council refresh` to repair."));
   }
   console.log("");
 
@@ -571,7 +572,7 @@ function printBudgetProfileOutput(profileName, saved) {
   const cp = profile.compaction;
 
   console.log("");
-  console.log(colors.bold("opencode-council") + " " + colors.dim(`v${PKG_VERSION}`));
+  console.log(colors.bold("agent-council") + " " + colors.dim(`v${PKG_VERSION}`));
   console.log("");
   console.log(`${colors.cyan("Budget profile:")} ${colors.bold(profileName)}`);
   console.log("");
@@ -783,7 +784,7 @@ async function cmdInstall({ mode = "init" }) {
   if (mode === "refresh") {
     console.log(colors.dim("  Stale files have been pruned. Installation is up to date."));
   } else {
-    console.log(colors.dim("  After pulling updates, run `npx opencode-council refresh` to sync."));
+    console.log(colors.dim("  After pulling updates, run `npx agent-council refresh` to sync."));
   }
   console.log("");
 
@@ -832,7 +833,7 @@ switch (command) {
     break;
 
   case null:
-    // Bare `npx opencode-council` with no command -- show help
+    // Bare `npx agent-council` with no command -- show help
     printHelp();
     process.exit(0);
     break;

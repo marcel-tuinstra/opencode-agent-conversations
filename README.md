@@ -1,8 +1,8 @@
-# OpenCode Council
+# agent-council
 
 [![CI](https://github.com/marcel-tuinstra/opencode-council/actions/workflows/ci.yml/badge.svg)](https://github.com/marcel-tuinstra/opencode-council/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/marcel-tuinstra/opencode-council/releases)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/marcel-tuinstra/opencode-council/releases)
 [![OpenCode Plugin](https://img.shields.io/badge/OpenCode-Plugin-green.svg)](https://github.com/sst/opencode)
 
 **AI agents that debate before they act.**
@@ -10,6 +10,12 @@
 Multi-agent orchestration for [OpenCode](https://github.com/sst/opencode) where specialized roles deliberate, challenge assumptions, and synthesize recommendations -- instead of blindly executing tasks.
 
 ## Quick Start
+
+```bash
+npx agent-council init
+```
+
+Legacy alias (still supported):
 
 ```bash
 npx opencode-council init
@@ -68,9 +74,9 @@ CTO frames the problem, DEV and PM challenge with their expertise, CTO synthesiz
 ## Manage Your Install
 
 ```bash
-npx opencode-council refresh     # Update to latest version
-npx opencode-council verify      # Check install health
-npx opencode-council uninstall   # Clean removal
+npx agent-council refresh         # Update to latest version
+npx agent-council verify          # Check install health
+npx agent-council uninstall       # Clean removal
 ```
 
 ## Roadmap

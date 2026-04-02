@@ -18,6 +18,7 @@
     "plugins/orchestration-workflows/turn-ownership.ts",
     "plugins/orchestration-workflows/types.ts",
     "plugins/orchestration-workflows/work-unit.ts",
+    "packages/**/*.ts",
     "tests/**/*.ts",
     "types/**/*.d.ts"
   ]

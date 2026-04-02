@@ -17,6 +17,11 @@
 - [Product positioning](./overview/product-positioning.md) -- what this plugin is and why it exists
 - [Architecture](./overview/architecture.md) -- how the plugin and supervisor foundation are structured
 
+## Plans
+
+- [agent-council 1.0.0 plan](./plans/agent-council-1.0.0-plan.md) -- multi-platform architecture, parity scope, migration matrix, and milestone sequence for OpenCode, Claude Code, and Codex
+- [agent-council 1.0.0 milestones](./plans/agent-council-1.0.0-milestones.md) -- delivery sequence, scope lock, and release exit criteria
+
 ## Testing
 
 - [Testing guide](./testing/testing.md) -- test structure, running tests, manual prompts

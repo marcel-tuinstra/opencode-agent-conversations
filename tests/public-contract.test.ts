@@ -10,19 +10,22 @@ const packageJsonPath = fileURLToPath(new URL("../package.json", import.meta.url
 const cliPath = fileURLToPath(new URL("../bin/cli.mjs", import.meta.url));
 
 describe("public contract guardrails", () => {
-  it("keeps the package entry points stable for 0.6.x", () => {
+  it("keeps the package entry points stable for 1.0.0", () => {
     const packageJson = JSON.parse(readFileSync(packageJsonPath, "utf8")) as {
       name: string;
       exports: Record<string, string>;
       bin: Record<string, string>;
     };
 
-    expect(packageJson.name).toBe("opencode-council");
+    expect(packageJson.name).toBe("agent-council");
     expect(packageJson.exports).toEqual({
       ".": "./index.ts",
-      "./supervisor": "./plugins/orchestration-workflows-supervisor.ts"
+      "./supervisor": "./plugins/orchestration-workflows-supervisor.ts",
+      "./core": "./packages/core/src/index.ts",
+      "./runtime": "./packages/runtime/src/index.ts"
     });
     expect(packageJson.bin).toEqual({
+      "agent-council": "bin/cli.mjs",
       "opencode-council": "bin/cli.mjs"
     });
   });
@@ -50,6 +53,7 @@ describe("public contract guardrails", () => {
       encoding: "utf8"
     });
 
+    expect(helpOutput).toContain("agent-council <command> [options]");
     expect(helpOutput).toContain("opencode-council <command> [options]");
     expect(helpOutput).toContain("init        Install plugin + agent files into ~/.opencode");
     expect(helpOutput).toContain("refresh     Reinstall from source");
