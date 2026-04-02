@@ -436,20 +436,28 @@ function resolveHomePath(value) {
   return value;
 }
 
-function buildCopyManifestFromAdapter(platformId) {
+function getAdapterInstallEntries(platformId) {
   const manifestPath = ADAPTER_MANIFESTS[platformId];
   const adapterManifest = readJson(manifestPath);
   if (!adapterManifest.install || adapterManifest.install.type !== "copy") {
     throw new Error(`Unsupported install spec for ${platformId}`);
   }
 
-  const entries = adapterManifest.install.entries ?? [];
+  return (adapterManifest.install.entries ?? []).map((entry) => ({
+    source: join(repoRoot, entry.source),
+    destination: resolveHomePath(entry.destination),
+    sourceLabel: entry.source
+  }));
+}
+
+function buildCopyManifestFromAdapter(platformId) {
+  const entries = getAdapterInstallEntries(platformId);
   const output = [];
 
   for (const entry of entries) {
-    const sourcePath = join(repoRoot, entry.source);
-    const destinationPath = resolveHomePath(entry.destination);
-    validateSource(sourcePath, `Adapter source (${platformId}: ${entry.source})`);
+    const sourcePath = entry.source;
+    const destinationPath = entry.destination;
+    validateSource(sourcePath, `Adapter source (${platformId}: ${entry.sourceLabel})`);
 
     const sourceStat = lstatSync(sourcePath);
     if (sourceStat.isDirectory()) {
@@ -458,7 +466,7 @@ function buildCopyManifestFromAdapter(platformId) {
         output.push({
           src: join(sourcePath, relFile),
           dest: join(destinationPath, relFile),
-          label: join(entry.source, relFile)
+          label: join(entry.sourceLabel, relFile)
         });
       }
       continue;
@@ -467,7 +475,7 @@ function buildCopyManifestFromAdapter(platformId) {
     output.push({
       src: sourcePath,
       dest: join(destinationPath, basename(sourcePath)),
-      label: entry.source
+      label: entry.sourceLabel
     });
   }
 
@@ -1067,9 +1075,9 @@ function cmdVerifyPlatformFromManifest(platformId) {
 }
 
 async function cmdUninstallPlatformFromManifest(platformId) {
-  const manifest = buildCopyManifestFromAdapter(platformId);
+  const installEntries = getAdapterInstallEntries(platformId);
   const rootDestinations = Array.from(new Set(
-    manifest.map((entry) => entry.dest).map((destPath) => dirname(destPath))
+    installEntries.map((entry) => entry.destination)
   )).sort((a, b) => b.length - a.length);
 
   if (FLAG_DRY_RUN) {
