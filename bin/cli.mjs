@@ -1093,6 +1093,34 @@ async function cmdUninstallPlatformFromManifest(platformId) {
   }
 }
 
+async function runInstallForTarget(target, mode) {
+  if (target === "opencode") {
+    await cmdInstallOpenCode({ mode, standalone: false });
+    return;
+  }
+
+  await cmdInstallPlatformFromManifest(target, { mode });
+}
+
+function runVerifyForTarget(target) {
+  if (target === "opencode") {
+    const result = cmdVerifyOpenCode({ standalone: false });
+    return result.hasIssues;
+  }
+
+  const result = cmdVerifyPlatformFromManifest(target);
+  return result.missing > 0 || result.changed > 0;
+}
+
+async function runUninstallForTarget(target) {
+  if (target === "opencode") {
+    await cmdUninstallOpenCode({ standalone: false });
+    return;
+  }
+
+  await cmdUninstallPlatformFromManifest(target);
+}
+
 async function cmdInstall({ mode = "init" }) {
   const targets = await resolveTargetPlatforms();
   printBanner();
@@ -1100,18 +1128,7 @@ async function cmdInstall({ mode = "init" }) {
   console.log("");
 
   for (const target of targets) {
-    if (target === "opencode") {
-      await cmdInstallOpenCode({ mode, standalone: false });
-      continue;
-    }
-    if (target === "claude-code") {
-      await cmdInstallPlatformFromManifest(target, { mode });
-      continue;
-    }
-    if (target === "codex") {
-      await cmdInstallPlatformFromManifest(target, { mode });
-      continue;
-    }
+    await runInstallForTarget(target, mode);
   }
 }
 
@@ -1123,26 +1140,8 @@ async function cmdVerify() {
 
   let hasIssues = false;
   for (const target of targets) {
-    if (target === "opencode") {
-      const result = cmdVerifyOpenCode({ standalone: false });
-      if (result.hasIssues) {
-        hasIssues = true;
-      }
-      continue;
-    }
-    if (target === "claude-code") {
-      const result = cmdVerifyPlatformFromManifest(target);
-      if (result.missing > 0 || result.changed > 0) {
-        hasIssues = true;
-      }
-      continue;
-    }
-    if (target === "codex") {
-      const result = cmdVerifyPlatformFromManifest(target);
-      if (result.missing > 0 || result.changed > 0) {
-        hasIssues = true;
-      }
-      continue;
+    if (runVerifyForTarget(target)) {
+      hasIssues = true;
     }
   }
 
@@ -1158,18 +1157,7 @@ async function cmdUninstall() {
   console.log("");
 
   for (const target of targets) {
-    if (target === "opencode") {
-      await cmdUninstallOpenCode({ standalone: false });
-      continue;
-    }
-    if (target === "claude-code") {
-      await cmdUninstallPlatformFromManifest(target);
-      continue;
-    }
-    if (target === "codex") {
-      await cmdUninstallPlatformFromManifest(target);
-      continue;
-    }
+    await runUninstallForTarget(target);
   }
 }
 
