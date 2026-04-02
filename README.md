@@ -7,12 +7,20 @@
 
 **AI agents that debate before they act.**
 
-Multi-agent orchestration for [OpenCode](https://github.com/sst/opencode) where specialized roles deliberate, challenge assumptions, and synthesize recommendations -- instead of blindly executing tasks.
+Multi-agent orchestration for OpenCode, Claude Code, and Codex where specialized roles deliberate, challenge assumptions, and synthesize recommendations instead of blindly executing tasks.
 
 ## Quick Start
 
 ```bash
 npx agent-council init
+```
+
+`init` auto-detects available platforms and lets you choose one or more targets.
+
+Non-interactive install is also supported:
+
+```bash
+npx agent-council init --platform opencode --platform claude-code --platform codex
 ```
 
 Legacy alias (still supported):

@@ -5,6 +5,20 @@
 With Node.js:
 
 ```bash
+npx agent-council init
+```
+
+`init` auto-detects installed platforms and asks which targets to install.
+
+Use explicit non-interactive targeting when needed:
+
+```bash
+npx agent-council init --platform opencode --platform claude-code --platform codex
+```
+
+Legacy alias (still supported):
+
+```bash
 npx opencode-council init
 ```
 
@@ -16,23 +30,23 @@ curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/opencode-council/ma
 
 Restart OpenCode after installing.
 
-## Compatibility notes for `v0.5.x`
+## Compatibility notes for `v1.0.0`
 
 - The canonical compatibility and deprecation policy lives in [`../guides/compatibility-and-deprecations.md`](../guides/compatibility-and-deprecations.md).
-- Root package exports and CLI verbs are covered there for `v0.5.x`.
+- Root package exports and CLI verbs are covered there.
 - The supervisor entry point, `opencode-council/supervisor`, remains experimental.
 
 ## Managing your install
 
 ```bash
-npx opencode-council refresh     # Update to latest version
-npx opencode-council verify      # Check install health
-npx opencode-council uninstall   # Clean removal
+npx agent-council refresh        # Update to latest version
+npx agent-council verify         # Check install health
+npx agent-council uninstall      # Clean removal
 ```
 
 Use `--dry-run` with any command to see what would happen without making changes. Use `--backup` with `refresh` to create `.bak` copies before overwriting.
 
-If you already use `init`, `refresh`, `verify`, or `uninstall`, you do not need new command names for `v0.5.x`.
+If you already use `opencode-council`, command aliases are still supported during migration.
 
 ## Manual install
 
