@@ -5,7 +5,7 @@
     "sources": [
       "plugins/orchestration-workflows.ts",
       "plugins/orchestration-workflows",
-      "agents"
+      "generated/opencode/agents"
     ],
     "destination": "~/.opencode"
   },

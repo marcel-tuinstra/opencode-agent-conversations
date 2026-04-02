@@ -1,6 +1,7 @@
 // Shared execution runtime for supervisor, governance, and session lifecycle.
 // Milestone-1 bridge: re-export runtime modules from the current implementation.
 
+export * from "./adapter-contract.ts";
 export * from "../../../plugins/orchestration-workflows/budget.ts";
 export * from "./compact.ts";
 export * from "./session.ts";
