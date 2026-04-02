@@ -2,8 +2,8 @@
 // Milestone-1 bridge: re-export runtime modules from the current implementation.
 
 export * from "../../../plugins/orchestration-workflows/budget.ts";
-export * from "../../../plugins/orchestration-workflows/compact.ts";
-export * from "../../../plugins/orchestration-workflows/session.ts";
+export * from "./compact.ts";
+export * from "./session.ts";
 export * from "../../../plugins/orchestration-workflows/mcp.ts";
 export * from "../../../plugins/orchestration-workflows/output.ts";
 export * from "../../../plugins/orchestration-workflows/debug.ts";
