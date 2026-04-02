@@ -3,6 +3,7 @@
 import { mkdirSync, readFileSync, readdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { load as loadYaml } from "js-yaml";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = resolve(__filename, "..");
@@ -11,24 +12,37 @@ const repoRoot = resolve(__dirname, "../../..");
 const sharedAgentsDir = join(repoRoot, "shared", "agents");
 const generatedRoot = join(repoRoot, "generated");
 
-const parseSimpleYaml = (content) => {
-  const result = {};
-  for (const rawLine of content.split(/\r?\n/)) {
-    const line = rawLine.trim();
-    if (!line || line.startsWith("#")) {
-      continue;
+const validateAgent = (agent, sourceFile) => {
+  const required = ["name", "display_name", "description", "role_type", "instructions"];
+  for (const key of required) {
+    if (!agent[key] || String(agent[key]).trim().length === 0) {
+      throw new Error(`Missing required key '${key}' in ${sourceFile}`);
     }
-
-    const separator = line.indexOf(":");
-    if (separator < 0) {
-      continue;
-    }
-
-    const key = line.slice(0, separator).trim();
-    const rawValue = line.slice(separator + 1).trim();
-    result[key] = rawValue.replace(/^"|"$/g, "");
   }
-  return result;
+};
+
+const normalizeAgent = (sourceFile, content) => {
+  const parsed = loadYaml(content);
+  if (!parsed || typeof parsed !== "object") {
+    throw new Error(`Invalid YAML object in ${sourceFile}`);
+  }
+
+  const agent = {
+    name: String(parsed.name ?? "").trim(),
+    display_name: String(parsed.display_name ?? "").trim(),
+    description: String(parsed.description ?? "").trim(),
+    role_type: String(parsed.role_type ?? "").trim(),
+    color: String(parsed.color ?? "info").trim(),
+    model: String(parsed.model ?? "inherit").trim(),
+    effort: String(parsed.effort ?? "medium").trim(),
+    codex_model: String(parsed.codex_model ?? "gpt-5.4").trim(),
+    codex_reasoning_effort: String(parsed.codex_reasoning_effort ?? "medium").trim(),
+    codex_sandbox_mode: String(parsed.codex_sandbox_mode ?? "read-only").trim(),
+    instructions: String(parsed.instructions ?? "").trim()
+  };
+
+  validateAgent(agent, sourceFile);
+  return agent;
 };
 
 const renderClaudeAgent = (agent) => {
@@ -36,13 +50,11 @@ const renderClaudeAgent = (agent) => {
     "---",
     `name: ${agent.name}`,
     `description: ${agent.description}`,
-    "model: inherit",
-    "effort: medium",
+    `model: ${agent.model}`,
+    `effort: ${agent.effort}`,
     "---",
     "",
-    `You are ${agent.display_name}.`,
-    `Primary mission: ${agent.description}.`,
-    "Operate within the agent-council deliberation protocol.",
+    agent.instructions,
     ""
   ].join("\n");
 };
@@ -51,13 +63,11 @@ const renderCodexAgent = (agent) => {
   return [
     `name = \"${agent.name}\"`,
     `description = \"${agent.description}\"`,
-    "model = \"gpt-5.4\"",
-    "model_reasoning_effort = \"medium\"",
-    "sandbox_mode = \"read-only\"",
+    `model = \"${agent.codex_model}\"`,
+    `model_reasoning_effort = \"${agent.codex_reasoning_effort}\"`,
+    `sandbox_mode = \"${agent.codex_sandbox_mode}\"`,
     "developer_instructions = \"\"\"",
-    `You are ${agent.display_name}.`,
-    `Primary mission: ${agent.description}.`,
-    "Operate within the agent-council deliberation protocol.",
+    agent.instructions,
     "\"\"\"",
     ""
   ].join("\n");
@@ -68,12 +78,11 @@ const renderOpenCodeAgent = (agent) => {
     "---",
     `description: ${agent.description}`,
     "mode: subagent",
-    "color: info",
+    `color: ${agent.color}`,
     "---",
     `# AGENTS.${agent.name.toUpperCase()}.md`,
     "",
-    `- Role: ${agent.description}.`,
-    "- Follow the Frame, Challenge, Synthesize protocol.",
+    agent.instructions,
     ""
   ].join("\n");
 };
@@ -86,8 +95,7 @@ const build = () => {
   const files = readdirSync(sharedAgentsDir).filter((entry) => entry.endsWith(".yaml"));
   const agents = files.map((file) => {
     const absolutePath = join(sharedAgentsDir, file);
-    const parsed = parseSimpleYaml(readFileSync(absolutePath, "utf8"));
-    return parsed;
+    return normalizeAgent(file, readFileSync(absolutePath, "utf8"));
   });
 
   const targets = {

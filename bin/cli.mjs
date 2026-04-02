@@ -59,6 +59,9 @@ const DEST_CLAUDE_AGENTS_DIR = join(homedir(), ".claude", "agents", "agent-counc
 const DEST_CODEX_AGENTS_DIR = join(homedir(), ".codex", "agents", "agent-council");
 
 const PLATFORM_IDS = ["opencode", "claude-code", "codex"];
+const SRC_OPENCODE_AGENTS_DIR = existsSync(SRC_GENERATED_OPENCODE_AGENTS)
+  ? SRC_GENERATED_OPENCODE_AGENTS
+  : SRC_AGENTS_DIR;
 
 // ---------------------------------------------------------------------------
 // Package version (read from package.json)
@@ -73,8 +76,8 @@ const PKG_VERSION = existsSync(pkgJsonPath)
 // Known agent manifest -- files we own (used by verify & refresh prune)
 // ---------------------------------------------------------------------------
 
-const KNOWN_AGENTS = existsSync(SRC_AGENTS_DIR)
-  ? readdirSync(SRC_AGENTS_DIR).filter((f) => f.endsWith(".md"))
+const KNOWN_AGENTS = existsSync(SRC_OPENCODE_AGENTS_DIR)
+  ? readdirSync(SRC_OPENCODE_AGENTS_DIR).filter((f) => f.endsWith(".md"))
   : ["be.md", "ceo.md", "cto.md", "dev.md", "fe.md",
      "marketing.md", "pm.md", "po.md", "research.md", "ux.md"];
 
@@ -178,7 +181,7 @@ ${colors.cyan("What it does:")}
   Source files:
     plugins/orchestration-workflows.ts     ${colors.dim("(barrel)")}
     plugins/orchestration-workflows/       ${colors.dim("(runtime modules)")}
-    agents/*.md                            ${colors.dim("(role profiles)")}
+    generated/opencode/agents/*.md         ${colors.dim("(generated role profiles)")}
 
   Destination:
     ${colors.dim(DEST_PLUGINS_DIR + "/")}
@@ -239,7 +242,7 @@ function printPlan() {
   console.log(`      -> ${colors.dim(join(DEST_PLUGINS_DIR, "orchestration-workflows") + "/")}`);
   console.log("");
 
-  const agentFiles = readdirSync(SRC_AGENTS_DIR).filter((f) => f.endsWith(".md"));
+  const agentFiles = readdirSync(SRC_OPENCODE_AGENTS_DIR).filter((f) => f.endsWith(".md"));
   for (const file of agentFiles) {
     console.log(`    ${colors.dim(join("agents", file))}`);
     console.log(`      -> ${colors.dim(join(DEST_AGENTS_DIR, file))}`);
@@ -268,10 +271,10 @@ function buildManifest() {
   }
 
   // 3. Agent files
-  const agentFiles = readdirSync(SRC_AGENTS_DIR).filter((f) => f.endsWith(".md"));
+  const agentFiles = readdirSync(SRC_OPENCODE_AGENTS_DIR).filter((f) => f.endsWith(".md"));
   for (const file of agentFiles) {
     manifest.push({
-      src:  join(SRC_AGENTS_DIR, file),
+      src:  join(SRC_OPENCODE_AGENTS_DIR, file),
       dest: join(DEST_AGENTS_DIR, file),
       label: join("agents", file),
     });
@@ -294,7 +297,7 @@ function validateSource(path, label) {
 function validateSources() {
   validateSource(SRC_PLUGIN_BARREL, "Plugin barrel file");
   validateSource(SRC_PLUGIN_DIR, "Plugin directory");
-  validateSource(SRC_AGENTS_DIR, "Agents directory");
+  validateSource(SRC_OPENCODE_AGENTS_DIR, "OpenCode agents directory");
 }
 
 function printBanner() {
@@ -308,7 +311,7 @@ function printSources() {
   console.log(colors.cyan("  Source (repo):"));
   console.log(`    ${colors.dim(relative(process.cwd(), SRC_PLUGIN_BARREL))}`);
   console.log(`    ${colors.dim(relative(process.cwd(), SRC_PLUGIN_DIR) + "/")}`);
-  console.log(`    ${colors.dim(relative(process.cwd(), SRC_AGENTS_DIR) + "/")}`);
+  console.log(`    ${colors.dim(relative(process.cwd(), SRC_OPENCODE_AGENTS_DIR) + "/")}`);
   console.log("");
 }
 
@@ -876,9 +879,9 @@ async function cmdInstallOpenCode({ mode = "init", standalone = true }) {
     console.log(colors.green(`  Copied  ${colors.dim(`plugins/orchestration-workflows/  (${pluginFileCount} files)`)}`));
 
     // 3. Copy agent profile files
-    const agentFiles = readdirSync(SRC_AGENTS_DIR).filter((f) => f.endsWith(".md"));
+    const agentFiles = readdirSync(SRC_OPENCODE_AGENTS_DIR).filter((f) => f.endsWith(".md"));
     for (const file of agentFiles) {
-      cpSync(join(SRC_AGENTS_DIR, file), join(DEST_AGENTS_DIR, file), { force: true });
+      cpSync(join(SRC_OPENCODE_AGENTS_DIR, file), join(DEST_AGENTS_DIR, file), { force: true });
       copiedFiles++;
     }
     console.log(colors.green(`  Copied  ${colors.dim(`agents/  (${agentFiles.length} profiles)`)}`));
