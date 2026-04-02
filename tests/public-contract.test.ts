@@ -55,10 +55,10 @@ describe("public contract guardrails", () => {
 
     expect(helpOutput).toContain("agent-council <command> [options]");
     expect(helpOutput).toContain("opencode-council <command> [options]");
-    expect(helpOutput).toContain("init        Install plugin + agent files into ~/.opencode");
-    expect(helpOutput).toContain("refresh     Reinstall from source");
-    expect(helpOutput).toContain("verify      Health-check: compare installed files against source by SHA-256");
-    expect(helpOutput).toContain("uninstall   Remove installed plugin + agent files from ~/.opencode");
+    expect(helpOutput).toContain("init        Install agent-council into selected platforms");
+    expect(helpOutput).toContain("refresh     Reinstall from source for selected platforms");
+    expect(helpOutput).toContain("verify      Health-check selected platform installs");
+    expect(helpOutput).toContain("uninstall   Remove agent-council from selected platforms");
     expect(helpOutput).toContain("help        Show this help message");
   });
 });

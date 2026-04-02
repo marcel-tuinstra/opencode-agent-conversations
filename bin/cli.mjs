@@ -18,6 +18,7 @@ import { join, dirname, relative, resolve } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 
 // ---------------------------------------------------------------------------
 // Color helpers -- respect NO_COLOR (https://no-color.org/)
@@ -45,11 +46,19 @@ const repoRoot   = resolve(__dirname, "..");
 const SRC_PLUGIN_BARREL = join(repoRoot, "plugins", "orchestration-workflows.ts");
 const SRC_PLUGIN_DIR    = join(repoRoot, "plugins", "orchestration-workflows");
 const SRC_AGENTS_DIR    = join(repoRoot, "agents");
+const SRC_GENERATED_OPENCODE_AGENTS = join(repoRoot, "generated", "opencode", "agents");
+const SRC_GENERATED_CLAUDE_AGENTS = join(repoRoot, "generated", "claude-code", "agents");
+const SRC_GENERATED_CODEX_AGENTS = join(repoRoot, "generated", "codex", "agents");
 
 const DEST_BASE        = join(homedir(), ".opencode");
 const DEST_PLUGINS_DIR = join(DEST_BASE, "plugins");
 const DEST_AGENTS_DIR  = join(DEST_BASE, "agents");
 const DEST_PLUGIN_SUB  = join(DEST_PLUGINS_DIR, "orchestration-workflows");
+
+const DEST_CLAUDE_AGENTS_DIR = join(homedir(), ".claude", "agents", "agent-council");
+const DEST_CODEX_AGENTS_DIR = join(homedir(), ".codex", "agents", "agent-council");
+
+const PLATFORM_IDS = ["opencode", "claude-code", "codex"];
 
 // ---------------------------------------------------------------------------
 // Package version (read from package.json)
@@ -89,6 +98,24 @@ if (budgetProfileIdx !== -1) {
   knownFlagValues.add(budgetProfileIdx + 1);
 }
 
+const platformValues = [];
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === "--platform") {
+    const next = args[i + 1] ?? "";
+    knownFlagValues.add(i + 1);
+    if (next) {
+      platformValues.push(next);
+    }
+  }
+}
+
+const FLAG_PLATFORMS = Array.from(new Set(
+  platformValues
+    .flatMap((value) => value.split(","))
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value.length > 0)
+));
+
 for (let i = 0; i < args.length; i++) {
   if (knownFlagValues.has(i)) continue;     // skip flag values
   if (args[i].startsWith("-")) {
@@ -98,7 +125,10 @@ for (let i = 0; i < args.length; i++) {
   }
 }
 
-const KNOWN_FLAGS = ["--help", "-h", "--dry-run", "-n", "--force", "-f", "--backup", "-b", "--version", "-v", "--budget-profile"];
+const KNOWN_FLAGS = [
+  "--help", "-h", "--dry-run", "-n", "--force", "-f", "--backup", "-b", "--version", "-v",
+  "--budget-profile", "--platform"
+];
 const unknownFlags = flags.filter((f) => !KNOWN_FLAGS.includes(f));
 if (unknownFlags.length > 0) {
   console.error(colors.yellow(`  Warning: unknown flag(s) ignored: ${unknownFlags.join(", ")}`));
@@ -122,10 +152,10 @@ ${colors.cyan("Usage:")}
   npx opencode-council <command> [options] ${colors.dim("(legacy alias)")}
 
 ${colors.cyan("Commands:")}
-  init        Install plugin + agent files into ~/.opencode
-  refresh     Reinstall from source (prunes stale files, overwrites all)
-  verify      Health-check: compare installed files against source by SHA-256
-  uninstall   Remove installed plugin + agent files from ~/.opencode
+  init        Install agent-council into selected platforms
+  refresh     Reinstall from source for selected platforms
+  verify      Health-check selected platform installs
+  uninstall   Remove agent-council from selected platforms
   config      Configure plugin settings
   help        Show this help message
 
@@ -139,6 +169,7 @@ ${colors.cyan("Options:")}
   --backup,  -b                Back up existing files before overwriting (refresh/init)
   --version, -v                Print version and exit
   --budget-profile <name>      Set budget profile during init (skips prompt)
+  --platform <id[,id...]>      Target platform(s): opencode, claude-code, codex
 
 ${colors.cyan("What it does:")}
   Copies plugin and agent files from this package into
@@ -311,6 +342,100 @@ async function confirm(message) {
   return !answer || answer === "y" || answer === "yes";
 }
 
+function hasCommand(binary) {
+  const probe = process.platform === "win32" ? "where" : "command";
+  const probeArgs = process.platform === "win32"
+    ? [binary]
+    : ["-v", binary];
+  const result = spawnSync(probe, probeArgs, {
+    shell: process.platform !== "win32",
+    stdio: "ignore"
+  });
+  return result.status === 0;
+}
+
+function detectPlatforms() {
+  return {
+    opencode: existsSync(DEST_BASE) || hasCommand("opencode"),
+    "claude-code": existsSync(join(homedir(), ".claude")) || hasCommand("claude"),
+    codex: existsSync(join(homedir(), ".codex")) || hasCommand("codex")
+  };
+}
+
+function normalizePlatformSelection(input) {
+  const normalized = Array.from(new Set(input
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => PLATFORM_IDS.includes(value))
+  ));
+  return normalized;
+}
+
+async function promptPlatforms(detectedMap) {
+  if (!process.stdin.isTTY) {
+    const fallback = PLATFORM_IDS.filter((id) => detectedMap[id]);
+    return fallback.length > 0 ? fallback : ["opencode"];
+  }
+
+  const detected = PLATFORM_IDS.filter((id) => detectedMap[id]);
+  const defaults = detected.length > 0 ? detected : ["opencode"];
+
+  console.log(colors.cyan("  Detected platforms:"));
+  for (const id of PLATFORM_IDS) {
+    const marker = detectedMap[id] ? colors.green("[x]") : "[ ]";
+    console.log(`    ${marker} ${id}`);
+  }
+  console.log("");
+  console.log(colors.cyan("  Select target platforms (comma-separated numbers):"));
+  console.log(`    1) opencode${defaults.includes("opencode") ? colors.dim(" (default)") : ""}`);
+  console.log(`    2) claude-code${defaults.includes("claude-code") ? colors.dim(" (default)") : ""}`);
+  console.log(`    3) codex${defaults.includes("codex") ? colors.dim(" (default)") : ""}`);
+  console.log("");
+
+  const readline = await import("node:readline");
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  const answer = await new Promise((res) => {
+    rl.question(colors.cyan("  Platforms [1,2,3 default: detected]: "), (ans) => {
+      rl.close();
+      res(ans.trim());
+    });
+  });
+
+  if (!answer) {
+    return defaults;
+  }
+
+  const mapped = answer
+    .split(",")
+    .map((item) => item.trim())
+    .map((item) => {
+      if (item === "1") return "opencode";
+      if (item === "2") return "claude-code";
+      if (item === "3") return "codex";
+      return item;
+    });
+
+  const selected = normalizePlatformSelection(mapped);
+  return selected.length > 0 ? selected : defaults;
+}
+
+async function resolveTargetPlatforms() {
+  if (FLAG_PLATFORMS.length > 0) {
+    const selected = normalizePlatformSelection(FLAG_PLATFORMS);
+    if (selected.length === 0) {
+      console.error(colors.red("  Invalid --platform value. Use: opencode, claude-code, codex"));
+      process.exit(1);
+    }
+    return selected;
+  }
+
+  const detected = detectPlatforms();
+  return await promptPlatforms(detected);
+}
+
 /** Create .bak copies of every destination file that exists. */
 function backupExisting(manifest) {
   let backed = 0;
@@ -361,11 +486,15 @@ function cmdHelp() {
 // Command: verify
 // ---------------------------------------------------------------------------
 
-function cmdVerify() {
-  printBanner();
+function cmdVerifyOpenCode({ standalone = true } = {}) {
+  if (standalone) {
+    printBanner();
+  }
   validateSources();
-  printSources();
-  printDestinations();
+  if (standalone) {
+    printSources();
+    printDestinations();
+  }
 
   const manifest = buildManifest();
   let ok = 0;
@@ -407,15 +536,22 @@ function cmdVerify() {
   }
   console.log("");
 
-  process.exit(missing > 0 || mismatch > 0 ? 1 : 0);
+  const hasIssues = missing > 0 || mismatch > 0;
+  if (standalone) {
+    process.exit(hasIssues ? 1 : 0);
+  }
+
+  return { ok, missing, changed: mismatch, total: manifest.length, hasIssues };
 }
 
 // ---------------------------------------------------------------------------
 // Command: uninstall
 // ---------------------------------------------------------------------------
 
-async function cmdUninstall() {
-  printBanner();
+async function cmdUninstallOpenCode({ standalone = true } = {}) {
+  if (standalone) {
+    printBanner();
+  }
 
   console.log(colors.cyan("  This will remove:"));
   console.log(`    ${colors.dim(join(DEST_PLUGINS_DIR, "orchestration-workflows.ts"))}`);
@@ -428,7 +564,10 @@ async function cmdUninstall() {
   if (FLAG_DRY_RUN) {
     console.log(colors.yellow("  Dry run -- no files will be removed."));
     console.log("");
-    process.exit(0);
+    if (standalone) {
+      process.exit(0);
+    }
+    return;
   }
 
   // Confirmation (skip with --force or non-TTY)
@@ -438,7 +577,10 @@ async function cmdUninstall() {
       console.log("");
       console.log(colors.yellow("  Aborted."));
       console.log("");
-      process.exit(0);
+        if (standalone) {
+          process.exit(0);
+        }
+        return;
     }
     console.log("");
   }
@@ -482,7 +624,9 @@ async function cmdUninstall() {
   console.log(colors.dim(`  ${removed} files removed in ${elapsed}ms`));
   console.log("");
 
-  process.exit(0);
+  if (standalone) {
+    process.exit(0);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -638,18 +782,24 @@ async function promptBudgetProfile() {
 // Command: init / refresh  (shared install flow)
 // ---------------------------------------------------------------------------
 
-async function cmdInstall({ mode = "init" }) {
+async function cmdInstallOpenCode({ mode = "init", standalone = true }) {
   const label = mode;
   const t0 = Date.now();
 
-  printBanner();
+  if (standalone) {
+    printBanner();
+  }
   validateSources();
-  printSources();
+  if (standalone) {
+    printSources();
+  }
 
   const existingInstall = existsSync(join(DEST_PLUGINS_DIR, "orchestration-workflows.ts"))
     || existsSync(DEST_PLUGIN_SUB);
 
-  printDestinations();
+  if (standalone) {
+    printDestinations();
+  }
 
   if (existingInstall && mode === "init") {
     console.log(colors.yellow("  Note: Existing installation detected. Files will be overwritten."));
@@ -665,7 +815,10 @@ async function cmdInstall({ mode = "init" }) {
     printPlan();
     console.log(colors.yellow("  Run without --dry-run to apply changes."));
     console.log("");
-    process.exit(0);
+    if (standalone) {
+      process.exit(0);
+    }
+    return;
   }
 
   // Confirmation (skip with --force)
@@ -679,7 +832,10 @@ async function cmdInstall({ mode = "init" }) {
       console.log("");
       console.log(colors.yellow("  Aborted."));
       console.log("");
-      process.exit(0);
+      if (standalone) {
+        process.exit(0);
+      }
+      return;
     }
     console.log("");
   }
@@ -735,7 +891,10 @@ async function cmdInstall({ mode = "init" }) {
     }
     console.error("");
     console.error(colors.yellow("  Check file permissions and try again."));
-    process.exit(1);
+    if (standalone) {
+      process.exit(1);
+    }
+    throw err;
   }
 
   // Budget profile selection
@@ -746,7 +905,10 @@ async function cmdInstall({ mode = "init" }) {
     if (!VALID_PROFILES.includes(FLAG_BUDGET_PROFILE)) {
       console.error(colors.red(`  Invalid budget profile: "${FLAG_BUDGET_PROFILE}"`));
       console.log(`  Valid profiles: ${VALID_PROFILES.join(", ")}`);
-      process.exit(1);
+      if (standalone) {
+        process.exit(1);
+      }
+      throw new Error(`Invalid budget profile: ${FLAG_BUDGET_PROFILE}`);
     }
     selectedProfile = FLAG_BUDGET_PROFILE;
     console.log(colors.dim(`  Budget profile: ${selectedProfile} (from --budget-profile)`));
@@ -788,7 +950,215 @@ async function cmdInstall({ mode = "init" }) {
   }
   console.log("");
 
-  process.exit(0);
+  if (standalone) {
+    process.exit(0);
+  }
+}
+
+function buildSimpleManifest(sourceDir, destinationDir) {
+  validateSource(sourceDir, `Generated source directory (${sourceDir})`);
+  return collectFiles(sourceDir).map((relFile) => ({
+    src: join(sourceDir, relFile),
+    dest: join(destinationDir, relFile),
+    label: relFile
+  }));
+}
+
+function copyManifest(manifest) {
+  for (const entry of manifest) {
+    mkdirSync(dirname(entry.dest), { recursive: true });
+    cpSync(entry.src, entry.dest, { force: true });
+  }
+}
+
+function verifyManifest(manifest) {
+  let ok = 0;
+  let missing = 0;
+  let changed = 0;
+  for (const entry of manifest) {
+    if (!existsSync(entry.dest)) {
+      missing++;
+      continue;
+    }
+    if (sha256(entry.src) !== sha256(entry.dest)) {
+      changed++;
+      continue;
+    }
+    ok++;
+  }
+  return { ok, missing, changed, total: manifest.length };
+}
+
+async function cmdInstallClaudeCode({ mode = "init" }) {
+  const sourceDir = SRC_GENERATED_CLAUDE_AGENTS;
+  const destinationDir = DEST_CLAUDE_AGENTS_DIR;
+  const manifest = buildSimpleManifest(sourceDir, destinationDir);
+
+  if (FLAG_DRY_RUN) {
+    console.log(colors.yellow(`  [claude-code] Dry run -- would install ${manifest.length} files into ${destinationDir}`));
+    return;
+  }
+
+  if (!FLAG_FORCE && mode === "init") {
+    const yes = await confirm(colors.cyan("  [claude-code] Proceed with install? [Y/n] "));
+    if (!yes) {
+      console.log(colors.yellow("  [claude-code] Skipped by user."));
+      return;
+    }
+  }
+
+  copyManifest(manifest);
+  console.log(colors.green(`  [claude-code] Installed ${manifest.length} files to ${destinationDir}`));
+}
+
+async function cmdInstallCodex({ mode = "init" }) {
+  const sourceDir = SRC_GENERATED_CODEX_AGENTS;
+  const destinationDir = DEST_CODEX_AGENTS_DIR;
+  const manifest = buildSimpleManifest(sourceDir, destinationDir);
+
+  if (FLAG_DRY_RUN) {
+    console.log(colors.yellow(`  [codex] Dry run -- would install ${manifest.length} files into ${destinationDir}`));
+    return;
+  }
+
+  if (!FLAG_FORCE && mode === "init") {
+    const yes = await confirm(colors.cyan("  [codex] Proceed with install? [Y/n] "));
+    if (!yes) {
+      console.log(colors.yellow("  [codex] Skipped by user."));
+      return;
+    }
+  }
+
+  copyManifest(manifest);
+  console.log(colors.green(`  [codex] Installed ${manifest.length} files to ${destinationDir}`));
+}
+
+function cmdVerifyClaudeCode() {
+  const manifest = buildSimpleManifest(SRC_GENERATED_CLAUDE_AGENTS, DEST_CLAUDE_AGENTS_DIR);
+  const result = verifyManifest(manifest);
+  const status = result.missing > 0 || result.changed > 0 ? colors.yellow("needs refresh") : colors.green("healthy");
+  console.log(`  [claude-code] ${status} ${colors.dim(`(ok ${result.ok}/${result.total}, missing ${result.missing}, changed ${result.changed})`)}`);
+  return result;
+}
+
+function cmdVerifyCodex() {
+  const manifest = buildSimpleManifest(SRC_GENERATED_CODEX_AGENTS, DEST_CODEX_AGENTS_DIR);
+  const result = verifyManifest(manifest);
+  const status = result.missing > 0 || result.changed > 0 ? colors.yellow("needs refresh") : colors.green("healthy");
+  console.log(`  [codex] ${status} ${colors.dim(`(ok ${result.ok}/${result.total}, missing ${result.missing}, changed ${result.changed})`)}`);
+  return result;
+}
+
+async function cmdUninstallClaudeCode() {
+  if (FLAG_DRY_RUN) {
+    console.log(colors.yellow(`  [claude-code] Dry run -- would remove ${DEST_CLAUDE_AGENTS_DIR}`));
+    return;
+  }
+  if (!FLAG_FORCE) {
+    const yes = await confirm(colors.cyan("  [claude-code] Proceed with uninstall? [Y/n] "));
+    if (!yes) {
+      console.log(colors.yellow("  [claude-code] Skipped by user."));
+      return;
+    }
+  }
+  rmSync(DEST_CLAUDE_AGENTS_DIR, { recursive: true, force: true });
+  console.log(colors.green(`  [claude-code] Removed ${DEST_CLAUDE_AGENTS_DIR}`));
+}
+
+async function cmdUninstallCodex() {
+  if (FLAG_DRY_RUN) {
+    console.log(colors.yellow(`  [codex] Dry run -- would remove ${DEST_CODEX_AGENTS_DIR}`));
+    return;
+  }
+  if (!FLAG_FORCE) {
+    const yes = await confirm(colors.cyan("  [codex] Proceed with uninstall? [Y/n] "));
+    if (!yes) {
+      console.log(colors.yellow("  [codex] Skipped by user."));
+      return;
+    }
+  }
+  rmSync(DEST_CODEX_AGENTS_DIR, { recursive: true, force: true });
+  console.log(colors.green(`  [codex] Removed ${DEST_CODEX_AGENTS_DIR}`));
+}
+
+async function cmdInstall({ mode = "init" }) {
+  const targets = await resolveTargetPlatforms();
+  printBanner();
+  console.log(colors.cyan(`  Targets: ${targets.join(", ")}`));
+  console.log("");
+
+  for (const target of targets) {
+    if (target === "opencode") {
+      await cmdInstallOpenCode({ mode, standalone: false });
+      continue;
+    }
+    if (target === "claude-code") {
+      await cmdInstallClaudeCode({ mode });
+      continue;
+    }
+    if (target === "codex") {
+      await cmdInstallCodex({ mode });
+      continue;
+    }
+  }
+}
+
+async function cmdVerify() {
+  const targets = await resolveTargetPlatforms();
+  printBanner();
+  console.log(colors.cyan(`  Targets: ${targets.join(", ")}`));
+  console.log("");
+
+  let hasIssues = false;
+  for (const target of targets) {
+    if (target === "opencode") {
+      const result = cmdVerifyOpenCode({ standalone: false });
+      if (result.hasIssues) {
+        hasIssues = true;
+      }
+      continue;
+    }
+    if (target === "claude-code") {
+      const result = cmdVerifyClaudeCode();
+      if (result.missing > 0 || result.changed > 0) {
+        hasIssues = true;
+      }
+      continue;
+    }
+    if (target === "codex") {
+      const result = cmdVerifyCodex();
+      if (result.missing > 0 || result.changed > 0) {
+        hasIssues = true;
+      }
+      continue;
+    }
+  }
+
+  if (hasIssues) {
+    process.exit(1);
+  }
+}
+
+async function cmdUninstall() {
+  const targets = await resolveTargetPlatforms();
+  printBanner();
+  console.log(colors.cyan(`  Targets: ${targets.join(", ")}`));
+  console.log("");
+
+  for (const target of targets) {
+    if (target === "opencode") {
+      await cmdUninstallOpenCode({ standalone: false });
+      continue;
+    }
+    if (target === "claude-code") {
+      await cmdUninstallClaudeCode();
+      continue;
+    }
+    if (target === "codex") {
+      await cmdUninstallCodex();
+      continue;
+    }
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -817,7 +1187,7 @@ switch (command) {
     break;
 
   case "verify":
-    cmdVerify();
+    await cmdVerify();
     break;
 
   case "uninstall":
