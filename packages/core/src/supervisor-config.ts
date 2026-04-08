@@ -1,0 +1,1563 @@
+import { existsSync, readFileSync } from "node:fs";
+import { join } from "node:path";
+import {
+  type BudgetProfileName,
+  resolveBudgetProfile,
+  getDefaultBudgetProfileName,
+  getBudgetProfileFromEnv
+} from "./budget-profiles.ts";
+import { debugLog } from "../../../plugins/orchestration-workflows/debug.ts";
+import type { Intent, Role } from "./types.ts";
+
+type RepoRiskTier = "small-high-risk" | "medium-moderate-risk" | "large-mature";
+type MergeMode = "manual" | "auto-merge";
+export type SupervisorGovernancePolicyOutcome = "accept" | "repair" | "escalate" | "block";
+
+export type SupervisorGovernanceCheckpointRuleInput = {
+  ruleId: string;
+  description?: string;
+  match?: {
+    violationCodes?: string[];
+    violationFields?: string[];
+  };
+  outcome: SupervisorGovernancePolicyOutcome;
+};
+
+export type SupervisorGovernanceCheckpointRule = {
+  ruleId: string;
+  description?: string;
+  match: {
+    violationCodes: readonly string[];
+    violationFields: readonly string[];
+  };
+  outcome: SupervisorGovernancePolicyOutcome;
+};
+
+export type SupervisorGovernanceCheckpointPolicyInput = {
+  checkpoint: string;
+  defaultOutcome?: SupervisorGovernancePolicyOutcome;
+  rules?: SupervisorGovernanceCheckpointRuleInput[];
+};
+
+export type SupervisorGovernanceCheckpointPolicy = {
+  checkpoint: string;
+  defaultOutcome: SupervisorGovernancePolicyOutcome;
+  rules: readonly SupervisorGovernanceCheckpointRule[];
+};
+
+export type SupervisorProviderPatternInput = {
+  key: string;
+  pattern: string;
+  hint: string;
+  toolPrefix: string;
+};
+
+export type SupervisorProviderPattern = {
+  key: string;
+  regex: RegExp;
+  hint: string;
+  toolPrefix: string;
+};
+
+export type SupervisorExecutionPath = "execute" | "coordinate" | "investigate" | "safe-hold";
+
+export type SupervisorRoutingIntentProfileInput = {
+  path?: SupervisorExecutionPath;
+  leadRole?: Role;
+  fallbackLeadRole?: Role;
+};
+
+export type SupervisorRoutingIntentProfile = {
+  path: SupervisorExecutionPath;
+  leadRole: Role;
+  fallbackLeadRole: Role;
+};
+
+export type SupervisorExecutionMode = "delegate-only" | "delegate-with-manual-override";
+
+export type SupervisorExecutionPolicyInput = {
+  mode?: SupervisorExecutionMode;
+  allowSupervisorDirectEdits?: boolean;
+  requireDelegationLog?: boolean;
+  requireAgentWorktreeBinding?: boolean;
+  requireDedicatedIntegrationAgent?: boolean;
+  integrationAgentLabel?: string;
+};
+
+export type SupervisorExecutionPolicy = {
+  mode: SupervisorExecutionMode;
+  allowSupervisorDirectEdits: boolean;
+  requireDelegationLog: boolean;
+  requireAgentWorktreeBinding: boolean;
+  requireDedicatedIntegrationAgent: boolean;
+  integrationAgentLabel: string;
+};
+
+export type SupervisorProtectedPathOutcome = "allow" | "requires-human" | "deny";
+
+export type SupervisorProtectedPathRuleInput = {
+  ruleId: string;
+  description?: string;
+  pathPrefixes?: readonly string[];
+  outcome: SupervisorProtectedPathOutcome;
+  auditExpectation?: string;
+};
+
+export type SupervisorProtectedPathRule = {
+  ruleId: string;
+  description?: string;
+  pathPrefixes: readonly string[];
+  outcome: SupervisorProtectedPathOutcome;
+  auditExpectation?: string;
+};
+
+export type SupervisorProtectedPathPolicyInput = {
+  defaultOutcome?: SupervisorProtectedPathOutcome;
+  rules?: SupervisorProtectedPathRuleInput[];
+};
+
+export type SupervisorProtectedPathPolicy = {
+  defaultOutcome: SupervisorProtectedPathOutcome;
+  rules: readonly SupervisorProtectedPathRule[];
+};
+
+export type SupervisorPolicyDiagnostics = {
+  path: string;
+  message: string;
+  severity?: "warning" | "error";
+  remediation?: string;
+};
+
+export type SupervisorPolicyInput = {
+  profile?: string;
+  budgetProfile?: BudgetProfileName;
+  roleAliases?: Record<string, string>;
+  providers?: {
+    patterns?: SupervisorProviderPatternInput[];
+  };
+  limits?: {
+    lanes?: {
+      activeCapsByTier?: Partial<Record<RepoRiskTier, number>>;
+      maxConcurrentCodeChanges?: number;
+      maxOpenPullRequests?: number;
+    };
+    worktrees?: {
+      maxActive?: number;
+    };
+    sessions?: {
+      maxPerWorktree?: number;
+    };
+    mcp?: {
+      defaultCallCap?: number;
+      deepCallCap?: number;
+    };
+  };
+  approvalGates?: {
+    escalationMode?: "ask-first";
+    mergeMode?: MergeMode;
+    allowServiceCriticalAutoMerge?: boolean;
+    boundaries?: {
+      merge?: boolean;
+      release?: boolean;
+      destructive?: boolean;
+      securitySensitive?: boolean;
+      budgetExceptions?: boolean;
+      automationWidening?: boolean;
+    };
+  };
+  budget?: {
+    runtime?: {
+      softRunTokens?: number;
+      hardRunTokens?: number;
+      softStepTokens?: number;
+      hardStepTokens?: number;
+      truncateAtTokens?: number;
+      costPer1kTokensUsd?: number;
+      stepExecutionTokenCost?: number;
+    };
+    governance?: {
+      warningThresholdPercents?: number[];
+      escalationThresholdPercent?: number;
+      hardStopEnabled?: boolean;
+      hardStopThresholdPercent?: number;
+    };
+  };
+  routing?: {
+    minimumSignalScore?: number;
+    intentProfiles?: Partial<Record<Intent, SupervisorRoutingIntentProfileInput>>;
+  };
+  execution?: SupervisorExecutionPolicyInput;
+  protectedPaths?: SupervisorProtectedPathPolicyInput;
+  governance?: {
+    checkpoints?: SupervisorGovernanceCheckpointPolicyInput[];
+  };
+  compaction?: Partial<Record<Intent, {
+    triggerTokens?: number;
+    targetTokens?: number;
+    retainRecentLines?: number;
+  }>>;
+};
+
+export type ResolvedSupervisorPolicy = {
+  profile: "v1-safe";
+  budgetProfile: BudgetProfileName;
+  roleAliases: Record<string, Role>;
+  providers: {
+    patterns: SupervisorProviderPattern[];
+  };
+  limits: {
+    lanes: {
+      activeCapsByTier: Record<RepoRiskTier, number>;
+      maxConcurrentCodeChanges: number;
+      maxOpenPullRequests: number;
+    };
+    worktrees: {
+      maxActive: number;
+    };
+    sessions: {
+      maxPerWorktree: number;
+    };
+    mcp: {
+      defaultCallCap: number;
+      deepCallCap: number;
+    };
+  };
+  approvalGates: {
+    escalationMode: "ask-first";
+    mergeMode: MergeMode;
+    allowServiceCriticalAutoMerge: boolean;
+    boundaries: {
+      merge: boolean;
+      release: boolean;
+      destructive: boolean;
+      securitySensitive: boolean;
+      budgetExceptions: boolean;
+      automationWidening: boolean;
+    };
+  };
+  budget: {
+    runtime: {
+      softRunTokens: number;
+      hardRunTokens: number;
+      softStepTokens: number;
+      hardStepTokens: number;
+      truncateAtTokens: number;
+      costPer1kTokensUsd: number;
+      stepExecutionTokenCost: number;
+    };
+    governance: {
+      warningThresholdPercents: number[];
+      escalationThresholdPercent: number;
+      hardStopEnabled: boolean;
+      hardStopThresholdPercent: number;
+    };
+  };
+  routing: {
+    minimumSignalScore: number;
+    intentProfiles: Record<Intent, SupervisorRoutingIntentProfile>;
+  };
+  execution: SupervisorExecutionPolicy;
+  protectedPaths: SupervisorProtectedPathPolicy;
+  governance: {
+    checkpoints: readonly SupervisorGovernanceCheckpointPolicy[];
+  };
+  compaction: Record<Intent, {
+    triggerTokens: number;
+    targetTokens: number;
+    retainRecentLines: number;
+  }>;
+};
+
+export type SupervisorPolicyLoadResult = {
+  config: ResolvedSupervisorPolicy;
+  diagnostics: SupervisorPolicyDiagnostics[];
+  source: string;
+  valid: boolean;
+};
+
+const SUPPORTED_REPO_RISK_TIERS: RepoRiskTier[] = [
+  "small-high-risk",
+  "medium-moderate-risk",
+  "large-mature"
+];
+
+const DEFAULT_PROVIDER_PATTERNS: SupervisorProviderPatternInput[] = [
+  { key: "sentry", pattern: "\\b(sentry(?:\\.io)?|sentry\\s+mcp)\\b", hint: "Sentry MCP (issues, traces, releases)", toolPrefix: "sentry_" },
+  { key: "github", pattern: "\\b(github(?:\\.com)?|gh|gh\\s+cli|github\\s+mcp)\\b", hint: "GitHub MCP (PRs, commits, code context)", toolPrefix: "github_" },
+  { key: "shortcut", pattern: "\\b(shortcut(?:\\.com)?|clubhouse(?:\\.io)?|shortcut\\s+mcp)\\b", hint: "Shortcut MCP (stories, epics, milestones)", toolPrefix: "shortcut_" },
+  { key: "nuxt", pattern: "\\b(nuxt(?:\\s*ui)?|nuxt-ui|ui\\.nuxt\\.com|nuxt\\s+ui\\s+mcp)\\b", hint: "Nuxt UI MCP (components, docs, examples)", toolPrefix: "nuxt-ui_" },
+  { key: "jira", pattern: "\\b(jira|jira\\s+software|atlassian\\s+jira|jira\\s+mcp)\\b", hint: "Jira MCP (issues, boards, sprints)", toolPrefix: "jira_" },
+  { key: "confluence", pattern: "\\b(confluence|atlassian\\s+wiki|confluence\\s+mcp)\\b", hint: "Confluence MCP (pages, spaces, search)", toolPrefix: "confluence_" },
+  { key: "linear", pattern: "\\b(linear(?:\\.app)?|linear\\s+mcp)\\b", hint: "Linear MCP (issues, projects, cycles)", toolPrefix: "linear_" },
+  { key: "notion", pattern: "\\b(notion(?:\\.so)?|notion\\s+mcp)\\b", hint: "Notion MCP (pages, databases)", toolPrefix: "notion_" },
+  { key: "slack", pattern: "\\b(slack|slack\\s+mcp)\\b", hint: "Slack MCP (messages, channels)", toolPrefix: "slack_" },
+  { key: "datadog", pattern: "\\b(datadog|ddog|datadog\\s+mcp)\\b", hint: "Datadog MCP (metrics, monitors, logs)", toolPrefix: "datadog_" }
+];
+
+const DEFAULT_POLICY_INPUT: SupervisorPolicyInput = {
+  profile: "v1-safe",
+  budgetProfile: "standard",
+  roleAliases: {
+    cto: "CTO",
+    dev: "DEV",
+    developer: "DEV",
+    engineer: "DEV",
+    fullstack: "DEV",
+    "full-stack": "DEV",
+    "full-stack-dev": "DEV",
+    fe: "FE",
+    frontend: "FE",
+    "frontend-dev": "FE",
+    be: "BE",
+    backend: "BE",
+    "backend-dev": "BE",
+    ux: "UX",
+    ui: "UX",
+    "ui-ux": "UX",
+    uiux: "UX",
+    "ui-ux-reviewer": "UX",
+    po: "PO",
+    pm: "PM",
+    ceo: "CEO",
+    marketing: "MARKETING",
+    research: "RESEARCH"
+  },
+  providers: {
+    patterns: DEFAULT_PROVIDER_PATTERNS
+  },
+  limits: {
+    lanes: {
+      activeCapsByTier: {
+        "small-high-risk": 2,
+        "medium-moderate-risk": 3,
+        "large-mature": 4
+      },
+      maxConcurrentCodeChanges: 1,
+      maxOpenPullRequests: 1
+    },
+    worktrees: {
+      maxActive: 1
+    },
+    sessions: {
+      maxPerWorktree: 1
+    },
+    mcp: {
+      defaultCallCap: 2,
+      deepCallCap: 6
+    }
+  },
+  approvalGates: {
+    escalationMode: "ask-first",
+    mergeMode: "manual",
+    allowServiceCriticalAutoMerge: false,
+    boundaries: {
+      merge: true,
+      release: true,
+      destructive: true,
+      securitySensitive: true,
+      budgetExceptions: true,
+      automationWidening: true
+    }
+  },
+  budget: {
+    runtime: {
+      softRunTokens: 6400,
+      hardRunTokens: 8400,
+      softStepTokens: 2800,
+      hardStepTokens: 4000,
+      truncateAtTokens: 1400,
+      costPer1kTokensUsd: 0.002,
+      stepExecutionTokenCost: 120
+    },
+    governance: {
+      warningThresholdPercents: [80, 100, 120],
+      escalationThresholdPercent: 120,
+      hardStopEnabled: false,
+      hardStopThresholdPercent: 131.25
+    }
+  },
+  routing: {
+    minimumSignalScore: 2,
+    intentProfiles: {
+      frontend: { path: "execute", leadRole: "FE", fallbackLeadRole: "UX" },
+      backend: { path: "execute", leadRole: "BE", fallbackLeadRole: "CTO" },
+      design: { path: "coordinate", leadRole: "UX", fallbackLeadRole: "PO" },
+      marketing: { path: "coordinate", leadRole: "MARKETING", fallbackLeadRole: "PM" },
+      roadmap: { path: "coordinate", leadRole: "PM", fallbackLeadRole: "CTO" },
+      research: { path: "investigate", leadRole: "RESEARCH", fallbackLeadRole: "CTO" },
+      mixed: { path: "execute", leadRole: "DEV", fallbackLeadRole: "CTO" }
+    }
+  },
+  execution: {
+    mode: "delegate-only",
+    allowSupervisorDirectEdits: false,
+    requireDelegationLog: true,
+    requireAgentWorktreeBinding: true,
+    requireDedicatedIntegrationAgent: true,
+    integrationAgentLabel: "INTEGRATION"
+  },
+  protectedPaths: {
+    defaultOutcome: "deny",
+    rules: [
+      {
+        ruleId: "deny-vcs-internals",
+        description: "Never allow autonomous writes or merges against repository internals.",
+        pathPrefixes: [".git"],
+        outcome: "deny",
+        auditExpectation: "Record the attempted path and stop automation without applying an exception."
+      },
+      {
+        ruleId: "deny-secret-material",
+        description: "Never allow autonomous writes or merges for secret-bearing files.",
+        pathPrefixes: [".env", ".env.", "secrets", "credentials", "credentials.", "id_rsa"],
+        outcome: "deny",
+        auditExpectation: "Record the attempted path and route the work to a human owner with secret-handling context."
+      },
+      {
+        ruleId: "review-governance-and-runtime-policy",
+        description: "Require human review for supervisor governance, approval, and runtime control surfaces.",
+        pathPrefixes: [".github", ".opencode", "plugins/orchestration-workflows", "package.json", "tsconfig.json", "tsconfig.typecheck.json"],
+        outcome: "requires-human",
+        auditExpectation: "Attach the changed paths, the approving human, and the reason for the exception before continuing."
+      },
+      {
+        ruleId: "allow-default-repository-scope",
+        description: "Allow non-protected paths unless a more specific protected-path rule overrides them.",
+        pathPrefixes: [""],
+        outcome: "allow"
+      }
+    ]
+  },
+  governance: {
+    checkpoints: [
+      {
+        checkpoint: "lane-handoff",
+        defaultOutcome: "accept",
+        rules: [
+          {
+            ruleId: "lane-id-mismatch-block",
+            description: "Never continue when the handoff lane id drifts away from the lane contract.",
+            match: {
+              violationCodes: ["lane-id-mismatch"]
+            },
+            outcome: "block"
+          },
+          {
+            ruleId: "artifact-lane-mismatch-repair",
+            description: "Repair artifact ownership drift before handoff continues.",
+            match: {
+              violationCodes: ["artifact-lane-mismatch"]
+            },
+            outcome: "repair"
+          },
+          {
+            ruleId: "review-owner-mismatch-escalate",
+            description: "Escalate when the next owner and checkpoint reviewer diverge.",
+            match: {
+              violationCodes: ["review-owner-mismatch"]
+            },
+            outcome: "escalate"
+          }
+        ]
+      },
+      {
+        checkpoint: "review-ready",
+        defaultOutcome: "accept",
+        rules: [
+          {
+            ruleId: "review-owner-mismatch-escalate",
+            description: "Escalate review routing whenever reviewer ownership needs a human decision.",
+            match: {
+              violationCodes: ["review-owner-mismatch"]
+            },
+            outcome: "escalate"
+          },
+          {
+            ruleId: "protected-path-review-escalate",
+            description: "Escalate review-ready checkpoints whenever protected-path policy requires a human exception.",
+            match: {
+              violationCodes: ["protected-path-requires-human"]
+            },
+            outcome: "escalate"
+          },
+          {
+            ruleId: "protected-path-deny-block",
+            description: "Block review-ready checkpoints whenever protected-path policy denies the requested paths.",
+            match: {
+              violationCodes: ["protected-path-denied"]
+            },
+            outcome: "block"
+          },
+          {
+            ruleId: "unexpected-blocking-issues-block",
+            description: "Block review-ready checkpoints that claim ready status while still listing blockers.",
+            match: {
+              violationCodes: ["unexpected-blocking-issues"]
+            },
+            outcome: "block"
+          },
+          {
+            ruleId: "review-artifacts-repair",
+            description: "Repair incomplete review evidence before the checkpoint can advance.",
+            match: {
+              violationCodes: [
+                "missing-branch-artifact",
+                "missing-review-packet-artifact",
+                "missing-blocking-issues",
+                "artifact-lane-mismatch"
+              ]
+            },
+            outcome: "repair"
+          }
+        ]
+      }
+    ]
+  },
+  compaction: {
+    frontend: { triggerTokens: 720, targetTokens: 430, retainRecentLines: 3 },
+    backend: { triggerTokens: 700, targetTokens: 420, retainRecentLines: 3 },
+    design: { triggerTokens: 760, targetTokens: 460, retainRecentLines: 3 },
+    marketing: { triggerTokens: 640, targetTokens: 380, retainRecentLines: 2 },
+    roadmap: { triggerTokens: 780, targetTokens: 460, retainRecentLines: 3 },
+    research: { triggerTokens: 760, targetTokens: 440, retainRecentLines: 3 },
+    mixed: { triggerTokens: 720, targetTokens: 430, retainRecentLines: 3 }
+  }
+};
+
+export const DEFAULT_SUPERVISOR_POLICY_PATH = ".opencode/supervisor-policy.json";
+export const DEFAULT_SUPERVISOR_PROFILE = "v1-safe" as const;
+export const DEFAULT_SUPERVISOR_ROLE_ALIASES = Object.freeze({ ...DEFAULT_POLICY_INPUT.roleAliases }) as Readonly<Record<string, Role>>;
+export const DEFAULT_SUPERVISOR_LIMITS = Object.freeze({
+  lanes: Object.freeze({
+    activeCapsByTier: Object.freeze({
+      "small-high-risk": DEFAULT_POLICY_INPUT.limits!.lanes!.activeCapsByTier!["small-high-risk"]!,
+      "medium-moderate-risk": DEFAULT_POLICY_INPUT.limits!.lanes!.activeCapsByTier!["medium-moderate-risk"]!,
+      "large-mature": DEFAULT_POLICY_INPUT.limits!.lanes!.activeCapsByTier!["large-mature"]!
+    }),
+    maxConcurrentCodeChanges: DEFAULT_POLICY_INPUT.limits!.lanes!.maxConcurrentCodeChanges!,
+    maxOpenPullRequests: DEFAULT_POLICY_INPUT.limits!.lanes!.maxOpenPullRequests!
+  }),
+  worktrees: Object.freeze({
+    maxActive: DEFAULT_POLICY_INPUT.limits!.worktrees!.maxActive!
+  }),
+  sessions: Object.freeze({
+    maxPerWorktree: DEFAULT_POLICY_INPUT.limits!.sessions!.maxPerWorktree!
+  }),
+  mcp: Object.freeze({
+    defaultCallCap: DEFAULT_POLICY_INPUT.limits!.mcp!.defaultCallCap!,
+    deepCallCap: DEFAULT_POLICY_INPUT.limits!.mcp!.deepCallCap!
+  })
+});
+export const DEFAULT_SUPERVISOR_APPROVAL_GATES = Object.freeze({ ...DEFAULT_POLICY_INPUT.approvalGates }) as Readonly<ResolvedSupervisorPolicy["approvalGates"]>;
+export const DEFAULT_SUPERVISOR_BUDGET = Object.freeze({
+  runtime: Object.freeze({
+    softRunTokens: DEFAULT_POLICY_INPUT.budget!.runtime!.softRunTokens!,
+    hardRunTokens: DEFAULT_POLICY_INPUT.budget!.runtime!.hardRunTokens!,
+    softStepTokens: DEFAULT_POLICY_INPUT.budget!.runtime!.softStepTokens!,
+    hardStepTokens: DEFAULT_POLICY_INPUT.budget!.runtime!.hardStepTokens!,
+    truncateAtTokens: DEFAULT_POLICY_INPUT.budget!.runtime!.truncateAtTokens!,
+    costPer1kTokensUsd: DEFAULT_POLICY_INPUT.budget!.runtime!.costPer1kTokensUsd!,
+    stepExecutionTokenCost: DEFAULT_POLICY_INPUT.budget!.runtime!.stepExecutionTokenCost!
+  }),
+  governance: Object.freeze({
+    escalationThresholdPercent: DEFAULT_POLICY_INPUT.budget!.governance!.escalationThresholdPercent!,
+    hardStopEnabled: DEFAULT_POLICY_INPUT.budget!.governance!.hardStopEnabled!,
+    hardStopThresholdPercent: DEFAULT_POLICY_INPUT.budget!.governance!.hardStopThresholdPercent!,
+    warningThresholdPercents: [...DEFAULT_POLICY_INPUT.budget!.governance!.warningThresholdPercents!]
+  })
+});
+export const DEFAULT_SUPERVISOR_ROUTING = Object.freeze({
+  minimumSignalScore: DEFAULT_POLICY_INPUT.routing!.minimumSignalScore!,
+  intentProfiles: Object.freeze({
+    frontend: Object.freeze({ ...DEFAULT_POLICY_INPUT.routing!.intentProfiles!.frontend }),
+    backend: Object.freeze({ ...DEFAULT_POLICY_INPUT.routing!.intentProfiles!.backend }),
+    design: Object.freeze({ ...DEFAULT_POLICY_INPUT.routing!.intentProfiles!.design }),
+    marketing: Object.freeze({ ...DEFAULT_POLICY_INPUT.routing!.intentProfiles!.marketing }),
+    roadmap: Object.freeze({ ...DEFAULT_POLICY_INPUT.routing!.intentProfiles!.roadmap }),
+    research: Object.freeze({ ...DEFAULT_POLICY_INPUT.routing!.intentProfiles!.research }),
+    mixed: Object.freeze({ ...DEFAULT_POLICY_INPUT.routing!.intentProfiles!.mixed })
+  })
+}) as Readonly<ResolvedSupervisorPolicy["routing"]>;
+export const DEFAULT_SUPERVISOR_EXECUTION = Object.freeze({
+  mode: DEFAULT_POLICY_INPUT.execution!.mode!,
+  allowSupervisorDirectEdits: DEFAULT_POLICY_INPUT.execution!.allowSupervisorDirectEdits!,
+  requireDelegationLog: DEFAULT_POLICY_INPUT.execution!.requireDelegationLog!,
+  requireAgentWorktreeBinding: DEFAULT_POLICY_INPUT.execution!.requireAgentWorktreeBinding!,
+  requireDedicatedIntegrationAgent: DEFAULT_POLICY_INPUT.execution!.requireDedicatedIntegrationAgent!,
+  integrationAgentLabel: DEFAULT_POLICY_INPUT.execution!.integrationAgentLabel!
+}) as Readonly<ResolvedSupervisorPolicy["execution"]>;
+export const DEFAULT_SUPERVISOR_PROTECTED_PATHS = Object.freeze({
+  defaultOutcome: DEFAULT_POLICY_INPUT.protectedPaths!.defaultOutcome!,
+  rules: Object.freeze(
+    (DEFAULT_POLICY_INPUT.protectedPaths?.rules ?? []).map((rule) => Object.freeze({
+      ruleId: rule.ruleId,
+      description: rule.description,
+      pathPrefixes: Object.freeze([...(rule.pathPrefixes ?? [])]),
+      outcome: rule.outcome,
+      auditExpectation: rule.auditExpectation
+    }))
+  )
+}) as Readonly<ResolvedSupervisorPolicy["protectedPaths"]>;
+export const DEFAULT_SUPERVISOR_GOVERNANCE = Object.freeze({
+  checkpoints: Object.freeze(
+    (DEFAULT_POLICY_INPUT.governance?.checkpoints ?? []).map((checkpoint) => Object.freeze({
+      checkpoint: checkpoint.checkpoint,
+      defaultOutcome: checkpoint.defaultOutcome ?? "accept",
+      rules: Object.freeze(
+        (checkpoint.rules ?? []).map((rule) => Object.freeze({
+          ruleId: rule.ruleId,
+          description: rule.description,
+          match: Object.freeze({
+            violationCodes: Object.freeze([...(rule.match?.violationCodes ?? [])]),
+            violationFields: Object.freeze([...(rule.match?.violationFields ?? [])])
+          }),
+          outcome: rule.outcome
+        }))
+      )
+    }))
+  )
+}) as Readonly<ResolvedSupervisorPolicy["governance"]>;
+export const DEFAULT_SUPERVISOR_COMPACTION = Object.freeze({
+  frontend: Object.freeze({ ...DEFAULT_POLICY_INPUT.compaction!.frontend }),
+  backend: Object.freeze({ ...DEFAULT_POLICY_INPUT.compaction!.backend }),
+  design: Object.freeze({ ...DEFAULT_POLICY_INPUT.compaction!.design }),
+  marketing: Object.freeze({ ...DEFAULT_POLICY_INPUT.compaction!.marketing }),
+  roadmap: Object.freeze({ ...DEFAULT_POLICY_INPUT.compaction!.roadmap }),
+  research: Object.freeze({ ...DEFAULT_POLICY_INPUT.compaction!.research }),
+  mixed: Object.freeze({ ...DEFAULT_POLICY_INPUT.compaction!.mixed })
+}) as Readonly<ResolvedSupervisorPolicy["compaction"]>;
+
+let cachedPolicyResult: SupervisorPolicyLoadResult | null = null;
+
+const cloneDefaultPolicy = (): ResolvedSupervisorPolicy => {
+  const defaultProfileName = getDefaultBudgetProfileName();
+  const defaultProfile = resolveBudgetProfile(defaultProfileName)!;
+
+  return {
+    profile: DEFAULT_SUPERVISOR_PROFILE,
+    budgetProfile: defaultProfileName,
+    roleAliases: { ...DEFAULT_SUPERVISOR_ROLE_ALIASES },
+    providers: {
+      patterns: DEFAULT_PROVIDER_PATTERNS.map(compileProviderPattern)
+    },
+    limits: {
+      lanes: {
+        activeCapsByTier: {
+          "small-high-risk": DEFAULT_SUPERVISOR_LIMITS.lanes.activeCapsByTier["small-high-risk"],
+          "medium-moderate-risk": DEFAULT_SUPERVISOR_LIMITS.lanes.activeCapsByTier["medium-moderate-risk"],
+          "large-mature": DEFAULT_SUPERVISOR_LIMITS.lanes.activeCapsByTier["large-mature"]
+        },
+        maxConcurrentCodeChanges: DEFAULT_SUPERVISOR_LIMITS.lanes.maxConcurrentCodeChanges,
+        maxOpenPullRequests: DEFAULT_SUPERVISOR_LIMITS.lanes.maxOpenPullRequests
+      },
+      worktrees: {
+        maxActive: DEFAULT_SUPERVISOR_LIMITS.worktrees.maxActive
+      },
+      sessions: {
+        maxPerWorktree: DEFAULT_SUPERVISOR_LIMITS.sessions.maxPerWorktree
+      },
+      mcp: {
+        defaultCallCap: DEFAULT_SUPERVISOR_LIMITS.mcp.defaultCallCap,
+        deepCallCap: DEFAULT_SUPERVISOR_LIMITS.mcp.deepCallCap
+      }
+    },
+    approvalGates: {
+      escalationMode: DEFAULT_SUPERVISOR_APPROVAL_GATES.escalationMode,
+      mergeMode: DEFAULT_SUPERVISOR_APPROVAL_GATES.mergeMode,
+      allowServiceCriticalAutoMerge: DEFAULT_SUPERVISOR_APPROVAL_GATES.allowServiceCriticalAutoMerge,
+      boundaries: {
+        merge: DEFAULT_SUPERVISOR_APPROVAL_GATES.boundaries.merge,
+        release: DEFAULT_SUPERVISOR_APPROVAL_GATES.boundaries.release,
+        destructive: DEFAULT_SUPERVISOR_APPROVAL_GATES.boundaries.destructive,
+        securitySensitive: DEFAULT_SUPERVISOR_APPROVAL_GATES.boundaries.securitySensitive,
+        budgetExceptions: DEFAULT_SUPERVISOR_APPROVAL_GATES.boundaries.budgetExceptions,
+        automationWidening: DEFAULT_SUPERVISOR_APPROVAL_GATES.boundaries.automationWidening
+      }
+    },
+    budget: {
+      runtime: {
+        softRunTokens: defaultProfile.budget.runtime.softRunTokens,
+        hardRunTokens: defaultProfile.budget.runtime.hardRunTokens,
+        softStepTokens: defaultProfile.budget.runtime.softStepTokens,
+        hardStepTokens: defaultProfile.budget.runtime.hardStepTokens,
+        truncateAtTokens: defaultProfile.budget.runtime.truncateAtTokens,
+        costPer1kTokensUsd: defaultProfile.budget.runtime.costPer1kTokensUsd,
+        stepExecutionTokenCost: defaultProfile.budget.runtime.stepExecutionTokenCost
+      },
+      governance: {
+        escalationThresholdPercent: defaultProfile.budget.governance.escalationThresholdPercent,
+        hardStopEnabled: defaultProfile.budget.governance.hardStopEnabled,
+        hardStopThresholdPercent: defaultProfile.budget.governance.hardStopThresholdPercent,
+        warningThresholdPercents: [...defaultProfile.budget.governance.warningThresholdPercents]
+      }
+    },
+    routing: {
+      minimumSignalScore: DEFAULT_SUPERVISOR_ROUTING.minimumSignalScore,
+      intentProfiles: {
+        frontend: { ...DEFAULT_SUPERVISOR_ROUTING.intentProfiles.frontend },
+        backend: { ...DEFAULT_SUPERVISOR_ROUTING.intentProfiles.backend },
+        design: { ...DEFAULT_SUPERVISOR_ROUTING.intentProfiles.design },
+        marketing: { ...DEFAULT_SUPERVISOR_ROUTING.intentProfiles.marketing },
+        roadmap: { ...DEFAULT_SUPERVISOR_ROUTING.intentProfiles.roadmap },
+        research: { ...DEFAULT_SUPERVISOR_ROUTING.intentProfiles.research },
+        mixed: { ...DEFAULT_SUPERVISOR_ROUTING.intentProfiles.mixed }
+      }
+    },
+    execution: {
+      mode: DEFAULT_SUPERVISOR_EXECUTION.mode,
+      allowSupervisorDirectEdits: DEFAULT_SUPERVISOR_EXECUTION.allowSupervisorDirectEdits,
+      requireDelegationLog: DEFAULT_SUPERVISOR_EXECUTION.requireDelegationLog,
+      requireAgentWorktreeBinding: DEFAULT_SUPERVISOR_EXECUTION.requireAgentWorktreeBinding,
+      requireDedicatedIntegrationAgent: DEFAULT_SUPERVISOR_EXECUTION.requireDedicatedIntegrationAgent,
+      integrationAgentLabel: DEFAULT_SUPERVISOR_EXECUTION.integrationAgentLabel
+    },
+    protectedPaths: {
+      defaultOutcome: DEFAULT_SUPERVISOR_PROTECTED_PATHS.defaultOutcome,
+      rules: DEFAULT_SUPERVISOR_PROTECTED_PATHS.rules.map((rule) => ({
+        ruleId: rule.ruleId,
+        description: rule.description,
+        pathPrefixes: [...rule.pathPrefixes],
+        outcome: rule.outcome,
+        auditExpectation: rule.auditExpectation
+      }))
+    },
+    governance: {
+      checkpoints: DEFAULT_SUPERVISOR_GOVERNANCE.checkpoints.map((checkpoint) => ({
+        checkpoint: checkpoint.checkpoint,
+        defaultOutcome: checkpoint.defaultOutcome,
+        rules: checkpoint.rules.map((rule) => ({
+          ruleId: rule.ruleId,
+          description: rule.description,
+          match: {
+            violationCodes: [...rule.match.violationCodes],
+            violationFields: [...rule.match.violationFields]
+          },
+          outcome: rule.outcome
+        }))
+      }))
+    },
+    compaction: {
+      frontend: { ...(defaultProfile.compaction.frontend ?? DEFAULT_SUPERVISOR_COMPACTION.frontend) },
+      backend: { ...(defaultProfile.compaction.backend ?? DEFAULT_SUPERVISOR_COMPACTION.backend) },
+      design: { ...(defaultProfile.compaction.design ?? DEFAULT_SUPERVISOR_COMPACTION.design) },
+      marketing: { ...(defaultProfile.compaction.marketing ?? DEFAULT_SUPERVISOR_COMPACTION.marketing) },
+      roadmap: { ...(defaultProfile.compaction.roadmap ?? DEFAULT_SUPERVISOR_COMPACTION.roadmap) },
+      research: { ...(defaultProfile.compaction.research ?? DEFAULT_SUPERVISOR_COMPACTION.research) },
+      mixed: { ...(defaultProfile.compaction.mixed ?? DEFAULT_SUPERVISOR_COMPACTION.mixed) }
+    }
+  };
+};
+
+const isRecord = (value: unknown): value is Record<string, unknown> => {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+};
+
+const isSupportedRole = (value: string): value is Role => {
+  return ["CTO", "DEV", "FE", "BE", "UX", "PO", "PM", "CEO", "MARKETING", "RESEARCH"].includes(value);
+};
+
+const isSupportedExecutionPath = (value: string): value is SupervisorExecutionPath => {
+  return ["execute", "coordinate", "investigate", "safe-hold"].includes(value);
+};
+
+const isSupportedSupervisorExecutionMode = (value: string): value is SupervisorExecutionMode => {
+  return ["delegate-only", "delegate-with-manual-override"].includes(value);
+};
+
+const isSupportedProtectedPathOutcome = (value: string): value is SupervisorProtectedPathOutcome => {
+  return ["allow", "requires-human", "deny"].includes(value);
+};
+
+const isSupportedGovernanceOutcome = (value: string): value is SupervisorGovernancePolicyOutcome => {
+  return ["accept", "repair", "escalate", "block"].includes(value);
+};
+
+const compileProviderPattern = (pattern: SupervisorProviderPatternInput): SupervisorProviderPattern => ({
+  key: pattern.key,
+  regex: new RegExp(pattern.pattern, "i"),
+  hint: pattern.hint,
+  toolPrefix: pattern.toolPrefix
+});
+
+const pushDiagnostic = (
+  diagnostics: SupervisorPolicyDiagnostics[],
+  path: string,
+  message: string,
+  severity: "warning" | "error" = "error",
+  remediation?: string
+) => {
+  diagnostics.push({ path, message, severity, remediation });
+};
+
+const normalizeStringList = (values: readonly string[]): string[] => Array.from(new Set(
+  values
+    .map((value) => value.trim())
+    .filter(Boolean)
+));
+
+const readPositiveNumber = (
+  value: unknown,
+  fallback: number,
+  diagnostics: SupervisorPolicyDiagnostics[],
+  path: string
+): number => {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (typeof value !== "number" || !Number.isFinite(value) || value <= 0) {
+    pushDiagnostic(diagnostics, path, `Expected a positive number, received ${String(value)}.`);
+    return fallback;
+  }
+
+  return value;
+};
+
+const readPositiveInteger = (
+  value: unknown,
+  fallback: number,
+  diagnostics: SupervisorPolicyDiagnostics[],
+  path: string
+): number => {
+  if (value === undefined) {
+    return fallback;
+  }
+
+  if (typeof value !== "number" || !Number.isInteger(value) || value <= 0) {
+    pushDiagnostic(diagnostics, path, `Expected a positive integer, received ${String(value)}.`);
+    return fallback;
+  }
+
+  return value;
+};
+
+export const resolveSupervisorPolicy = (
+  input?: unknown,
+  source = "defaults"
+): SupervisorPolicyLoadResult => {
+  const diagnostics: SupervisorPolicyDiagnostics[] = [];
+  const config = cloneDefaultPolicy();
+
+  if (input === undefined) {
+    return { config, diagnostics, source, valid: true };
+  }
+
+  if (!isRecord(input)) {
+    pushDiagnostic(diagnostics, "config", "Expected the policy file to contain a JSON object.");
+    return { config, diagnostics, source, valid: false };
+  }
+
+  if (input.profile !== undefined && input.profile !== DEFAULT_SUPERVISOR_PROFILE) {
+    pushDiagnostic(
+      diagnostics,
+      "profile",
+      `Unsupported profile '${String(input.profile)}'; falling back to '${DEFAULT_SUPERVISOR_PROFILE}'.`,
+      "error",
+      `Set profile to '${DEFAULT_SUPERVISOR_PROFILE}'.`
+    );
+  }
+
+  // --- Budget profile resolution ---
+  // Priority: env var > input field > default ("standard")
+  const inputBudgetProfile = typeof input.budgetProfile === "string"
+    ? input.budgetProfile as string
+    : undefined;
+  let resolvedProfileName = getBudgetProfileFromEnv() ?? inputBudgetProfile ?? getDefaultBudgetProfileName();
+  let resolvedProfile = resolveBudgetProfile(resolvedProfileName);
+
+  if (resolvedProfile === null) {
+    const fallbackName = getDefaultBudgetProfileName();
+    pushDiagnostic(
+      diagnostics,
+      "budgetProfile",
+      `Invalid budget profile '${resolvedProfileName}'; falling back to '${fallbackName}'.`,
+      "warning",
+      `Set budgetProfile to one of: conservative, standard, extended, unlimited.`
+    );
+    resolvedProfileName = fallbackName;
+    resolvedProfile = resolveBudgetProfile(fallbackName)!;
+  }
+
+  config.budgetProfile = resolvedProfileName as BudgetProfileName;
+
+  // Apply profile values as defaults BEFORE explicit field overrides.
+  // Budget runtime defaults from profile:
+  config.budget.runtime.softRunTokens = resolvedProfile.budget.runtime.softRunTokens;
+  config.budget.runtime.hardRunTokens = resolvedProfile.budget.runtime.hardRunTokens;
+  config.budget.runtime.softStepTokens = resolvedProfile.budget.runtime.softStepTokens;
+  config.budget.runtime.hardStepTokens = resolvedProfile.budget.runtime.hardStepTokens;
+  config.budget.runtime.truncateAtTokens = resolvedProfile.budget.runtime.truncateAtTokens;
+  config.budget.runtime.costPer1kTokensUsd = resolvedProfile.budget.runtime.costPer1kTokensUsd;
+  config.budget.runtime.stepExecutionTokenCost = resolvedProfile.budget.runtime.stepExecutionTokenCost;
+
+  // Budget governance defaults from profile:
+  config.budget.governance.warningThresholdPercents = [...resolvedProfile.budget.governance.warningThresholdPercents];
+  config.budget.governance.escalationThresholdPercent = resolvedProfile.budget.governance.escalationThresholdPercent;
+  config.budget.governance.hardStopEnabled = resolvedProfile.budget.governance.hardStopEnabled;
+  config.budget.governance.hardStopThresholdPercent = resolvedProfile.budget.governance.hardStopThresholdPercent;
+
+  // Compaction defaults from profile:
+  for (const intent of Object.keys(config.compaction) as Intent[]) {
+    const profileCompaction = resolvedProfile.compaction[intent];
+    if (profileCompaction) {
+      config.compaction[intent].triggerTokens = profileCompaction.triggerTokens;
+      config.compaction[intent].targetTokens = profileCompaction.targetTokens;
+      config.compaction[intent].retainRecentLines = profileCompaction.retainRecentLines;
+    }
+  }
+
+  if (input.roleAliases !== undefined) {
+    if (!isRecord(input.roleAliases)) {
+      pushDiagnostic(diagnostics, "roleAliases", "Expected roleAliases to be an object of alias-to-role mappings.");
+    } else {
+      for (const [alias, roleValue] of Object.entries(input.roleAliases)) {
+        if (typeof roleValue !== "string" || !isSupportedRole(roleValue)) {
+          pushDiagnostic(diagnostics, `roleAliases.${alias}`, `Unsupported role '${String(roleValue)}'.`);
+          continue;
+        }
+        config.roleAliases[alias.toLowerCase()] = roleValue;
+      }
+    }
+  }
+
+  if (input.providers !== undefined) {
+    if (!isRecord(input.providers)) {
+      pushDiagnostic(diagnostics, "providers", "Expected providers to be an object.");
+    } else if (input.providers.patterns !== undefined) {
+      if (!Array.isArray(input.providers.patterns)) {
+        pushDiagnostic(diagnostics, "providers.patterns", "Expected providers.patterns to be an array.");
+      } else {
+        const compiledPatterns: SupervisorProviderPattern[] = [];
+        for (const [index, entry] of input.providers.patterns.entries()) {
+          if (!isRecord(entry)) {
+            pushDiagnostic(diagnostics, `providers.patterns.${index}`, "Expected each provider pattern to be an object.");
+            continue;
+          }
+
+          const { key, pattern, hint, toolPrefix } = entry;
+          if (typeof key !== "string" || !key.trim()) {
+            pushDiagnostic(diagnostics, `providers.patterns.${index}.key`, "Expected a non-empty key.");
+            continue;
+          }
+          if (typeof pattern !== "string" || !pattern.trim()) {
+            pushDiagnostic(diagnostics, `providers.patterns.${index}.pattern`, "Expected a non-empty regex pattern string.");
+            continue;
+          }
+          if (typeof hint !== "string" || !hint.trim()) {
+            pushDiagnostic(diagnostics, `providers.patterns.${index}.hint`, "Expected a non-empty hint string.");
+            continue;
+          }
+          if (typeof toolPrefix !== "string" || !toolPrefix.trim()) {
+            pushDiagnostic(diagnostics, `providers.patterns.${index}.toolPrefix`, "Expected a non-empty toolPrefix string.");
+            continue;
+          }
+
+          try {
+            compiledPatterns.push(compileProviderPattern({ key, pattern, hint, toolPrefix }));
+          } catch (error) {
+            pushDiagnostic(diagnostics, `providers.patterns.${index}.pattern`, `Invalid regex: ${String(error)}.`);
+          }
+        }
+
+        if (compiledPatterns.length > 0) {
+          config.providers.patterns = compiledPatterns;
+        }
+      }
+    }
+  }
+
+  if (input.limits !== undefined) {
+    if (!isRecord(input.limits)) {
+      pushDiagnostic(diagnostics, "limits", "Expected limits to be an object.");
+    } else {
+      const lanes = input.limits.lanes;
+      if (lanes !== undefined) {
+        if (!isRecord(lanes)) {
+          pushDiagnostic(diagnostics, "limits.lanes", "Expected limits.lanes to be an object.");
+        } else {
+          const activeCapsByTier = lanes.activeCapsByTier;
+          if (activeCapsByTier !== undefined) {
+            if (!isRecord(activeCapsByTier)) {
+              pushDiagnostic(diagnostics, "limits.lanes.activeCapsByTier", "Expected activeCapsByTier to be an object.");
+            } else {
+              for (const tier of SUPPORTED_REPO_RISK_TIERS) {
+                config.limits.lanes.activeCapsByTier[tier] = readPositiveInteger(
+                  activeCapsByTier[tier],
+                  config.limits.lanes.activeCapsByTier[tier],
+                  diagnostics,
+                  `limits.lanes.activeCapsByTier.${tier}`
+                );
+              }
+            }
+          }
+
+          config.limits.lanes.maxConcurrentCodeChanges = readPositiveInteger(
+            lanes.maxConcurrentCodeChanges,
+            config.limits.lanes.maxConcurrentCodeChanges,
+            diagnostics,
+            "limits.lanes.maxConcurrentCodeChanges"
+          );
+          config.limits.lanes.maxOpenPullRequests = readPositiveInteger(
+            lanes.maxOpenPullRequests,
+            config.limits.lanes.maxOpenPullRequests,
+            diagnostics,
+            "limits.lanes.maxOpenPullRequests"
+          );
+        }
+      }
+
+      const worktrees = input.limits.worktrees;
+      if (worktrees !== undefined) {
+        if (!isRecord(worktrees)) {
+          pushDiagnostic(diagnostics, "limits.worktrees", "Expected limits.worktrees to be an object.");
+        } else {
+          config.limits.worktrees.maxActive = readPositiveInteger(
+            worktrees.maxActive,
+            config.limits.worktrees.maxActive,
+            diagnostics,
+            "limits.worktrees.maxActive"
+          );
+        }
+      }
+
+      const sessions = input.limits.sessions;
+      if (sessions !== undefined) {
+        if (!isRecord(sessions)) {
+          pushDiagnostic(diagnostics, "limits.sessions", "Expected limits.sessions to be an object.");
+        } else {
+          config.limits.sessions.maxPerWorktree = readPositiveInteger(
+            sessions.maxPerWorktree,
+            config.limits.sessions.maxPerWorktree,
+            diagnostics,
+            "limits.sessions.maxPerWorktree"
+          );
+        }
+      }
+
+      const mcp = input.limits.mcp;
+      if (mcp !== undefined) {
+        if (!isRecord(mcp)) {
+          pushDiagnostic(diagnostics, "limits.mcp", "Expected limits.mcp to be an object.");
+        } else {
+          config.limits.mcp.defaultCallCap = readPositiveInteger(
+            mcp.defaultCallCap,
+            config.limits.mcp.defaultCallCap,
+            diagnostics,
+            "limits.mcp.defaultCallCap"
+          );
+          config.limits.mcp.deepCallCap = readPositiveInteger(
+            mcp.deepCallCap,
+            config.limits.mcp.deepCallCap,
+            diagnostics,
+            "limits.mcp.deepCallCap"
+          );
+        }
+      }
+    }
+  }
+
+  if (input.approvalGates !== undefined) {
+    if (!isRecord(input.approvalGates)) {
+      pushDiagnostic(diagnostics, "approvalGates", "Expected approvalGates to be an object.");
+    } else {
+      if (input.approvalGates.escalationMode !== undefined && input.approvalGates.escalationMode !== "ask-first") {
+        pushDiagnostic(diagnostics, "approvalGates.escalationMode", "Only 'ask-first' is supported in the v1-safe profile.");
+      }
+
+      if (input.approvalGates.mergeMode !== undefined) {
+        if (input.approvalGates.mergeMode === "manual" || input.approvalGates.mergeMode === "auto-merge") {
+          config.approvalGates.mergeMode = input.approvalGates.mergeMode;
+        } else {
+          pushDiagnostic(diagnostics, "approvalGates.mergeMode", `Unsupported mergeMode '${String(input.approvalGates.mergeMode)}'.`);
+        }
+      }
+
+      if (input.approvalGates.allowServiceCriticalAutoMerge !== undefined) {
+        if (typeof input.approvalGates.allowServiceCriticalAutoMerge === "boolean") {
+          config.approvalGates.allowServiceCriticalAutoMerge = input.approvalGates.allowServiceCriticalAutoMerge;
+        } else {
+          pushDiagnostic(diagnostics, "approvalGates.allowServiceCriticalAutoMerge", "Expected a boolean value.");
+        }
+      }
+
+      if (input.approvalGates.boundaries !== undefined) {
+        if (!isRecord(input.approvalGates.boundaries)) {
+          pushDiagnostic(diagnostics, "approvalGates.boundaries", "Expected approvalGates.boundaries to be an object.");
+        } else {
+          const boundaryEntries = [
+            ["merge", "merge"],
+            ["release", "release"],
+            ["destructive", "destructive"],
+            ["securitySensitive", "securitySensitive"],
+            ["budgetExceptions", "budgetExceptions"],
+            ["automationWidening", "automationWidening"]
+          ] as const;
+
+          for (const [inputKey, configKey] of boundaryEntries) {
+            const value = input.approvalGates.boundaries[inputKey];
+            if (value === undefined) {
+              continue;
+            }
+
+            if (typeof value === "boolean") {
+              config.approvalGates.boundaries[configKey] = value;
+            } else {
+              pushDiagnostic(diagnostics, `approvalGates.boundaries.${inputKey}`, "Expected a boolean value.");
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (input.budget !== undefined) {
+    if (!isRecord(input.budget)) {
+      pushDiagnostic(diagnostics, "budget", "Expected budget to be an object.");
+    } else {
+      const runtime = input.budget.runtime;
+      if (runtime !== undefined) {
+        if (!isRecord(runtime)) {
+          pushDiagnostic(diagnostics, "budget.runtime", "Expected budget.runtime to be an object.");
+        } else {
+          config.budget.runtime.softRunTokens = readPositiveInteger(runtime.softRunTokens, config.budget.runtime.softRunTokens, diagnostics, "budget.runtime.softRunTokens");
+          config.budget.runtime.hardRunTokens = readPositiveInteger(runtime.hardRunTokens, config.budget.runtime.hardRunTokens, diagnostics, "budget.runtime.hardRunTokens");
+          config.budget.runtime.softStepTokens = readPositiveInteger(runtime.softStepTokens, config.budget.runtime.softStepTokens, diagnostics, "budget.runtime.softStepTokens");
+          config.budget.runtime.hardStepTokens = readPositiveInteger(runtime.hardStepTokens, config.budget.runtime.hardStepTokens, diagnostics, "budget.runtime.hardStepTokens");
+          config.budget.runtime.truncateAtTokens = readPositiveInteger(runtime.truncateAtTokens, config.budget.runtime.truncateAtTokens, diagnostics, "budget.runtime.truncateAtTokens");
+          config.budget.runtime.costPer1kTokensUsd = readPositiveNumber(runtime.costPer1kTokensUsd, config.budget.runtime.costPer1kTokensUsd, diagnostics, "budget.runtime.costPer1kTokensUsd");
+          config.budget.runtime.stepExecutionTokenCost = readPositiveInteger(runtime.stepExecutionTokenCost, config.budget.runtime.stepExecutionTokenCost, diagnostics, "budget.runtime.stepExecutionTokenCost");
+        }
+      }
+
+      const governance = input.budget.governance;
+      if (governance !== undefined) {
+        if (!isRecord(governance)) {
+          pushDiagnostic(diagnostics, "budget.governance", "Expected budget.governance to be an object.");
+        } else {
+          if (governance.warningThresholdPercents !== undefined) {
+            if (!Array.isArray(governance.warningThresholdPercents)) {
+              pushDiagnostic(diagnostics, "budget.governance.warningThresholdPercents", "Expected an array of positive numbers.");
+            } else {
+              const normalized = governance.warningThresholdPercents
+                .filter((value): value is number => typeof value === "number" && Number.isFinite(value) && value > 0)
+                .map((value) => Number(value.toFixed(2)));
+              if (normalized.length === 0) {
+                pushDiagnostic(diagnostics, "budget.governance.warningThresholdPercents", "Expected at least one positive warning threshold.");
+              } else {
+                config.budget.governance.warningThresholdPercents = [...new Set(normalized)].sort((a, b) => a - b);
+              }
+            }
+          }
+
+          config.budget.governance.escalationThresholdPercent = readPositiveNumber(
+            governance.escalationThresholdPercent,
+            config.budget.governance.escalationThresholdPercent,
+            diagnostics,
+            "budget.governance.escalationThresholdPercent"
+          );
+          config.budget.governance.hardStopThresholdPercent = readPositiveNumber(
+            governance.hardStopThresholdPercent,
+            config.budget.governance.hardStopThresholdPercent,
+            diagnostics,
+            "budget.governance.hardStopThresholdPercent"
+          );
+
+          if (governance.hardStopEnabled !== undefined) {
+            if (typeof governance.hardStopEnabled === "boolean") {
+              config.budget.governance.hardStopEnabled = governance.hardStopEnabled;
+            } else {
+              pushDiagnostic(diagnostics, "budget.governance.hardStopEnabled", "Expected a boolean value.");
+            }
+          }
+
+          if (config.budget.governance.hardStopThresholdPercent < config.budget.governance.escalationThresholdPercent) {
+            pushDiagnostic(
+              diagnostics,
+              "budget.governance.hardStopThresholdPercent",
+              "Hard-stop threshold must be greater than or equal to the escalation threshold; using defaults for both values."
+            );
+            config.budget.governance.escalationThresholdPercent = DEFAULT_SUPERVISOR_BUDGET.governance.escalationThresholdPercent;
+            config.budget.governance.hardStopThresholdPercent = DEFAULT_SUPERVISOR_BUDGET.governance.hardStopThresholdPercent;
+          }
+        }
+      }
+    }
+  }
+
+  if (input.routing !== undefined) {
+    if (!isRecord(input.routing)) {
+      pushDiagnostic(diagnostics, "routing", "Expected routing to be an object.");
+    } else {
+      config.routing.minimumSignalScore = readPositiveInteger(
+        input.routing.minimumSignalScore,
+        config.routing.minimumSignalScore,
+        diagnostics,
+        "routing.minimumSignalScore"
+      );
+
+      if (input.routing.intentProfiles !== undefined) {
+        if (!isRecord(input.routing.intentProfiles)) {
+          pushDiagnostic(diagnostics, "routing.intentProfiles", "Expected routing.intentProfiles to be an object.");
+        } else {
+          for (const intent of Object.keys(config.routing.intentProfiles) as Intent[]) {
+            const override = input.routing.intentProfiles[intent];
+            if (override === undefined) {
+              continue;
+            }
+
+            if (!isRecord(override)) {
+              pushDiagnostic(diagnostics, `routing.intentProfiles.${intent}`, "Expected each routing profile to be an object.");
+              continue;
+            }
+
+            if (override.path !== undefined) {
+              if (typeof override.path === "string" && isSupportedExecutionPath(override.path)) {
+                config.routing.intentProfiles[intent].path = override.path;
+              } else {
+                pushDiagnostic(diagnostics, `routing.intentProfiles.${intent}.path`, `Unsupported execution path '${String(override.path)}'.`);
+              }
+            }
+
+            if (override.leadRole !== undefined) {
+              if (typeof override.leadRole === "string" && isSupportedRole(override.leadRole)) {
+                config.routing.intentProfiles[intent].leadRole = override.leadRole;
+              } else {
+                pushDiagnostic(diagnostics, `routing.intentProfiles.${intent}.leadRole`, `Unsupported role '${String(override.leadRole)}'.`);
+              }
+            }
+
+            if (override.fallbackLeadRole !== undefined) {
+              if (typeof override.fallbackLeadRole === "string" && isSupportedRole(override.fallbackLeadRole)) {
+                config.routing.intentProfiles[intent].fallbackLeadRole = override.fallbackLeadRole;
+              } else {
+                pushDiagnostic(diagnostics, `routing.intentProfiles.${intent}.fallbackLeadRole`, `Unsupported role '${String(override.fallbackLeadRole)}'.`);
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  if (input.execution !== undefined) {
+    if (!isRecord(input.execution)) {
+      pushDiagnostic(diagnostics, "execution", "Expected execution to be an object.");
+    } else {
+      if (input.execution.mode !== undefined) {
+        if (typeof input.execution.mode === "string" && isSupportedSupervisorExecutionMode(input.execution.mode)) {
+          config.execution.mode = input.execution.mode;
+        } else {
+          pushDiagnostic(diagnostics, "execution.mode", `Unsupported execution mode '${String(input.execution.mode)}'.`);
+        }
+      }
+
+      const booleanEntries = [
+        ["allowSupervisorDirectEdits", "allowSupervisorDirectEdits"],
+        ["requireDelegationLog", "requireDelegationLog"],
+        ["requireAgentWorktreeBinding", "requireAgentWorktreeBinding"],
+        ["requireDedicatedIntegrationAgent", "requireDedicatedIntegrationAgent"]
+      ] as const;
+
+      for (const [inputKey, configKey] of booleanEntries) {
+        const value = input.execution[inputKey];
+        if (value === undefined) {
+          continue;
+        }
+
+        if (typeof value === "boolean") {
+          config.execution[configKey] = value;
+        } else {
+          pushDiagnostic(diagnostics, `execution.${inputKey}`, "Expected a boolean value.");
+        }
+      }
+
+      if (input.execution.integrationAgentLabel !== undefined) {
+        if (typeof input.execution.integrationAgentLabel === "string" && input.execution.integrationAgentLabel.trim()) {
+          config.execution.integrationAgentLabel = input.execution.integrationAgentLabel.trim();
+        } else {
+          pushDiagnostic(diagnostics, "execution.integrationAgentLabel", "Expected a non-empty integration agent label.");
+        }
+      }
+
+      if (config.execution.mode === "delegate-only" && config.execution.allowSupervisorDirectEdits) {
+        pushDiagnostic(
+          diagnostics,
+          "execution.allowSupervisorDirectEdits",
+          "Delegate-only mode cannot allow direct supervisor edits; reverting to false."
+        );
+        config.execution.allowSupervisorDirectEdits = false;
+      }
+    }
+  }
+
+  if (input.protectedPaths !== undefined) {
+    if (!isRecord(input.protectedPaths)) {
+      pushDiagnostic(diagnostics, "protectedPaths", "Expected protectedPaths to be an object.");
+    } else {
+      if (input.protectedPaths.defaultOutcome !== undefined) {
+        if (typeof input.protectedPaths.defaultOutcome === "string" && isSupportedProtectedPathOutcome(input.protectedPaths.defaultOutcome)) {
+          config.protectedPaths.defaultOutcome = input.protectedPaths.defaultOutcome;
+        } else {
+          pushDiagnostic(diagnostics, "protectedPaths.defaultOutcome", `Unsupported protected path outcome '${String(input.protectedPaths.defaultOutcome)}'.`);
+        }
+      }
+
+      if (input.protectedPaths.rules !== undefined) {
+        if (!Array.isArray(input.protectedPaths.rules)) {
+          pushDiagnostic(diagnostics, "protectedPaths.rules", "Expected protectedPaths.rules to be an array.");
+        } else {
+          const rules: SupervisorProtectedPathRule[] = [];
+
+          for (const [index, entry] of input.protectedPaths.rules.entries()) {
+            if (!isRecord(entry)) {
+              pushDiagnostic(diagnostics, `protectedPaths.rules.${index}`, "Expected each protected path rule to be an object.");
+              continue;
+            }
+
+            const ruleId = typeof entry.ruleId === "string" ? entry.ruleId.trim() : "";
+            if (!ruleId) {
+              pushDiagnostic(diagnostics, `protectedPaths.rules.${index}.ruleId`, "Expected a non-empty protected path ruleId.");
+              continue;
+            }
+
+            if (typeof entry.outcome !== "string" || !isSupportedProtectedPathOutcome(entry.outcome)) {
+              pushDiagnostic(diagnostics, `protectedPaths.rules.${index}.outcome`, `Unsupported protected path outcome '${String(entry.outcome)}'.`);
+              continue;
+            }
+
+            const pathPrefixes = Array.isArray(entry.pathPrefixes)
+              ? Array.from(new Set(entry.pathPrefixes.filter((value): value is string => typeof value === "string").map((value) => value.trim())))
+              : [];
+
+            if (pathPrefixes.length === 0) {
+              pushDiagnostic(diagnostics, `protectedPaths.rules.${index}.pathPrefixes`, "Protected path rules require at least one path prefix matcher.");
+              continue;
+            }
+
+            rules.push({
+              ruleId,
+              description: typeof entry.description === "string" && entry.description.trim()
+                ? entry.description.trim()
+                : undefined,
+              pathPrefixes,
+              outcome: entry.outcome,
+              auditExpectation: typeof entry.auditExpectation === "string" && entry.auditExpectation.trim()
+                ? entry.auditExpectation.trim()
+                : undefined
+            });
+          }
+
+          if (rules.length > 0) {
+            config.protectedPaths.rules = rules;
+          }
+        }
+      }
+    }
+  }
+
+  if (input.governance !== undefined) {
+    if (!isRecord(input.governance)) {
+      pushDiagnostic(diagnostics, "governance", "Expected governance to be an object.");
+    } else if (input.governance.checkpoints !== undefined) {
+      if (!Array.isArray(input.governance.checkpoints)) {
+        pushDiagnostic(diagnostics, "governance.checkpoints", "Expected governance.checkpoints to be an array.");
+      } else {
+        const checkpoints: SupervisorGovernanceCheckpointPolicy[] = [];
+
+        for (const [index, entry] of input.governance.checkpoints.entries()) {
+          if (!isRecord(entry)) {
+            pushDiagnostic(diagnostics, `governance.checkpoints.${index}`, "Expected each governance checkpoint to be an object.");
+            continue;
+          }
+
+          const checkpoint = typeof entry.checkpoint === "string" ? entry.checkpoint.trim() : "";
+          if (!checkpoint) {
+            pushDiagnostic(diagnostics, `governance.checkpoints.${index}.checkpoint`, "Expected a non-empty checkpoint name.");
+            continue;
+          }
+
+          let defaultOutcome = config.governance.checkpoints.find((candidate) => candidate.checkpoint === checkpoint)?.defaultOutcome ?? "accept";
+          if (entry.defaultOutcome !== undefined) {
+            if (typeof entry.defaultOutcome === "string" && isSupportedGovernanceOutcome(entry.defaultOutcome)) {
+              defaultOutcome = entry.defaultOutcome;
+            } else {
+              pushDiagnostic(diagnostics, `governance.checkpoints.${index}.defaultOutcome`, `Unsupported governance outcome '${String(entry.defaultOutcome)}'.`);
+            }
+          }
+
+          const rules: SupervisorGovernanceCheckpointRule[] = [];
+          if (entry.rules !== undefined) {
+            if (!Array.isArray(entry.rules)) {
+              pushDiagnostic(diagnostics, `governance.checkpoints.${index}.rules`, "Expected governance checkpoint rules to be an array.");
+            } else {
+              for (const [ruleIndex, ruleEntry] of entry.rules.entries()) {
+                if (!isRecord(ruleEntry)) {
+                  pushDiagnostic(diagnostics, `governance.checkpoints.${index}.rules.${ruleIndex}`, "Expected each governance rule to be an object.");
+                  continue;
+                }
+
+                const ruleId = typeof ruleEntry.ruleId === "string" ? ruleEntry.ruleId.trim() : "";
+                if (!ruleId) {
+                  pushDiagnostic(diagnostics, `governance.checkpoints.${index}.rules.${ruleIndex}.ruleId`, "Expected a non-empty governance ruleId.");
+                  continue;
+                }
+
+                if (typeof ruleEntry.outcome !== "string" || !isSupportedGovernanceOutcome(ruleEntry.outcome)) {
+                  pushDiagnostic(diagnostics, `governance.checkpoints.${index}.rules.${ruleIndex}.outcome`, `Unsupported governance outcome '${String(ruleEntry.outcome)}'.`);
+                  continue;
+                }
+
+                const match = isRecord(ruleEntry.match) ? ruleEntry.match : {};
+                const violationCodes = Array.isArray(match.violationCodes)
+                  ? normalizeStringList(match.violationCodes.filter((value): value is string => typeof value === "string"))
+                  : [];
+                const violationFields = Array.isArray(match.violationFields)
+                  ? normalizeStringList(match.violationFields.filter((value): value is string => typeof value === "string"))
+                  : [];
+
+                if (violationCodes.length === 0 && violationFields.length === 0) {
+                  pushDiagnostic(
+                    diagnostics,
+                    `governance.checkpoints.${index}.rules.${ruleIndex}.match`,
+                    "Governance rules require at least one violationCodes or violationFields matcher."
+                  );
+                  continue;
+                }
+
+                rules.push({
+                  ruleId,
+                  description: typeof ruleEntry.description === "string" && ruleEntry.description.trim()
+                    ? ruleEntry.description.trim()
+                    : undefined,
+                  match: {
+                    violationCodes,
+                    violationFields
+                  },
+                  outcome: ruleEntry.outcome
+                });
+              }
+            }
+          }
+
+          checkpoints.push({
+            checkpoint,
+            defaultOutcome,
+            rules
+          });
+        }
+
+        if (checkpoints.length > 0) {
+          config.governance.checkpoints = checkpoints;
+        }
+      }
+    }
+  }
+
+  if (input.compaction !== undefined) {
+    if (!isRecord(input.compaction)) {
+      pushDiagnostic(diagnostics, "compaction", "Expected compaction to be an object.");
+    } else {
+      for (const intent of Object.keys(config.compaction) as Intent[]) {
+        const override = input.compaction[intent];
+        if (override === undefined) {
+          continue;
+        }
+
+        if (!isRecord(override)) {
+          pushDiagnostic(diagnostics, `compaction.${intent}`, "Expected each compaction profile to be an object.");
+          continue;
+        }
+
+        config.compaction[intent].triggerTokens = readPositiveInteger(
+          override.triggerTokens,
+          config.compaction[intent].triggerTokens,
+          diagnostics,
+          `compaction.${intent}.triggerTokens`
+        );
+        config.compaction[intent].targetTokens = readPositiveInteger(
+          override.targetTokens,
+          config.compaction[intent].targetTokens,
+          diagnostics,
+          `compaction.${intent}.targetTokens`
+        );
+        config.compaction[intent].retainRecentLines = readPositiveInteger(
+          override.retainRecentLines,
+          config.compaction[intent].retainRecentLines,
+          diagnostics,
+          `compaction.${intent}.retainRecentLines`
+        );
+      }
+    }
+  }
+
+  const valid = diagnostics.length === 0;
+  return { config, diagnostics, source, valid };
+};
+
+export const loadSupervisorPolicy = (options?: {
+  cwd?: string;
+  policyPath?: string;
+}): SupervisorPolicyLoadResult => {
+  const cwd = options?.cwd ?? process.cwd();
+  const resolvedPath = options?.policyPath ?? join(cwd, DEFAULT_SUPERVISOR_POLICY_PATH);
+  if (!existsSync(resolvedPath)) {
+    return resolveSupervisorPolicy(undefined, "defaults");
+  }
+
+  try {
+    const parsed = JSON.parse(readFileSync(resolvedPath, "utf-8")) as unknown;
+    const result = resolveSupervisorPolicy(parsed, resolvedPath);
+    if (!result.valid) {
+      debugLog("supervisor.policy.invalid", {
+        source: resolvedPath,
+        diagnostics: result.diagnostics,
+        reasonCode: "governance.policy-invalid",
+        remediation: [
+          "Fix the invalid fields in the supervisor policy file.",
+          `Remove ${resolvedPath} to fall back fully to defaults if needed.`
+        ]
+      });
+    }
+    return result;
+  } catch (error) {
+    const diagnostics = [{
+      path: resolvedPath,
+      message: `Failed to read or parse supervisor policy; using defaults. ${String(error)}`,
+      severity: "error" as const,
+      remediation: "Fix the JSON syntax or remove the invalid policy file."
+    }];
+    debugLog("supervisor.policy.load_failed", {
+      source: resolvedPath,
+      diagnostics,
+      reasonCode: "governance.policy-invalid",
+      remediation: [
+        "Fix the supervisor policy JSON syntax.",
+        `Or remove ${resolvedPath} to use safe defaults.`
+      ]
+    });
+    return {
+      config: cloneDefaultPolicy(),
+      diagnostics,
+      source: resolvedPath,
+      valid: false
+    };
+  }
+};
+
+export const getSupervisorPolicy = (): ResolvedSupervisorPolicy => {
+  if (!cachedPolicyResult) {
+    cachedPolicyResult = loadSupervisorPolicy();
+  }
+  return cachedPolicyResult.config;
+};
+
+export const getSupervisorPolicyDiagnostics = (): SupervisorPolicyDiagnostics[] => {
+  if (!cachedPolicyResult) {
+    cachedPolicyResult = loadSupervisorPolicy();
+  }
+  return [...cachedPolicyResult.diagnostics];
+};
+
+export const resetSupervisorPolicyCache = (): void => {
+  cachedPolicyResult = null;
+};
