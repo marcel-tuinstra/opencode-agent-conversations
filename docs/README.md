@@ -23,6 +23,7 @@
 - [agent-council 1.0.0 milestones](./plans/agent-council-1.0.0-milestones.md) -- delivery sequence, scope lock, and release exit criteria
 - [agent-council 1.0.0 hardening checklist](./plans/agent-council-1.0.0-hardening.md) -- release gates, parity checks, and final validation steps
 - [agent-council 1.0.0 release notes draft](./plans/agent-council-1.0.0-release-notes-draft.md) -- migration notes, compatibility timeline, and validation summary
+- [agent-council 1.0.0 PR summary draft](./plans/agent-council-1.0.0-pr-summary-draft.md) -- ready-to-use change summary with parity and validation evidence
 - [agent-council capability matrix](./plans/agent-council-capability-matrix.md) -- adapter capability baseline and parity tracking grid
 
 ## Testing

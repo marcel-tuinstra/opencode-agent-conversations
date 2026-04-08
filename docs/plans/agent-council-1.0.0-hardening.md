@@ -38,4 +38,4 @@ This checklist is the release gate for `1.0.0`.
 
 - [x] Draft `1.0.0` release notes with: parity scope, migration path, CLI behavior, and known limits (`agent-council-1.0.0-release-notes-draft.md`).
 - [ ] Final milestone review against `docs/plans/agent-council-1.0.0-milestones.md`.
-- [ ] PR summary includes parity evidence and local validation outputs.
+- [x] PR summary includes parity evidence and local validation outputs (`agent-council-1.0.0-pr-summary-draft.md`).
