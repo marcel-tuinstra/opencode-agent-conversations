@@ -29,7 +29,7 @@ import {
   type LaneLifecycleState,
   type RepoRiskTier
 } from "./lane-lifecycle.ts";
-import { assertReviewReadyTransition, type ReviewReadyEvidencePacket, type ReviewReadyEvidencePacketInput } from "../../../plugins/orchestration-workflows/review-ready-packet.ts";
+import { assertReviewReadyTransition, type ReviewReadyEvidencePacket, type ReviewReadyEvidencePacketInput } from "./review-ready-packet.ts";
 import type { LanePlan } from "../../core/src/lane-plan.ts";
 import type {
   ProvisionSupervisorLaneWorktreeResult,
@@ -43,7 +43,7 @@ import {
   resolveReviewRoutingDecision,
   type ReviewRoutingDecision,
   type ReviewRoutingPolicyDecision
-} from "../../../plugins/orchestration-workflows/review-coordination.ts";
+} from "./review-coordination.ts";
 
 export type SupervisorLaneDefinition = {
   laneId: string;

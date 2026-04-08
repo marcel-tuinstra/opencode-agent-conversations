@@ -15,7 +15,7 @@ import {
   type ReviewCoordinationBundle,
   type ReviewCoordinationBundleInput,
   type ReviewRoutingDecision
-} from "../../../plugins/orchestration-workflows/review-coordination.ts";
+} from "./review-coordination.ts";
 import { planSupervisorGoal } from "../../core/src/supervisor-goal-plan.ts";
 import { createSupervisorDispatchPlan, type CreateSupervisorDispatchPlanInput } from "../../core/src/supervisor-dispatch-planning.ts";
 import { createSupervisorDelegationPlan, validateSupervisorDelegationPlan, type SupervisorDelegationPlanInput } from "../../../plugins/orchestration-workflows/supervisor-delegation.ts";
