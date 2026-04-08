@@ -2,14 +2,14 @@ import {
   createSupervisorDataLifecycleReport,
   type CreateSupervisorDataLifecycleReportInput,
   type SupervisorDataLifecycleReport
-} from "../../../plugins/orchestration-workflows/data-lifecycle.ts";
+} from "./data-lifecycle.ts";
 import { debugLog } from "../../../plugins/orchestration-workflows/debug.ts";
 import { createSupervisorEvent, type SupervisorEvent } from "./supervisor-event-catalog.ts";
-import type { SupervisorObservedThresholdEvent } from "../../../plugins/orchestration-workflows/observability-dashboard.ts";
+import type { SupervisorObservedThresholdEvent } from "./observability-dashboard.ts";
 import {
   createSupervisorObservabilityDashboard,
   type SupervisorObservabilityDashboardSnapshot
-} from "../../../plugins/orchestration-workflows/observability-dashboard.ts";
+} from "./observability-dashboard.ts";
 import {
   createReviewCoordinationBundle,
   type ReviewCoordinationBundle,
@@ -18,7 +18,7 @@ import {
 } from "./review-coordination.ts";
 import { planSupervisorGoal } from "../../core/src/supervisor-goal-plan.ts";
 import { createSupervisorDispatchPlan, type CreateSupervisorDispatchPlanInput } from "../../core/src/supervisor-dispatch-planning.ts";
-import { createSupervisorDelegationPlan, validateSupervisorDelegationPlan, type SupervisorDelegationPlanInput } from "../../../plugins/orchestration-workflows/supervisor-delegation.ts";
+import { createSupervisorDelegationPlan, validateSupervisorDelegationPlan, type SupervisorDelegationPlanInput } from "./supervisor-delegation.ts";
 import {
   type SupervisorRunState,
   type SupervisorStateStore
