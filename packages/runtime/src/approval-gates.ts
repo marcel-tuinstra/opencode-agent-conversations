@@ -2,7 +2,7 @@ import type { SupervisorApprovalRecord } from "./durable-state-store.ts";
 import {
   createSupervisorThresholdEventId,
   type SupervisorThresholdEvent
-} from "../../../plugins/orchestration-workflows/guardrail-thresholds.ts";
+} from "../../core/src/guardrail-thresholds.ts";
 import { evaluateProtectedPathPolicy } from "../../core/src/protected-path-policy.ts";
 import { createSupervisorReasonDetail, type SupervisorReasonDetail } from "../../core/src/reason-codes.ts";
 import { getSupervisorPolicy } from "../../core/src/supervisor-config.ts";

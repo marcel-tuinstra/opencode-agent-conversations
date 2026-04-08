@@ -24,7 +24,7 @@ export * from "./reason-codes.ts";
 export * from "../../../plugins/orchestration-workflows/review-ready-packet.ts";
 export * from "../../../plugins/orchestration-workflows/review-coordination.ts";
 export * from "./budget-governance.ts";
-export * from "../../../plugins/orchestration-workflows/guardrail-thresholds.ts";
+export * from "./guardrail-thresholds.ts";
 export * from "./supervisor-config.ts";
 
 export {
