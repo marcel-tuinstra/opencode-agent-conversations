@@ -12,8 +12,8 @@ Use this guide when merged plugin changes are present on `main` but local behavi
 
 ```bash
 mkdir -p ~/.opencode/plugins ~/.opencode/agents
-cp plugins/orchestration-workflows.ts ~/.opencode/plugins/orchestration-workflows.ts
-cp -R plugins/orchestration-workflows ~/.opencode/plugins/orchestration-workflows
+cp plugins/agent-council.ts ~/.opencode/plugins/agent-council.ts
+cp -R plugins/agent-council ~/.opencode/plugins/agent-council
 cp agents/*.md ~/.opencode/agents/
 ```
 

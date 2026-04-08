@@ -8,11 +8,11 @@ import {
   finalizeBudgetRun,
   getBudgetRuntimeConfigDiagnostics,
   recordBudgetUsage
-} from "../plugins/orchestration-workflows/budget";
+} from "../plugins/agent-council/budget";
 import {
   DEFAULT_SUPERVISOR_POLICY_PATH,
   resetSupervisorPolicyCache
-} from "../plugins/orchestration-workflows/supervisor-config";
+} from "../plugins/agent-council/supervisor-config";
 
 describe("budget governor", () => {
   it("estimates tokens from text length", () => {

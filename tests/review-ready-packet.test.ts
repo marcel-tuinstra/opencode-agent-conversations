@@ -3,7 +3,7 @@ import {
   assertReviewReadyTransition,
   createReviewReadyEvidencePacket,
   type ReviewReadyEvidencePacketInput
-} from "../plugins/orchestration-workflows/review-ready-packet";
+} from "../plugins/agent-council/review-ready-packet";
 
 const buildPacket = (): ReviewReadyEvidencePacketInput => ({
   acceptanceCriteriaTrace: [

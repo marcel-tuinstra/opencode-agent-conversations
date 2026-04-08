@@ -2,13 +2,13 @@
 
 ## Why
 
-Ship `agent-council` as a full `1.0.0` parity release across OpenCode, Claude Code, and Codex while preserving `opencode-council` compatibility.
+Ship `agent-council` as a full `1.0.0` parity release across OpenCode, Claude Code, and Codex while preserving `agent-council` compatibility.
 
 ## What changed
 
 - Extracted shared policy/domain logic into `packages/core`.
 - Extracted supervisor/runtime execution flow into `packages/runtime`.
-- Kept plugin compatibility by re-export shims in `plugins/orchestration-workflows/*.ts`.
+- Kept plugin compatibility by re-export shims in `plugins/agent-council/*.ts`.
 - Upgraded docs with explicit milestones, hardening gates, and release notes draft.
 
 ## Parity evidence
@@ -32,7 +32,7 @@ Ship `agent-council` as a full `1.0.0` parity release across OpenCode, Claude Co
 ## Compatibility and migration
 
 - `agent-council` is primary.
-- `opencode-council` remains supported as compatibility alias during `1.x`.
+- `agent-council` remains supported as compatibility alias during `1.x`.
 - See:
   - `docs/guides/compatibility-and-deprecations.md`
   - `docs/plans/agent-council-1.0.0-release-notes-draft.md`

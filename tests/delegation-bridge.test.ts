@@ -5,8 +5,8 @@ import {
   MANAGER_ROLES,
   IMPLEMENTATION_ROLES,
   type DelegationBridgeInput
-} from "../plugins/orchestration-workflows/delegation-bridge.ts";
-import type { DelegationPlan, Role } from "../plugins/orchestration-workflows/types.ts";
+} from "../plugins/agent-council/delegation-bridge.ts";
+import type { DelegationPlan, Role } from "../plugins/agent-council/types.ts";
 
 // ---------------------------------------------------------------------------
 // Helpers

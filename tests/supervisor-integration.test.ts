@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { AgentConversations } from "../plugins/orchestration-workflows/index";
+import { AgentConversations } from "../plugins/agent-council/index";
 import {
   sessionPolicy,
   systemInjectedForSession
-} from "../plugins/orchestration-workflows/session";
+} from "../plugins/agent-council/session";
 import type { PluginInput, OpencodeClient } from "@opencode-ai/plugin";
 
 /**

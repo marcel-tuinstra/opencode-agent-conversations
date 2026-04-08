@@ -6,7 +6,7 @@ import {
   getDefaultBudgetProfileName,
   getBudgetProfileFromEnv
 } from "./budget-profiles.ts";
-import { debugLog } from "../../../plugins/orchestration-workflows/debug.ts";
+import { debugLog } from "../../../plugins/agent-council/debug.ts";
 import type { Intent, Role } from "./types.ts";
 
 type RepoRiskTier = "small-high-risk" | "medium-moderate-risk" | "large-mature";
@@ -416,7 +416,7 @@ const DEFAULT_POLICY_INPUT: SupervisorPolicyInput = {
       {
         ruleId: "review-governance-and-runtime-policy",
         description: "Require human review for supervisor governance, approval, and runtime control surfaces.",
-        pathPrefixes: [".github", ".opencode", "plugins/orchestration-workflows", "package.json", "tsconfig.json", "tsconfig.typecheck.json"],
+        pathPrefixes: [".github", ".opencode", "plugins/agent-council", "package.json", "tsconfig.json", "tsconfig.typecheck.json"],
         outcome: "requires-human",
         auditExpectation: "Attach the changed paths, the approving human, and the reason for the exception before continuing."
       },

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { appendCompactionNotice, compactWorkflowContext } from "../plugins/orchestration-workflows/compact";
-import { resetSupervisorPolicyCache } from "../plugins/orchestration-workflows/supervisor-config";
+import { appendCompactionNotice, compactWorkflowContext } from "../plugins/agent-council/compact";
+import { resetSupervisorPolicyCache } from "../plugins/agent-council/supervisor-config";
 
 const longBackendPrompt = [
   "Goal: reduce API latency and restore p95.",

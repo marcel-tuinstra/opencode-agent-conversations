@@ -12,7 +12,7 @@ This plugin uses a **deliberation model**. When you mention multiple roles, they
 
 ## Available now (v0.5.0)
 
-- One-command install: `npx opencode-council init`
+- One-command install: `npx agent-council init`
 - Mention-driven role orchestration: `@cto @dev @pm [prompt]` activates exactly the agents you need
 - Heartbeat phases for structured reasoning in multi-role discussions
 - Threaded `[n] ROLE: message` output format

@@ -7,7 +7,7 @@ import {
   getAllowedLaneTransitions,
   getDefaultActiveLaneCap,
   resolveLanePolicy
-} from "../plugins/orchestration-workflows/lane-lifecycle";
+} from "../plugins/agent-council/lane-lifecycle";
 
 describe("lane-lifecycle", () => {
   it("uses the conservative default active lane cap for each repo risk tier", () => {

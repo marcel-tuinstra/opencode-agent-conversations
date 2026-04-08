@@ -1,14 +1,14 @@
 import {
   createSupervisorReasonDetail,
   type SupervisorReasonDetail
-} from "../../../plugins/orchestration-workflows/reason-codes.ts";
+} from "../../../plugins/agent-council/reason-codes.ts";
 import { normalizePathList, pathMatchesPolicyPrefix } from "./path-policy.ts";
 import {
   getSupervisorPolicy,
   type ResolvedSupervisorPolicy,
   type SupervisorProtectedPathOutcome,
   type SupervisorProtectedPathRule
-} from "../../../plugins/orchestration-workflows/supervisor-config.ts";
+} from "../../../plugins/agent-council/supervisor-config.ts";
 
 export type ProtectedPathDecisionSource = "explicit-rule" | "policy-default";
 

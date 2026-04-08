@@ -3,7 +3,7 @@ import {
   createReviewCoordinationBundle,
   renderReviewCoordinationPullRequestBody,
   type ReviewCoordinationBundleInput
-} from "../plugins/orchestration-workflows/review-coordination";
+} from "../plugins/agent-council/review-coordination";
 
 describe("review-coordination", () => {
   it("builds a review bundle that stays linked to the external tracker and originating run", () => {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildSystemInstruction, enforceUserContract } from "../plugins/orchestration-workflows/contracts";
-import type { Role } from "../plugins/orchestration-workflows/types";
+import { buildSystemInstruction, enforceUserContract } from "../plugins/agent-council/contracts";
+import type { Role } from "../plugins/agent-council/types";
 
 const targets: Record<Role, number> = {
   CTO: 2,

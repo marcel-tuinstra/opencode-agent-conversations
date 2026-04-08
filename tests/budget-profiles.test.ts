@@ -5,11 +5,11 @@ import {
   getBudgetProfileFromEnv,
   getDefaultBudgetProfileName,
   resolveBudgetProfile
-} from "../plugins/orchestration-workflows/budget-profiles";
+} from "../plugins/agent-council/budget-profiles";
 import type {
   BudgetProfileName,
   BudgetProfilePreset
-} from "../plugins/orchestration-workflows/budget-profiles";
+} from "../plugins/agent-council/budget-profiles";
 
 const ALL_INTENT_KEYS = ["frontend", "backend", "design", "marketing", "roadmap", "research", "mixed"] as const;
 

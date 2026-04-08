@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   detectDelegationRequest,
   detectRolesFromMentions
-} from "../plugins/orchestration-workflows/roles";
-import { detectIntent, buildTurnTargets } from "../plugins/orchestration-workflows/intent";
-import { extractDelegatedRoles, appendSupervisorDecisionNotes } from "../plugins/orchestration-workflows/output";
-import type { Role } from "../plugins/orchestration-workflows/types";
+} from "../plugins/agent-council/roles";
+import { detectIntent, buildTurnTargets } from "../plugins/agent-council/intent";
+import { extractDelegatedRoles, appendSupervisorDecisionNotes } from "../plugins/agent-council/output";
+import type { Role } from "../plugins/agent-council/types";
 
 /**
  * Issue #57 — Acceptance Criteria Tests

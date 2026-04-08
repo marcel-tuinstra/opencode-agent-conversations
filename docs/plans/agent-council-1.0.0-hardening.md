@@ -8,14 +8,14 @@ This checklist is the release gate for `1.0.0`.
 - [x] OpenCode/Claude Code/Codex adapter installs are manifest-driven and share generated agents/skills.
 - [x] Cross-platform parity scenario tests exist for governance, supervisor routing, and dispatch behavior.
 - [x] Remaining plugin-local runtime helpers are explicitly accepted as OpenCode adapter-entry modules for `1.0.0`:
-  - `plugins/orchestration-workflows/index.ts`
-  - `plugins/orchestration-workflows/opencode-client-adapter.ts`
-  - `plugins/orchestration-workflows/mcp.ts`
-  - `plugins/orchestration-workflows/output.ts`
-  - `plugins/orchestration-workflows/contracts.ts`
-  - `plugins/orchestration-workflows/budget.ts`
-  - `plugins/orchestration-workflows/delegation-bridge.ts`
-  - `plugins/orchestration-workflows/debug.ts`
+  - `plugins/agent-council/index.ts`
+  - `plugins/agent-council/opencode-client-adapter.ts`
+  - `plugins/agent-council/mcp.ts`
+  - `plugins/agent-council/output.ts`
+  - `plugins/agent-council/contracts.ts`
+  - `plugins/agent-council/budget.ts`
+  - `plugins/agent-council/delegation-bridge.ts`
+  - `plugins/agent-council/debug.ts`
 
 ## Validation gates
 
@@ -30,7 +30,7 @@ This checklist is the release gate for `1.0.0`.
 ## Compatibility gates
 
 - [x] `agent-council` primary bin remains active.
-- [x] `opencode-council` alias remains available as compatibility path.
+- [x] `agent-council` alias remains available as compatibility path.
 - [x] Compatibility policy is documented in `docs/guides/compatibility-and-deprecations.md`.
 - [x] Add explicit release note callout for alias deprecation timeline in final `1.0.0` notes.
 

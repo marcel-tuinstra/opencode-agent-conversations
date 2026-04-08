@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { LanePlanningWorkUnit } from "../plugins/orchestration-workflows/lane-plan";
-import { planWorkUnitLanes, scoreWorkUnitComplexity } from "../plugins/orchestration-workflows/lane-plan";
-import { normalizeWorkUnit } from "../plugins/orchestration-workflows/work-unit";
+import type { LanePlanningWorkUnit } from "../plugins/agent-council/lane-plan";
+import { planWorkUnitLanes, scoreWorkUnitComplexity } from "../plugins/agent-council/lane-plan";
+import { normalizeWorkUnit } from "../plugins/agent-council/work-unit";
 
 describe("lane-plan", () => {
   it("builds tracker-agnostic lanes and a dependency graph from normalized work units", () => {

@@ -2,24 +2,24 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { createFileBackedSupervisorStateStore } from "../plugins/orchestration-workflows/durable-state-store";
+import { createFileBackedSupervisorStateStore } from "../plugins/agent-council/durable-state-store";
 import {
   createSupervisorExecutionWorkflow
-} from "../plugins/orchestration-workflows/supervisor-execution-workflow";
-import type { SupervisorEvent } from "../plugins/orchestration-workflows/supervisor-event-catalog";
+} from "../plugins/agent-council/supervisor-execution-workflow";
+import type { SupervisorEvent } from "../plugins/agent-council/supervisor-event-catalog";
 import {
   createSupervisorLaneWorktreeProvisioner,
   type GitWorktreeEntry,
   type SupervisorLaneWorktreeSystem
-} from "../plugins/orchestration-workflows/lane-worktree-provisioner";
+} from "../plugins/agent-council/lane-worktree-provisioner";
 import {
   createSupervisorSessionLifecycle,
   type AttachSupervisorRuntimeSessionInput,
   type LaunchSupervisorRuntimeSessionInput,
   type SupervisorSessionRuntimeAdapter
-} from "../plugins/orchestration-workflows/session-runtime-adapter";
-import { createSupervisorDispatchLoop } from "../plugins/orchestration-workflows/supervisor-scheduler";
-import { normalizeWorkUnit } from "../plugins/orchestration-workflows/work-unit";
+} from "../plugins/agent-council/session-runtime-adapter";
+import { createSupervisorDispatchLoop } from "../plugins/agent-council/supervisor-scheduler";
+import { normalizeWorkUnit } from "../plugins/agent-council/work-unit";
 
 const tempDirs: string[] = [];
 

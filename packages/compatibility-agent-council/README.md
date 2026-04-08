@@ -1,4 +1,4 @@
-# opencode-council (compatibility wrapper)
+# agent-council (compatibility wrapper)
 
 This package name is kept for backward compatibility.
 

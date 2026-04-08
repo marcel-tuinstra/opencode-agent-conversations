@@ -1,14 +1,14 @@
-import type { LaneContractViolation } from "../../../plugins/orchestration-workflows/lane-contract.ts";
+import type { LaneContractViolation } from "../../../plugins/agent-council/lane-contract.ts";
 import {
   createSupervisorReasonDetail,
   type SupervisorReasonDetail
-} from "../../../plugins/orchestration-workflows/reason-codes.ts";
+} from "../../../plugins/agent-council/reason-codes.ts";
 import {
   getSupervisorPolicy,
   type ResolvedSupervisorPolicy,
   type SupervisorGovernanceCheckpointPolicy,
   type SupervisorGovernancePolicyOutcome
-} from "../../../plugins/orchestration-workflows/supervisor-config.ts";
+} from "../../../plugins/agent-council/supervisor-config.ts";
 
 export type GovernancePolicyDecisionSource = "explicit-policy" | "policy-default" | "missing-policy";
 

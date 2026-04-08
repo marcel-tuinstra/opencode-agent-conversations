@@ -4,7 +4,7 @@ import {
   MAX_PARALLEL_AGENTS_REGEX,
   MENTION_REGEX
 } from "./constants.ts";
-import { getSupervisorPolicy } from "../../../plugins/orchestration-workflows/supervisor-config.ts";
+import { getSupervisorPolicy } from "../../../plugins/agent-council/supervisor-config.ts";
 import { SUPPORTED_ROLES } from "./types.ts";
 import type { DelegationPlan, DelegationRequest, DelegationWave, Role } from "./types.ts";
 

@@ -2,27 +2,27 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { evaluateSupervisorApprovalGate } from "../plugins/orchestration-workflows/approval-gates";
-import { createFileBackedSupervisorStateStore } from "../plugins/orchestration-workflows/durable-state-store";
+import { evaluateSupervisorApprovalGate } from "../plugins/agent-council/approval-gates";
+import { createFileBackedSupervisorStateStore } from "../plugins/agent-council/durable-state-store";
 import {
   createSupervisorLaneWorktreeProvisioner,
   type GitWorktreeEntry,
   type SupervisorLaneWorktreeSystem
-} from "../plugins/orchestration-workflows/lane-worktree-provisioner";
-import { planWorkUnitLanes } from "../plugins/orchestration-workflows/lane-plan";
-import { classifySupervisorRecoveryPlaybook } from "../plugins/orchestration-workflows/recovery-repair-playbooks";
+} from "../plugins/agent-council/lane-worktree-provisioner";
+import { planWorkUnitLanes } from "../plugins/agent-council/lane-plan";
+import { classifySupervisorRecoveryPlaybook } from "../plugins/agent-council/recovery-repair-playbooks";
 import {
   createReviewCoordinationBundle,
   renderReviewCoordinationPullRequestBody
-} from "../plugins/orchestration-workflows/review-coordination";
-import { assertReviewReadyTransition } from "../plugins/orchestration-workflows/review-ready-packet";
+} from "../plugins/agent-council/review-coordination";
+import { assertReviewReadyTransition } from "../plugins/agent-council/review-ready-packet";
 import {
   createSupervisorSessionLifecycle,
   type AttachSupervisorRuntimeSessionInput,
   type LaunchSupervisorRuntimeSessionInput,
   type SupervisorSessionRuntimeAdapter
-} from "../plugins/orchestration-workflows/session-runtime-adapter";
-import { normalizeWorkUnit } from "../plugins/orchestration-workflows/work-unit";
+} from "../plugins/agent-council/session-runtime-adapter";
+import { normalizeWorkUnit } from "../plugins/agent-council/work-unit";
 import { supervisorAlphaEndToEndFixture } from "./fixtures/supervisor-alpha-end-to-end-fixture";
 
 const tempDirs: string[] = [];
@@ -369,7 +369,7 @@ describe("supervisor-alpha-end-to-end-validation", () => {
           laneId: supervisorAlphaEndToEndFixture.lanes[1].id,
           kind: "pull-request",
           status: "ready",
-          uri: "https://github.com/marcel-tuinstra/opencode-council/pull/placeholder",
+          uri: "https://github.com/marcel-tuinstra/agent-council/pull/placeholder",
           updatedAt: "2026-03-13T18:18:00.000Z"
         },
         {

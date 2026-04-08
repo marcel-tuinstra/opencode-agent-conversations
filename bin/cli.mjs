@@ -43,8 +43,8 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
 const repoRoot   = resolve(__dirname, "..");
 
-const SRC_PLUGIN_BARREL = join(repoRoot, "plugins", "orchestration-workflows.ts");
-const SRC_PLUGIN_DIR    = join(repoRoot, "plugins", "orchestration-workflows");
+const SRC_PLUGIN_BARREL = join(repoRoot, "plugins", "agent-council.ts");
+const SRC_PLUGIN_DIR    = join(repoRoot, "plugins", "agent-council");
 const SRC_AGENTS_DIR    = join(repoRoot, "agents");
 const SRC_GENERATED_OPENCODE_AGENTS = join(repoRoot, "generated", "opencode", "agents");
 const SRC_GENERATED_OPENCODE_SKILLS = join(repoRoot, "generated", "opencode", "skills");
@@ -58,7 +58,7 @@ const DEST_BASE        = join(homedir(), ".opencode");
 const DEST_PLUGINS_DIR = join(DEST_BASE, "plugins");
 const DEST_AGENTS_DIR  = join(DEST_BASE, "agents");
 const DEST_SKILLS_DIR  = join(DEST_BASE, "skills", "agent-council");
-const DEST_PLUGIN_SUB  = join(DEST_PLUGINS_DIR, "orchestration-workflows");
+const DEST_PLUGIN_SUB  = join(DEST_PLUGINS_DIR, "agent-council");
 
 const PLATFORM_IDS = ["opencode", "claude-code", "codex"];
 const SRC_OPENCODE_AGENTS_DIR = existsSync(SRC_GENERATED_OPENCODE_AGENTS)
@@ -159,7 +159,7 @@ ${colors.bold("agent-council")} ${colors.dim(`v${PKG_VERSION}`)}
 
 ${colors.cyan("Usage:")}
   npx agent-council <command> [options]
-  npx opencode-council <command> [options] ${colors.dim("(legacy alias)")}
+  npx agent-council <command> [options] ${colors.dim("(legacy alias)")}
 
 ${colors.cyan("Commands:")}
   init        Install agent-council into selected platforms
@@ -186,8 +186,8 @@ ${colors.cyan("What it does:")}
   ${colors.dim(DEST_BASE)} so OpenCode can load them at startup.
 
   Source files:
-    plugins/orchestration-workflows.ts     ${colors.dim("(barrel)")}
-    plugins/orchestration-workflows/       ${colors.dim("(runtime modules)")}
+    plugins/agent-council.ts     ${colors.dim("(barrel)")}
+    plugins/agent-council/       ${colors.dim("(runtime modules)")}
     generated/opencode/agents/*.md         ${colors.dim("(generated role profiles)")}
 
   Destination:
@@ -600,7 +600,7 @@ async function cmdUninstallOpenCode({ standalone = true } = {}) {
   }
 
   console.log(colors.cyan("  This will remove:"));
-  console.log(`    ${colors.dim(join(DEST_PLUGINS_DIR, "orchestration-workflows.ts"))}`);
+  console.log(`    ${colors.dim(join(DEST_PLUGINS_DIR, "agent-council.ts"))}`);
   console.log(`    ${colors.dim(DEST_PLUGIN_SUB + "/")}`);
   for (const agent of KNOWN_AGENTS) {
     console.log(`    ${colors.dim(join(DEST_AGENTS_DIR, agent))}`);
@@ -638,11 +638,11 @@ async function cmdUninstallOpenCode({ standalone = true } = {}) {
   let removed = 0;
 
   // Remove barrel file
-  const barrelDest = join(DEST_PLUGINS_DIR, "orchestration-workflows.ts");
+  const barrelDest = join(DEST_PLUGINS_DIR, "agent-council.ts");
   if (existsSync(barrelDest)) {
     rmSync(barrelDest, { force: true });
     removed++;
-    console.log(colors.green(`  Removed ${colors.dim("plugins/orchestration-workflows.ts")}`));
+    console.log(colors.green(`  Removed ${colors.dim("plugins/agent-council.ts")}`));
   }
 
   // Remove plugin subdir
@@ -650,7 +650,7 @@ async function cmdUninstallOpenCode({ standalone = true } = {}) {
     const count = countFiles(DEST_PLUGIN_SUB);
     rmSync(DEST_PLUGIN_SUB, { recursive: true, force: true });
     removed += count;
-    console.log(colors.green(`  Removed ${colors.dim("plugins/orchestration-workflows/  (" + count + " files)")}`));
+    console.log(colors.green(`  Removed ${colors.dim("plugins/agent-council/  (" + count + " files)")}`));
   }
 
   // Remove our known agents only
@@ -850,7 +850,7 @@ async function cmdInstallOpenCode({ mode = "init", standalone = true }) {
     printSources();
   }
 
-  const existingInstall = existsSync(join(DEST_PLUGINS_DIR, "orchestration-workflows.ts"))
+  const existingInstall = existsSync(join(DEST_PLUGINS_DIR, "agent-council.ts"))
     || existsSync(DEST_PLUGIN_SUB);
 
   if (standalone) {
@@ -920,17 +920,17 @@ async function cmdInstallOpenCode({ mode = "init", standalone = true }) {
     mkdirSync(DEST_SKILLS_DIR, { recursive: true });
 
     // 1. Copy plugin barrel file
-    const destBarrel = join(DEST_PLUGINS_DIR, "orchestration-workflows.ts");
+    const destBarrel = join(DEST_PLUGINS_DIR, "agent-council.ts");
     cpSync(SRC_PLUGIN_BARREL, destBarrel, { force: true });
     copiedFiles++;
-    console.log(colors.green(`  Copied  ${colors.dim("plugins/orchestration-workflows.ts")}`));
+    console.log(colors.green(`  Copied  ${colors.dim("plugins/agent-council.ts")}`));
 
     // 2. Copy plugin directory (recursive)
     cpSync(SRC_PLUGIN_DIR, DEST_PLUGIN_SUB, { recursive: true, force: true });
     copiedDirs++;
     const pluginFileCount = countFiles(SRC_PLUGIN_DIR);
     copiedFiles += pluginFileCount;
-    console.log(colors.green(`  Copied  ${colors.dim(`plugins/orchestration-workflows/  (${pluginFileCount} files)`)}`));
+    console.log(colors.green(`  Copied  ${colors.dim(`plugins/agent-council/  (${pluginFileCount} files)`)}`));
 
     // 3. Copy agent profile files
     const agentFiles = readdirSync(SRC_OPENCODE_AGENTS_DIR).filter((f) => f.endsWith(".md"));

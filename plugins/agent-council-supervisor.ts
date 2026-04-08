@@ -8,12 +8,12 @@ export type {
   SupervisorProviderPatternInput,
   SupervisorRoutingIntentProfile,
   SupervisorRoutingIntentProfileInput
-} from "./orchestration-workflows/supervisor-config.ts";
+} from "./agent-council/supervisor-config.ts";
 export type {
   CreateSupervisorDispatchPlanInput,
   SupervisorDispatchPlanResult,
   SupervisorDispatchPlanStatus
-} from "./orchestration-workflows/supervisor-dispatch-planning.ts";
+} from "./agent-council/supervisor-dispatch-planning.ts";
 export type {
   LaneCompletionContract,
   LaneCompletionContractInput,
@@ -25,12 +25,12 @@ export type {
   LaneOutputArtifact,
   LaneOutputArtifactInput,
   LaneOutputArtifactKind
-} from "./orchestration-workflows/lane-contract.ts";
+} from "./agent-council/lane-contract.ts";
 export type {
   DecomposeSupervisorGoalIntoLanesInput,
   SupervisorLaneDecompositionResult,
   SupervisorLaneDecompositionStatus
-} from "./orchestration-workflows/lane-decomposition.ts";
+} from "./agent-council/lane-decomposition.ts";
 export type {
   PlanSupervisorGoalInput,
   PlanSupervisorGoalResult,
@@ -38,13 +38,13 @@ export type {
   SupervisorGoalPlanningConfidence,
   SupervisorGoalPlanningStatus,
   SupervisorGoalRoleRecommendation
-} from "./orchestration-workflows/supervisor-goal-plan.ts";
+} from "./agent-council/supervisor-goal-plan.ts";
 export type {
   RouteSupervisorWorkUnitInput,
   RouteSupervisorWorkUnitResult,
   SupervisorRoutingAction,
   SupervisorRoutingConfidence
-} from "./orchestration-workflows/supervisor-routing.ts";
+} from "./agent-council/supervisor-routing.ts";
 export type {
   AdHocWorkUnitInput,
   EvidenceLink,
@@ -55,7 +55,7 @@ export type {
   WorkUnitSource,
   WorkUnitSourceKind,
   WorkUnitTrackerKind
-} from "./orchestration-workflows/work-unit.ts";
+} from "./agent-council/work-unit.ts";
 export type {
   BudgetGovernanceConfig,
   BudgetGovernanceDecision,
@@ -66,20 +66,20 @@ export type {
   BudgetGovernanceScope,
   BudgetGovernanceStatus,
   BudgetGovernanceThreshold
-} from "./orchestration-workflows/budget-governance.ts";
+} from "./agent-council/budget-governance.ts";
 export type {
   SupervisorGuardrailArea,
   SupervisorThresholdEvent,
   SupervisorThresholdEvidence,
   SupervisorThresholdEvidenceValue,
   SupervisorThresholdObservedValue
-} from "./orchestration-workflows/guardrail-thresholds.ts";
+} from "./agent-council/guardrail-thresholds.ts";
 export type {
   AdHocRunArtifactKind,
   AdHocRunArtifactLink,
   AdHocRunHistoryInput,
   AdHocRunHistoryRecord
-} from "./orchestration-workflows/ad-hoc-run-history.ts";
+} from "./agent-council/ad-hoc-run-history.ts";
 export type {
   FileBackedSupervisorStateStoreOptions,
   SupervisorApprovalRecord,
@@ -103,7 +103,7 @@ export type {
   SupervisorStateStore,
   SupervisorWorktreeRecord,
   SupervisorLaneRecord
-} from "./orchestration-workflows/durable-state-store.ts";
+} from "./agent-council/durable-state-store.ts";
 export type {
   EvaluateSupervisorApprovalGateInput,
   SupervisorApprovalBoundary,
@@ -112,14 +112,14 @@ export type {
   SupervisorApprovalGateRequest,
   SupervisorApprovalNextAction,
   SupervisorApprovalSignal
-} from "./orchestration-workflows/approval-gates.ts";
+} from "./agent-council/approval-gates.ts";
 export type {
   LaneCapPolicyConfig,
   LaneLifecyclePolicy,
   LaneLifecycleState,
   LanePolicy,
   RepoRiskTier
-} from "./orchestration-workflows/lane-lifecycle.ts";
+} from "./agent-council/lane-lifecycle.ts";
 export type {
   CreateSupervisorDispatchLoopOptions,
   CreateSupervisorLaneDefinitionsOptions,
@@ -130,7 +130,7 @@ export type {
   SupervisorDispatchLaneInput,
   SupervisorDispatchLaneStatus,
   SupervisorLaneDefinition
-} from "./orchestration-workflows/supervisor-scheduler.ts";
+} from "./agent-council/supervisor-scheduler.ts";
 export type {
   GitWorktreeEntry,
   ProvisionSupervisorLaneWorktreeInput,
@@ -145,7 +145,7 @@ export type {
   SupervisorLaneWorktreeProvisionerOptions,
   SupervisorLaneWorktreeReconciliationReport,
   SupervisorLaneWorktreeSystem
-} from "./orchestration-workflows/lane-worktree-provisioner.ts";
+} from "./agent-council/lane-worktree-provisioner.ts";
 export type {
   PauseSupervisorSessionInput,
   AttachSupervisorRuntimeSessionInput,
@@ -164,7 +164,7 @@ export type {
   SupervisorSessionLifecycleResultAction,
   SupervisorSessionRuntimeAdapter,
   SupervisorSessionRuntimeKind
-} from "./orchestration-workflows/session-runtime-adapter.ts";
+} from "./agent-council/session-runtime-adapter.ts";
 export type {
   ClassifySupervisorRecoveryPlaybookInput,
   SupervisorLaneRecoveryContext,
@@ -178,7 +178,7 @@ export type {
   SupervisorRecoveryFailureClass,
   SupervisorRecoveryPlaybook,
   SupervisorToolOutageSignal
-} from "./orchestration-workflows/recovery-repair-playbooks.ts";
+} from "./agent-council/recovery-repair-playbooks.ts";
 export type {
   MergePolicy,
   MergePolicyCandidate,
@@ -186,14 +186,14 @@ export type {
   MergePolicyDecision,
   MergePolicyMode,
   MergeTargetCriticality
-} from "./orchestration-workflows/merge-policy.ts";
+} from "./agent-council/merge-policy.ts";
 export type {
   LaneTurnHandoffContract,
   LaneTurnHandoffInput,
   LaneTurnOwnership,
   LaneTurnRole,
   LaneTurnTransferScope
-} from "./orchestration-workflows/turn-ownership.ts";
+} from "./agent-council/turn-ownership.ts";
 export type {
   ReviewReadyAcceptanceTraceEntry,
   ReviewReadyAcceptanceTraceStatus,
@@ -203,7 +203,7 @@ export type {
   ReviewReadyHandoffOwnersInput,
   ReviewReadyVerificationEntry,
   ReviewReadyVerificationStatus
-} from "./orchestration-workflows/review-ready-packet.ts";
+} from "./agent-council/review-ready-packet.ts";
 export type {
   ReviewCoordinationArtifactLink,
   ReviewCoordinationArtifactLinkInput,
@@ -217,7 +217,7 @@ export type {
   ReviewCoordinationPullRequestPrepInput,
   ReviewCoordinationTrackerReference,
   ReviewCoordinationTrackerReferenceInput
-} from "./orchestration-workflows/review-coordination.ts";
+} from "./agent-council/review-coordination.ts";
 export type {
   SupervisorBlockerSnapshot,
   SupervisorBlockerSnapshotInput,
@@ -233,7 +233,7 @@ export type {
   SupervisorPolicyDecision,
   SupervisorPolicyDecisionCategory,
   SupervisorPolicyDecisionInput
-} from "./orchestration-workflows/observability-dashboard.ts";
+} from "./agent-council/observability-dashboard.ts";
 export type {
   AdvanceSupervisorRunInput,
   AdvanceSupervisorRunResult,
@@ -249,7 +249,7 @@ export type {
   SupervisorWorkflowNextAction,
   SupervisorWorkflowStage,
   SupervisorWorkflowStageStatus
-} from "./orchestration-workflows/supervisor-execution-workflow.ts";
+} from "./agent-council/supervisor-execution-workflow.ts";
 export type {
   CreateSupervisorDataLifecycleReportInput,
   SupervisorAdHocRunLifecycleInput,
@@ -262,25 +262,25 @@ export type {
   SupervisorLifecycleInventory,
   SupervisorLifecyclePolicyWindow,
   SupervisorLifecycleRecordType
-} from "./orchestration-workflows/data-lifecycle.ts";
+} from "./agent-council/data-lifecycle.ts";
 export {
   createSupervisorDispatchPlan
-} from "./orchestration-workflows/supervisor-dispatch-planning.ts";
+} from "./agent-council/supervisor-dispatch-planning.ts";
 export {
   createSupervisorBootstrapPreview
-} from "./orchestration-workflows/supervisor-bootstrap.ts";
+} from "./agent-council/supervisor-bootstrap.ts";
 export {
   assertValidLaneCompletionContract,
   createLaneCompletionContract,
   evaluateLaneCompletionContract,
   validateLaneCompletionContract
-} from "./orchestration-workflows/lane-contract.ts";
+} from "./agent-council/lane-contract.ts";
 export {
   decomposeSupervisorGoalIntoLanes
-} from "./orchestration-workflows/lane-decomposition.ts";
+} from "./agent-council/lane-decomposition.ts";
 export {
   planSupervisorGoal
-} from "./orchestration-workflows/supervisor-goal-plan.ts";
+} from "./agent-council/supervisor-goal-plan.ts";
 export {
   DEFAULT_SUPERVISOR_APPROVAL_GATES,
   DEFAULT_SUPERVISOR_BUDGET,
@@ -295,8 +295,8 @@ export {
   loadSupervisorPolicy,
   resetSupervisorPolicyCache,
   resolveSupervisorPolicy
-} from "./orchestration-workflows/supervisor-config.ts";
-export { routeSupervisorWorkUnit } from "./orchestration-workflows/supervisor-routing.ts";
+} from "./agent-council/supervisor-config.ts";
+export { routeSupervisorWorkUnit } from "./agent-council/supervisor-routing.ts";
 export {
   assertActiveLaneCountWithinPolicy,
   assertLaneStateTransition,
@@ -307,81 +307,81 @@ export {
   getDefaultActiveLaneCap,
   LANE_LIFECYCLE_POLICY,
   resolveLanePolicy
-} from "./orchestration-workflows/lane-lifecycle.ts";
+} from "./agent-council/lane-lifecycle.ts";
 export {
   createSupervisorDispatchLoop,
   createSupervisorLaneDefinitions,
   evaluateRetryDecision
-} from "./orchestration-workflows/supervisor-scheduler.ts";
+} from "./agent-council/supervisor-scheduler.ts";
 export {
   buildSupervisorManagedWorktreePath,
   createSupervisorLaneWorktreeProvisioner,
   DEFAULT_SUPERVISOR_WORKTREE_ROOT
-} from "./orchestration-workflows/lane-worktree-provisioner.ts";
+} from "./agent-council/lane-worktree-provisioner.ts";
 export {
   assertMergePolicyAllowsAutoMerge,
   DEFAULT_MERGE_POLICY_MODE,
   evaluateMergePolicy,
   resolveMergePolicy
-} from "./orchestration-workflows/merge-policy.ts";
+} from "./agent-council/merge-policy.ts";
 export {
   DEFAULT_ESCALATION_THRESHOLD_PERCENT,
   DEFAULT_HARD_STOP_THRESHOLD_PERCENT,
   DEFAULT_WARNING_THRESHOLD_PERCENTS,
   evaluateBudgetGovernance,
   resolveBudgetGovernancePolicy
-} from "./orchestration-workflows/budget-governance.ts";
+} from "./agent-council/budget-governance.ts";
 export {
   assertLaneTurnOwner,
   canRoleWriteToLane,
   createLaneTurnHandoffContract,
   transferLaneTurn
-} from "./orchestration-workflows/turn-ownership.ts";
+} from "./agent-council/turn-ownership.ts";
 export {
   assertReviewReadyTransition,
   createReviewReadyEvidencePacket
-} from "./orchestration-workflows/review-ready-packet.ts";
+} from "./agent-council/review-ready-packet.ts";
 export {
   createReviewCoordinationBundle,
   renderReviewCoordinationPullRequestBody
-} from "./orchestration-workflows/review-coordination.ts";
+} from "./agent-council/review-coordination.ts";
 export {
   createSupervisorObservabilityDashboard,
   resolveHeartbeatHealth
-} from "./orchestration-workflows/observability-dashboard.ts";
+} from "./agent-council/observability-dashboard.ts";
 export {
   createSupervisorExecutionWorkflow
-} from "./orchestration-workflows/supervisor-execution-workflow.ts";
+} from "./agent-council/supervisor-execution-workflow.ts";
 export {
   createSupervisorDataLifecycleReport,
   DEFAULT_SUPERVISOR_DATA_LIFECYCLE_POLICY
-} from "./orchestration-workflows/data-lifecycle.ts";
+} from "./agent-council/data-lifecycle.ts";
 export {
   createAdHocRunHistoryRecord,
   linkAdHocRunArtifact
-} from "./orchestration-workflows/ad-hoc-run-history.ts";
+} from "./agent-council/ad-hoc-run-history.ts";
 export {
   createFileBackedSupervisorStateStore,
   DEFAULT_SUPERVISOR_STATE_ROOT,
   SUPERVISOR_STATE_STORE_SCHEMA_VERSION
-} from "./orchestration-workflows/durable-state-store.ts";
+} from "./agent-council/durable-state-store.ts";
 export {
   evaluateSupervisorApprovalGate,
   resolveSupervisorApprovalId
-} from "./orchestration-workflows/approval-gates.ts";
+} from "./agent-council/approval-gates.ts";
 export {
   buildSupervisorSessionId,
   createSupervisorSessionLifecycle,
   DEFAULT_SUPERVISOR_SESSION_STALL_TIMEOUT_MS
-} from "./orchestration-workflows/session-runtime-adapter.ts";
+} from "./agent-council/session-runtime-adapter.ts";
 export {
   classifySupervisorRecoveryPlaybook,
   DEFAULT_SUPERVISOR_RECOVERY_STALL_TIMEOUT_MS,
   detectSupervisorPartialCompletionGap,
   getSupervisorLaneRecoveryContext,
   mapChildFailureToRecoveryClass
-} from "./orchestration-workflows/recovery-repair-playbooks.ts";
-export { normalizeWorkUnit } from "./orchestration-workflows/work-unit.ts";
+} from "./agent-council/recovery-repair-playbooks.ts";
+export { normalizeWorkUnit } from "./agent-council/work-unit.ts";
 export type {
   ChildSessionState,
   ChildSessionRecord,
@@ -389,7 +389,7 @@ export type {
   ChildSessionFailureCode,
   ChildSessionTimeoutPolicy,
   ChildSessionDeduplicationKey
-} from "./orchestration-workflows/child-session-lifecycle.ts";
+} from "./agent-council/child-session-lifecycle.ts";
 export {
   canTransitionChildSession,
   assertChildSessionTransition,
@@ -399,7 +399,7 @@ export {
   CHILD_SESSION_TRANSITIONS,
   DEFAULT_CHILD_SESSION_RETRY_POLICY,
   DEFAULT_CHILD_SESSION_TIMEOUT_POLICY
-} from "./orchestration-workflows/child-session-lifecycle.ts";
+} from "./agent-council/child-session-lifecycle.ts";
 export type {
   SupervisorEventKind,
   SupervisorMvpEventKind,
@@ -407,42 +407,42 @@ export type {
   SupervisorEventLevel,
   SupervisorEvent,
   SupervisorCorrelationContext
-} from "./orchestration-workflows/supervisor-event-catalog.ts";
+} from "./agent-council/supervisor-event-catalog.ts";
 export {
   createSupervisorEvent,
   buildCorrelationId,
   isMinimumViableEvent,
   MINIMUM_VIABLE_EVENTS,
   EVENT_DEFAULT_LEVELS
-} from "./orchestration-workflows/supervisor-event-catalog.ts";
+} from "./agent-council/supervisor-event-catalog.ts";
 export type {
   DelegationBridgeInput,
   DelegationBridgeResult,
   DelegationBridgeProvenanceLog
-} from "./orchestration-workflows/delegation-bridge.ts";
+} from "./agent-council/delegation-bridge.ts";
 export {
   bridgeDelegationPlan,
   detectDelegationPlanSource,
   MANAGER_ROLES,
   IMPLEMENTATION_ROLES
-} from "./orchestration-workflows/delegation-bridge.ts";
+} from "./agent-council/delegation-bridge.ts";
 export type {
   SupervisorPlanResult
-} from "./orchestration-workflows/supervisor-trigger.ts";
+} from "./agent-council/supervisor-trigger.ts";
 export {
   detectSupervisorTrigger,
   buildSupervisorPlan,
   formatSupervisorPreview,
   SUPERVISOR_TRIGGER_REGEX
-} from "./orchestration-workflows/supervisor-trigger.ts";
+} from "./agent-council/supervisor-trigger.ts";
 export {
   buildSupervisorSystemInstruction
-} from "./orchestration-workflows/supervisor-system-instructions.ts";
+} from "./agent-council/supervisor-system-instructions.ts";
 export type {
   OpencodeClientAdapterOptions
-} from "./orchestration-workflows/opencode-client-adapter.ts";
+} from "./agent-council/opencode-client-adapter.ts";
 export {
   createOpencodeClientRuntimeAdapter,
   abortChildSession,
   getChildSessionMessages
-} from "./orchestration-workflows/opencode-client-adapter.ts";
+} from "./agent-council/opencode-client-adapter.ts";

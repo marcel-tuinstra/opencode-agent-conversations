@@ -3,7 +3,7 @@ import {
   type CreateSupervisorDataLifecycleReportInput,
   type SupervisorDataLifecycleReport
 } from "./data-lifecycle.ts";
-import { debugLog } from "../../../plugins/orchestration-workflows/debug.ts";
+import { debugLog } from "../../../plugins/agent-council/debug.ts";
 import { createSupervisorEvent, type SupervisorEvent } from "./supervisor-event-catalog.ts";
 import type { SupervisorObservedThresholdEvent } from "./observability-dashboard.ts";
 import {
@@ -27,7 +27,7 @@ import {
   type RunSupervisorDispatchLoopInput,
   type RunSupervisorDispatchLoopResult
 } from "./supervisor-scheduler.ts";
-import { createSupervisorReasonDetail, formatSupervisorReason } from "../../../plugins/orchestration-workflows/reason-codes.ts";
+import { createSupervisorReasonDetail, formatSupervisorReason } from "../../../plugins/agent-council/reason-codes.ts";
 
 export type SupervisorWorkflowStage = "intake" | "dispatch" | "approval" | "recovery" | "review" | "completion";
 export type SupervisorWorkflowStageStatus = "ready" | "blocked" | "completed";

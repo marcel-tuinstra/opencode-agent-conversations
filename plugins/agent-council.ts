@@ -3,5 +3,5 @@
 // Any non-function export (arrays, constants) will crash the loader.
 //
 // The stable package contract lives in index.ts (npm package root)
-// The experimental supervisor contract lives in plugins/orchestration-workflows-supervisor.ts
-export { AgentConversations } from "./orchestration-workflows/index.ts";
+// The experimental supervisor contract lives in plugins/agent-council-supervisor.ts
+export { AgentConversations } from "./agent-council/index.ts";

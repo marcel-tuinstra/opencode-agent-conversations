@@ -4,7 +4,7 @@ The package now has two intentionally different public contracts: a small stable
 
 ## 1. Live plugin runtime
 
-The active OpenCode plugin lives in `plugins/orchestration-workflows/index.ts` and hooks into four experimental plugin extension points:
+The active OpenCode plugin lives in `plugins/agent-council/index.ts` and hooks into four experimental plugin extension points:
 
 ```
   User prompt with @mentions
@@ -73,6 +73,6 @@ In `v0.5.0`, these supervisor APIs move behind an experimental supervisor entry 
 - The live orchestration runtime contract is stable and intentionally small.
 - Supervisor planning and execution helpers are still experimental, even though they are typed and tested.
 
-Consumers that adopt supervisor helpers should import them from `opencode-council/supervisor` and should plan for additional API iteration before the supervisor surface is stabilized in `v0.6.0`.
+Consumers that adopt supervisor helpers should import them from `agent-council/supervisor` and should plan for additional API iteration before the supervisor surface is stabilized in `v0.6.0`.
 
 The design specs for these components are maintained in Shortcut (linked from sc-527) rather than in the repo, to keep the documentation surface focused on user-facing features.

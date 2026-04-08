@@ -19,13 +19,13 @@ npx agent-council init --platform opencode --platform claude-code --platform cod
 Legacy alias (still supported):
 
 ```bash
-npx opencode-council init
+npx agent-council init
 ```
 
 Without Node.js:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/opencode-council/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/agent-council/main/install.sh | bash
 ```
 
 Restart OpenCode after installing.
@@ -34,7 +34,7 @@ Restart OpenCode after installing.
 
 - The canonical compatibility and deprecation policy lives in [`../guides/compatibility-and-deprecations.md`](../guides/compatibility-and-deprecations.md).
 - Root package exports and CLI verbs are covered there.
-- The supervisor entry point, `opencode-council/supervisor`, remains experimental.
+- The supervisor entry point, `agent-council/supervisor`, remains experimental.
 
 ## Managing your install
 
@@ -46,19 +46,19 @@ npx agent-council uninstall      # Clean removal
 
 Use `--dry-run` with any command to see what would happen without making changes. Use `--backup` with `refresh` to create `.bak` copies before overwriting.
 
-If you already use `opencode-council`, command aliases are still supported during migration.
+If you already use `agent-council`, command aliases are still supported during migration.
 
 ## Manual install
 
 If you prefer to copy files yourself:
 
 ```bash
-git clone https://github.com/marcel-tuinstra/opencode-council.git
-cd opencode-council
+git clone https://github.com/marcel-tuinstra/agent-council.git
+cd agent-council
 
 mkdir -p ~/.opencode/plugins ~/.opencode/agents
-cp plugins/orchestration-workflows.ts ~/.opencode/plugins/
-cp -R plugins/orchestration-workflows ~/.opencode/plugins/
+cp plugins/agent-council.ts ~/.opencode/plugins/
+cp -R plugins/agent-council ~/.opencode/plugins/
 cp agents/*.md ~/.opencode/agents/
 ```
 
@@ -90,7 +90,7 @@ If the plugin works but `@fe`, `@be`, or `@ux` do not appear in tag suggestions:
 ORCHESTRATION_WORKFLOWS_DEBUG=1 opencode web
 ```
 
-This enables plugin debug logging to stderr. `1`, `true`, `yes`, and `on` all enable it. Look for lines prefixed with `[orchestration-workflows]`.
+This enables plugin debug logging to stderr. `1`, `true`, `yes`, and `on` all enable it. Look for lines prefixed with `[agent-council]`.
 
 For debug env var and policy compatibility expectations, use the canonical policy doc: [`../guides/compatibility-and-deprecations.md`](../guides/compatibility-and-deprecations.md).
 
@@ -122,10 +122,10 @@ Common provenance lines:
 
 | Symptom | Likely cause | What to check |
 | --- | --- | --- |
-| `@fe`, `@be`, or `@ux` parse in debug logs but do not appear in suggestions | stale or missing agent markdown sync | re-copy `agents/*.md`, restart OpenCode, then run `npx opencode-council verify` |
+| `@fe`, `@be`, or `@ux` parse in debug logs but do not appear in suggestions | stale or missing agent markdown sync | re-copy `agents/*.md`, restart OpenCode, then run `npx agent-council verify` |
 | policy changes in `.opencode/supervisor-policy.json` do not seem to apply | file is invalid or unreadable, so the runtime failed safe | run with `ORCHESTRATION_WORKFLOWS_DEBUG=1` and look for `supervisor.policy.invalid` or `supervisor.policy.load_failed` |
 | budget thresholds do not match the repo policy file | shell environment overrides are winning | check for `ORCHESTRATION_WORKFLOWS_BUDGET_*` or `ORCHESTRATION_WORKFLOWS_EXECUTE_STEP_TOKEN_COST` in the current shell |
 | response ends with `blocked.missing-mcp-provider` or `blocked.mcp-access` | required MCP coverage or access is missing | mention the needed provider explicitly and verify the current policy allows that MCP action |
 | response ends with `budget.output-compact`, `budget.output-truncate`, or `budget.output-halt` | budget governance intervened | retry with a narrower scope, fewer roles, or an explicit budget override when policy allows it |
 
-If the debug output shows `FE`, `BE`, or `UX` in role parsing but the picker still hides them, the most likely problem is a missing or stale `~/.opencode/agents/*.md` sync. Run `npx opencode-council verify` to check.
+If the debug output shows `FE`, `BE`, or `UX` in role parsing but the picker still hides them, the most likely problem is a missing or stale `~/.opencode/agents/*.md` sync. Run `npx agent-council verify` to check.

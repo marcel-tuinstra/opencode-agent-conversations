@@ -2,9 +2,9 @@ import { describe, expect, it } from "vitest";
 import {
   appendSupervisorDecisionNotes,
   stripControlLeakage
-} from "../plugins/orchestration-workflows/output";
-import { buildTurnTargets } from "../plugins/orchestration-workflows/intent";
-import type { Role } from "../plugins/orchestration-workflows/types";
+} from "../plugins/agent-council/output";
+import { buildTurnTargets } from "../plugins/agent-council/intent";
+import type { Role } from "../plugins/agent-council/types";
 
 /**
  * Acceptance tests for the remaining delegated task-launch gap.

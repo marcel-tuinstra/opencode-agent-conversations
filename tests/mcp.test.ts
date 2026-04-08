@@ -4,8 +4,8 @@ import {
   checkMcpAccess,
   detectMcpProvidersWithPatterns,
   resolveProviderFromToolName
-} from "../plugins/orchestration-workflows/mcp";
-import type { SessionPolicy } from "../plugins/orchestration-workflows/types";
+} from "../plugins/agent-council/mcp";
+import type { SessionPolicy } from "../plugins/agent-council/types";
 
 const basePolicy = (): SessionPolicy => ({
   roles: ["CTO", "DEV"],

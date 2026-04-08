@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { SupervisorRunState } from "../plugins/orchestration-workflows/durable-state-store";
+import type { SupervisorRunState } from "../plugins/agent-council/durable-state-store";
 import {
   classifySupervisorRecoveryPlaybook,
   getSupervisorLaneRecoveryContext,
   mapChildFailureToRecoveryClass
-} from "../plugins/orchestration-workflows/recovery-repair-playbooks";
-import type { SupervisorLaneWorktreeReconciliationReport } from "../plugins/orchestration-workflows/lane-worktree-provisioner";
-import type { ChildSessionFailureCode } from "../plugins/orchestration-workflows/child-session-lifecycle";
+} from "../plugins/agent-council/recovery-repair-playbooks";
+import type { SupervisorLaneWorktreeReconciliationReport } from "../plugins/agent-council/lane-worktree-provisioner";
+import type { ChildSessionFailureCode } from "../plugins/agent-council/child-session-lifecycle";
 
 const createRunState = (): SupervisorRunState => ({
   schemaVersion: 2,
@@ -197,7 +197,7 @@ describe("recovery-repair-playbooks", () => {
       laneId: "lane-2",
       observedAt: "2026-03-13T16:06:00.000Z",
       mergeConflict: {
-        files: ["plugins/orchestration-workflows/supervisor-scheduler.ts"],
+        files: ["plugins/agent-council/supervisor-scheduler.ts"],
         detail: "Rebase onto epic/supervisor-alpha produced a content conflict."
       }
     });

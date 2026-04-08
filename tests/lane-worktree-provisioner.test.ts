@@ -2,13 +2,13 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { createFileBackedSupervisorStateStore } from "../plugins/orchestration-workflows/durable-state-store";
+import { createFileBackedSupervisorStateStore } from "../plugins/agent-council/durable-state-store";
 import {
   buildSupervisorManagedWorktreePath,
   createSupervisorLaneWorktreeProvisioner,
   type GitWorktreeEntry,
   type SupervisorLaneWorktreeSystem
-} from "../plugins/orchestration-workflows/lane-worktree-provisioner";
+} from "../plugins/agent-council/lane-worktree-provisioner";
 
 const tempDirs: string[] = [];
 

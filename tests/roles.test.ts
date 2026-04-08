@@ -4,7 +4,7 @@ import {
   detectRolesFromText,
   normalizeRole,
   parseRolesFromMarker
-} from "../plugins/orchestration-workflows/roles";
+} from "../plugins/agent-council/roles";
 
 describe("roles", () => {
   it("normalizes role aliases", () => {

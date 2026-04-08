@@ -1,5 +1,5 @@
 import { planWorkUnitLanes, type LanePlan, type LanePlanningWorkUnit } from "./lane-plan.ts";
-import { createSupervisorLaneDefinitions, type CreateSupervisorLaneDefinitionsOptions, type SupervisorLaneDefinition } from "../../../plugins/orchestration-workflows/supervisor-scheduler.ts";
+import { createSupervisorLaneDefinitions, type CreateSupervisorLaneDefinitionsOptions, type SupervisorLaneDefinition } from "../../../plugins/agent-council/supervisor-scheduler.ts";
 import type { PlanSupervisorGoalResult } from "./supervisor-goal-plan.ts";
 
 export type DecomposeSupervisorGoalIntoLanesInput = {

@@ -19,7 +19,7 @@ Mandatory parity areas:
 1. **Architecture freeze** (`done`)
    - package boundaries (`core`, `runtime`, `generator`, adapters, `cli`)
    - capability matrix for OpenCode/Claude/Codex
-   - backward compatibility rules for `opencode-council`
+   - backward compatibility rules for `agent-council`
 
 2. **Core and runtime extraction** (`in progress`)
    - isolate platform-agnostic logic into `packages/core`
@@ -49,7 +49,7 @@ Mandatory parity areas:
    - parity execution path for governance/supervisor/budget
 
 8. **Compatibility and release hardening** (`in progress`)
-   - deprecated `opencode-council` wrapper behavior
+   - deprecated `agent-council` wrapper behavior
    - migration docs and release notes
    - cross-platform conformance tests
 
@@ -60,4 +60,4 @@ Current hardening gate status is tracked in [`agent-council-1.0.0-hardening.md`]
 - all three adapters pass the same parity acceptance scenarios
 - generated assets come from shared sources only
 - interactive and non-interactive install flows both pass
-- `opencode-council` alias continues to work with deprecation messaging
+- `agent-council` alias continues to work with deprecation messaging

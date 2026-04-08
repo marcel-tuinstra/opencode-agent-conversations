@@ -6,8 +6,8 @@ import {
   DEFAULT_SUPERVISOR_POLICY_PATH,
   loadSupervisorPolicy,
   resolveSupervisorPolicy
-} from "../plugins/orchestration-workflows/supervisor-config";
-import { BUDGET_PROFILES } from "../plugins/orchestration-workflows/budget-profiles";
+} from "../plugins/agent-council/supervisor-config";
+import { BUDGET_PROFILES } from "../plugins/agent-council/budget-profiles";
 
 describe("supervisor-config", () => {
   it("resolves the v1-safe defaults when no repo policy is present", () => {

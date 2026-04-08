@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   evaluateSupervisorApprovalGate,
   resolveSupervisorApprovalId
-} from "../plugins/orchestration-workflows/approval-gates";
+} from "../plugins/agent-council/approval-gates";
 
 describe("approval-gates", () => {
   it("creates a pending approval record and pauses at governance boundaries", () => {
@@ -13,7 +13,7 @@ describe("approval-gates", () => {
       summary: "Pause before merging the lane PR into the alpha base branch.",
       rationale: "Merges widen the shipped automation surface and need an explicit human checkpoint.",
       context: {
-        changedPaths: ["plugins/orchestration-workflows/supervisor-scheduler.ts"],
+        changedPaths: ["plugins/agent-council/supervisor-scheduler.ts"],
         targetRef: "epic/supervisor-alpha"
       }
     };
@@ -47,9 +47,9 @@ describe("approval-gates", () => {
       policyRequiresApproval: true,
       requestOverrideApplied: false,
       effectiveRequiresApproval: true,
-      changedPaths: ["plugins/orchestration-workflows/supervisor-scheduler.ts"],
+      changedPaths: ["plugins/agent-council/supervisor-scheduler.ts"],
       protectedPathOutcome: "requires-human",
-      protectedPaths: ["plugins/orchestration-workflows/supervisor-scheduler.ts"],
+      protectedPaths: ["plugins/agent-council/supervisor-scheduler.ts"],
       deniedPaths: [],
       protectedPathAuditExpectations: [
         "Attach the changed paths, the approving human, and the reason for the exception before continuing."
@@ -87,7 +87,7 @@ describe("approval-gates", () => {
       requestedAt: "2026-03-13T16:00:00.000Z",
       updatedAt: "2026-03-13T16:00:00.000Z",
       context: {
-        changedPaths: ["plugins/orchestration-workflows/supervisor-scheduler.ts"],
+        changedPaths: ["plugins/agent-council/supervisor-scheduler.ts"],
         targetRef: "epic/supervisor-alpha"
       }
     };
@@ -176,7 +176,7 @@ describe("approval-gates", () => {
         summary: "Write a generated file inside the guarded orchestration surface.",
         rationale: "This write needs protected-path evidence before the supervisor can continue.",
         context: {
-          changedPaths: ["plugins/orchestration-workflows/governance-policy.ts"]
+          changedPaths: ["plugins/agent-council/governance-policy.ts"]
         }
       }
     });
@@ -188,9 +188,9 @@ describe("approval-gates", () => {
       policyRequiresApproval: false,
       requestOverrideApplied: false,
       effectiveRequiresApproval: true,
-      changedPaths: ["plugins/orchestration-workflows/governance-policy.ts"],
+      changedPaths: ["plugins/agent-council/governance-policy.ts"],
       protectedPathOutcome: "requires-human",
-      protectedPaths: ["plugins/orchestration-workflows/governance-policy.ts"],
+      protectedPaths: ["plugins/agent-council/governance-policy.ts"],
       deniedPaths: [],
       protectedPathAuditExpectations: [
         "Attach the changed paths, the approving human, and the reason for the exception before continuing."

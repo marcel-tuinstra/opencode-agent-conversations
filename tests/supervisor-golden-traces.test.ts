@@ -2,26 +2,26 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { createFileBackedSupervisorStateStore, type SupervisorRunState } from "../plugins/orchestration-workflows/durable-state-store";
-import { evaluateGovernancePolicy, type GovernancePolicyDecision } from "../plugins/orchestration-workflows/governance-policy";
+import { createFileBackedSupervisorStateStore, type SupervisorRunState } from "../plugins/agent-council/durable-state-store";
+import { evaluateGovernancePolicy, type GovernancePolicyDecision } from "../plugins/agent-council/governance-policy";
 import {
   createSupervisorLaneWorktreeProvisioner,
   type GitWorktreeEntry,
   type SupervisorLaneWorktreeSystem
-} from "../plugins/orchestration-workflows/lane-worktree-provisioner";
-import { planWorkUnitLanes } from "../plugins/orchestration-workflows/lane-plan";
-import { evaluateProtectedPathPolicy } from "../plugins/orchestration-workflows/protected-path-policy";
-import { createReviewReadyEvidencePacket, type ReviewReadyEvidencePacketInput } from "../plugins/orchestration-workflows/review-ready-packet";
+} from "../plugins/agent-council/lane-worktree-provisioner";
+import { planWorkUnitLanes } from "../plugins/agent-council/lane-plan";
+import { evaluateProtectedPathPolicy } from "../plugins/agent-council/protected-path-policy";
+import { createReviewReadyEvidencePacket, type ReviewReadyEvidencePacketInput } from "../plugins/agent-council/review-ready-packet";
 import {
   createSupervisorSessionLifecycle,
   type AttachSupervisorRuntimeSessionInput,
   type LaunchSupervisorRuntimeSessionInput,
   type SupervisorSessionRuntimeAdapter
-} from "../plugins/orchestration-workflows/session-runtime-adapter";
-import { createSupervisorDispatchLoop, createSupervisorLaneDefinitions, type SupervisorDispatchLaneInput } from "../plugins/orchestration-workflows/supervisor-scheduler";
-import { resolveSupervisorPolicy } from "../plugins/orchestration-workflows/supervisor-config";
-import { createSupervisorExecutionWorkflow } from "../plugins/orchestration-workflows/supervisor-execution-workflow";
-import { normalizeWorkUnit } from "../plugins/orchestration-workflows/work-unit";
+} from "../plugins/agent-council/session-runtime-adapter";
+import { createSupervisorDispatchLoop, createSupervisorLaneDefinitions, type SupervisorDispatchLaneInput } from "../plugins/agent-council/supervisor-scheduler";
+import { resolveSupervisorPolicy } from "../plugins/agent-council/supervisor-config";
+import { createSupervisorExecutionWorkflow } from "../plugins/agent-council/supervisor-execution-workflow";
+import { normalizeWorkUnit } from "../plugins/agent-council/work-unit";
 import {
   supervisorGoldenTracesFixture,
   type GoldenScenarioFixture,

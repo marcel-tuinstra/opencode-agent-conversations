@@ -1,7 +1,7 @@
 import { describe, expect, expectTypeOf, it } from "vitest";
-import * as pluginEntry from "../plugins/orchestration-workflows.js";
+import * as pluginEntry from "../plugins/agent-council.js";
 import * as packageRoot from "../index.js";
-import * as supervisorRoot from "../plugins/orchestration-workflows-supervisor.js";
+import * as supervisorRoot from "../plugins/agent-council-supervisor.js";
 import {
   AgentConversations,
   SUPPORTED_ROLES,
@@ -22,7 +22,7 @@ import {
   bridgeDelegationPlan,
   evaluateRetryDecision,
   CHILD_SESSION_TRANSITIONS
-} from "../plugins/orchestration-workflows-supervisor.js";
+} from "../plugins/agent-council-supervisor.js";
 import type {
   DelegationMode as SourceDelegationMode,
   DelegationPlan as SourceDelegationPlan,
@@ -31,7 +31,7 @@ import type {
   Intent as SourceIntent,
   Role as SourceRole,
   SessionPolicy as SourceSessionPolicy
-} from "../plugins/orchestration-workflows/types.js";
+} from "../plugins/agent-council/types.js";
 
 describe("orchestration workflow package barrels", () => {
   it("plugin entry exports ONLY the plugin factory", () => {

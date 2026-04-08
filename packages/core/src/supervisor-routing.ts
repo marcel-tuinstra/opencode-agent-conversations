@@ -1,13 +1,13 @@
-import type { SupervisorRunState } from "../../../plugins/orchestration-workflows/durable-state-store.ts";
+import type { SupervisorRunState } from "../../../plugins/agent-council/durable-state-store.ts";
 import {
   createSupervisorThresholdEventId,
   type SupervisorThresholdEvent
-} from "../../../plugins/orchestration-workflows/guardrail-thresholds.ts";
+} from "../../../plugins/agent-council/guardrail-thresholds.ts";
 import { detectIntent } from "./intent.ts";
-import type { SupervisorReasonCode, SupervisorReasonDetail } from "../../../plugins/orchestration-workflows/reason-codes.ts";
-import { createSupervisorReasonDetail } from "../../../plugins/orchestration-workflows/reason-codes.ts";
-import { getSupervisorPolicy, type SupervisorExecutionPath } from "../../../plugins/orchestration-workflows/supervisor-config.ts";
-import type { SupervisorLaneDefinition } from "../../../plugins/orchestration-workflows/supervisor-scheduler.ts";
+import type { SupervisorReasonCode, SupervisorReasonDetail } from "../../../plugins/agent-council/reason-codes.ts";
+import { createSupervisorReasonDetail } from "../../../plugins/agent-council/reason-codes.ts";
+import { getSupervisorPolicy, type SupervisorExecutionPath } from "../../../plugins/agent-council/supervisor-config.ts";
+import type { SupervisorLaneDefinition } from "../../../plugins/agent-council/supervisor-scheduler.ts";
 import type { Role } from "./types.ts";
 import type { WorkUnit } from "./work-unit.ts";
 

@@ -27,8 +27,8 @@ Expected behavior:
 After merging changes to `main`, refresh both runtime and agent files locally:
 
 ```bash
-cp plugins/orchestration-workflows.ts ~/.opencode/plugins/orchestration-workflows.ts
-cp -R plugins/orchestration-workflows ~/.opencode/plugins/orchestration-workflows
+cp plugins/agent-council.ts ~/.opencode/plugins/agent-council.ts
+cp -R plugins/agent-council ~/.opencode/plugins/agent-council
 cp agents/*.md ~/.opencode/agents/
 ```
 

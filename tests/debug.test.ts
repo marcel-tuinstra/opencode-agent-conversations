@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { buildDiagnosticsEnvelope } from "../plugins/orchestration-workflows/debug";
+import { buildDiagnosticsEnvelope } from "../plugins/agent-council/debug";
 
 describe("debug diagnostics envelope", () => {
   it("normalizes correlation ids, reason codes, remediation, and details", () => {

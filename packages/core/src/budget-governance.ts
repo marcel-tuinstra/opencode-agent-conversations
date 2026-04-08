@@ -1,12 +1,12 @@
-import { DEFAULT_SUPERVISOR_BUDGET, getSupervisorPolicy } from "../../../plugins/orchestration-workflows/supervisor-config.ts";
+import { DEFAULT_SUPERVISOR_BUDGET, getSupervisorPolicy } from "../../../plugins/agent-council/supervisor-config.ts";
 import {
   createSupervisorThresholdEventId,
   type SupervisorThresholdEvent
-} from "../../../plugins/orchestration-workflows/guardrail-thresholds.ts";
+} from "../../../plugins/agent-council/guardrail-thresholds.ts";
 import {
   createSupervisorReasonDetail,
   type SupervisorReasonDetail
-} from "../../../plugins/orchestration-workflows/reason-codes.ts";
+} from "../../../plugins/agent-council/reason-codes.ts";
 
 export type BudgetGovernanceScope = "run" | "step";
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { decomposeSupervisorGoalIntoLanes } from "../plugins/orchestration-workflows/lane-decomposition";
-import type { LanePlanningWorkUnit } from "../plugins/orchestration-workflows/lane-plan";
-import { planSupervisorGoal } from "../plugins/orchestration-workflows/supervisor-goal-plan";
-import { normalizeWorkUnit } from "../plugins/orchestration-workflows/work-unit";
+import { decomposeSupervisorGoalIntoLanes } from "../plugins/agent-council/lane-decomposition";
+import type { LanePlanningWorkUnit } from "../plugins/agent-council/lane-plan";
+import { planSupervisorGoal } from "../plugins/agent-council/supervisor-goal-plan";
+import { normalizeWorkUnit } from "../plugins/agent-council/work-unit";
 
 describe("lane-decomposition", () => {
   it("combines supported goal planning with dependency-safe lane previews", () => {

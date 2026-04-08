@@ -1,6 +1,6 @@
 # Compatibility and Deprecations
 
-This document is the single source of truth for compatibility promises, deprecation timing, and removal rules in `opencode-council` for `0.5.x`.
+This document is the single source of truth for compatibility promises, deprecation timing, and removal rules in `agent-council` for `0.5.x`.
 
 Use it when deciding whether a change is safe for a patch or minor release in the `0.5` line.
 
@@ -8,7 +8,7 @@ Use it when deciding whether a change is safe for a patch or minor release in th
 
 ### Stable root
 
-The package root export, `opencode-council`, is frozen for `0.5.x`.
+The package root export, `agent-council`, is frozen for `0.5.x`.
 
 Runtime exports:
 
@@ -34,7 +34,7 @@ Rules for `0.5.x`:
 
 ### Experimental supervisor
 
-The `opencode-council/supervisor` entry point remains explicitly experimental through at least all `0.5.x` releases.
+The `agent-council/supervisor` entry point remains explicitly experimental through at least all `0.5.x` releases.
 
 Rules for `0.5.x`:
 
@@ -48,7 +48,7 @@ Anything not exported from the package entry points or not documented here is in
 
 Internal code may change at any time, including:
 
-- module layout under `plugins/orchestration-workflows/`
+- module layout under `plugins/agent-council/`
 - implementation details behind CLI commands
 - internal helper types and private config normalization details
 
@@ -58,7 +58,7 @@ Treat `0.5.x` as a compatibility line with a frozen public operator contract.
 
 - Patch releases may fix bugs, improve docs, tighten tests, and add internal refactors.
 - Patch releases must preserve the stable root exports, stable CLI command names, and documented budget/policy contract.
-- Minor or patch releases in `0.5.x` may add supervisor capabilities under `opencode-council/supervisor` because that surface is experimental.
+- Minor or patch releases in `0.5.x` may add supervisor capabilities under `agent-council/supervisor` because that surface is experimental.
 - Any change that would break the stable root, CLI contract, or documented config contract must wait for a new minor line after `0.5.x` and must be deprecated first when possible.
 
 ## Deprecation rules
@@ -93,7 +93,7 @@ Removal process:
 
 ## CLI compatibility guarantees
 
-The `opencode-council` CLI command name is stable for `0.5.x`.
+The `agent-council` CLI command name is stable for `0.5.x`.
 
 The following command names and high-level intents are stable for `0.5.x`:
 

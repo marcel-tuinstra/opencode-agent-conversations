@@ -2,14 +2,14 @@ import { mkdtempSync, rmSync } from "node:fs";
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { createFileBackedSupervisorStateStore } from "../plugins/orchestration-workflows/durable-state-store";
+import { createFileBackedSupervisorStateStore } from "../plugins/agent-council/durable-state-store";
 import {
   createSupervisorSessionLifecycle,
   type AttachSupervisorRuntimeSessionInput,
   type LaunchSupervisorRuntimeSessionInput,
   type SupervisorSessionRuntimeAdapter
-} from "../plugins/orchestration-workflows/session-runtime-adapter";
-import type { SupervisorEvent } from "../plugins/orchestration-workflows/supervisor-event-catalog";
+} from "../plugins/agent-council/session-runtime-adapter";
+import type { SupervisorEvent } from "../plugins/agent-council/supervisor-event-catalog";
 
 const tempDirs: string[] = [];
 
@@ -476,7 +476,7 @@ describe("session-runtime-adapter", () => {
     expect(state?.childSessions[0]?.state).toBe("cancelled");
 
     // The assertChildSessionTransition function prevents invalid jumps
-    const { assertChildSessionTransition } = await import("../plugins/orchestration-workflows/child-session-lifecycle");
+    const { assertChildSessionTransition } = await import("../plugins/agent-council/child-session-lifecycle");
     expect(() => assertChildSessionTransition("cancelled", "active")).toThrow(
       "Invalid child-session transition: cancelled -> active"
     );

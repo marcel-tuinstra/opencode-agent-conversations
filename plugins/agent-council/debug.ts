@@ -92,5 +92,5 @@ export const debugLog = (event: string, details?: Record<string, unknown>) => {
     return;
   }
 
-  console.error(`[orchestration-workflows] ${JSON.stringify(buildDiagnosticsEnvelope(event, details))}`);
+  console.error(`[agent-council] ${JSON.stringify(buildDiagnosticsEnvelope(event, details))}`);
 };

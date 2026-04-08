@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { createAdHocRunHistoryRecord } from "../plugins/orchestration-workflows/ad-hoc-run-history";
-import { createSupervisorDataLifecycleReport } from "../plugins/orchestration-workflows/data-lifecycle";
-import { normalizeWorkUnit } from "../plugins/orchestration-workflows/work-unit";
+import { createAdHocRunHistoryRecord } from "../plugins/agent-council/ad-hoc-run-history";
+import { createSupervisorDataLifecycleReport } from "../plugins/agent-council/data-lifecycle";
+import { normalizeWorkUnit } from "../plugins/agent-council/work-unit";
 
 describe("data-lifecycle", () => {
   it("fails closed for durable runs with active governance and evidence signals", () => {

@@ -9,12 +9,12 @@ export const OPENCODE_ADAPTER: AdapterDescriptor = {
     type: "copy",
     entries: [
       {
-        source: "plugins/orchestration-workflows.ts",
+        source: "plugins/agent-council.ts",
         destination: "~/.opencode/plugins"
       },
       {
-        source: "plugins/orchestration-workflows",
-        destination: "~/.opencode/plugins/orchestration-workflows"
+        source: "plugins/agent-council",
+        destination: "~/.opencode/plugins/agent-council"
       },
       {
         source: "generated/opencode/agents",

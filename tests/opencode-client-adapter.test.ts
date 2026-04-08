@@ -5,11 +5,11 @@ import {
   abortChildSession,
   getChildSessionMessages,
   type OpencodeClientAdapterOptions
-} from "../plugins/orchestration-workflows/opencode-client-adapter.ts";
+} from "../plugins/agent-council/opencode-client-adapter.ts";
 import type {
   LaunchSupervisorRuntimeSessionInput,
   AttachSupervisorRuntimeSessionInput
-} from "../plugins/orchestration-workflows/session-runtime-adapter.ts";
+} from "../plugins/agent-council/session-runtime-adapter.ts";
 
 // ---------------------------------------------------------------------------
 // Mock factory

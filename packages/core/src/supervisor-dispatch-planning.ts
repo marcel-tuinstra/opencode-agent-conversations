@@ -4,7 +4,7 @@ import {
   routeSupervisorWorkUnit,
   type RouteSupervisorWorkUnitResult
 } from "./supervisor-routing.ts";
-import type { SupervisorDispatchLaneInput } from "../../../plugins/orchestration-workflows/supervisor-scheduler.ts";
+import type { SupervisorDispatchLaneInput } from "../../../plugins/agent-council/supervisor-scheduler.ts";
 import type { PlanSupervisorGoalResult } from "./supervisor-goal-plan.ts";
 
 export type CreateSupervisorDispatchPlanInput = DecomposeSupervisorGoalIntoLanesInput & {

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import { createSupervisorDispatchPlan } from "../plugins/orchestration-workflows/supervisor-dispatch-planning";
-import type { LanePlanningWorkUnit } from "../plugins/orchestration-workflows/lane-plan";
-import { planSupervisorGoal } from "../plugins/orchestration-workflows/supervisor-goal-plan";
-import { normalizeWorkUnit } from "../plugins/orchestration-workflows/work-unit";
+import { createSupervisorDispatchPlan } from "../plugins/agent-council/supervisor-dispatch-planning";
+import type { LanePlanningWorkUnit } from "../plugins/agent-council/lane-plan";
+import { planSupervisorGoal } from "../plugins/agent-council/supervisor-goal-plan";
+import { normalizeWorkUnit } from "../plugins/agent-council/work-unit";
 
 describe("supervisor-dispatch-planning", () => {
   it("builds scheduler-ready lane inputs from goal planning and explicit work units", () => {

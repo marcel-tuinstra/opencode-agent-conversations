@@ -2,7 +2,7 @@ import { execFileSync } from "node:child_process";
 import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { describe, expect, it } from "vitest";
-import * as pluginEntry from "../plugins/orchestration-workflows.js";
+import * as pluginEntry from "../plugins/agent-council.js";
 import * as packageRoot from "../index.js";
 
 const repoRoot = fileURLToPath(new URL("../", import.meta.url));
@@ -20,13 +20,12 @@ describe("public contract guardrails", () => {
     expect(packageJson.name).toBe("agent-council");
     expect(packageJson.exports).toEqual({
       ".": "./index.ts",
-      "./supervisor": "./plugins/orchestration-workflows-supervisor.ts",
+      "./supervisor": "./plugins/agent-council-supervisor.ts",
       "./core": "./packages/core/src/index.ts",
       "./runtime": "./packages/runtime/src/index.ts"
     });
     expect(packageJson.bin).toEqual({
-      "agent-council": "bin/cli.mjs",
-      "opencode-council": "bin/cli.mjs"
+      "agent-council": "bin/cli.mjs"
     });
   });
 
@@ -54,7 +53,6 @@ describe("public contract guardrails", () => {
     });
 
     expect(helpOutput).toContain("agent-council <command> [options]");
-    expect(helpOutput).toContain("opencode-council <command> [options]");
     expect(helpOutput).toContain("init        Install agent-council into selected platforms");
     expect(helpOutput).toContain("refresh     Reinstall from source for selected platforms");
     expect(helpOutput).toContain("verify      Health-check selected platform installs");

@@ -15,7 +15,7 @@ This is a full-parity release, not a partial port. The `1.0.0` bar includes:
 - budget engine parity
 - shared agent definitions across all platforms
 - a unified installer with interactive and non-interactive flows
-- deprecated backward compatibility for `opencode-council`
+- deprecated backward compatibility for `agent-council`
 
 The recommended architecture is a monorepo with shared runtime/domain packages, a prompt generator, and thin platform adapters.
 
@@ -35,9 +35,9 @@ Release `1.0.0` simultaneously on:
 
 ### Backward compatibility
 
-Keep `opencode-council` as a deprecated compatibility wrapper:
+Keep `agent-council` as a deprecated compatibility wrapper:
 
-- `npx opencode-council init` continues to work
+- `npx agent-council init` continues to work
 - old package usage forwards to `agent-council`
 - deprecation warnings point users to the new name
 
@@ -150,7 +150,7 @@ agent-council/
     adapter-claude-code/
     adapter-codex/
     cli/
-    compatibility-opencode-council/
+    compatibility-agent-council/
 
   generated/
     opencode/
@@ -177,7 +177,7 @@ agent-council/
 | `adapter-claude-code` | Claude Code integration glue |
 | `adapter-codex` | Codex integration glue |
 | `cli` | Install, detect, verify, refresh, uninstall, configure |
-| `compatibility-opencode-council` | Deprecated wrapper package and CLI alias |
+| `compatibility-agent-council` | Deprecated wrapper package and CLI alias |
 
 ## Migration matrix
 
@@ -205,7 +205,7 @@ agent-council/
 | OpenCode plugin integration | `packages/adapter-opencode` | host-specific |
 | current generated agent markdown files | `packages/prompt-spec` source, rendered by `packages/generator` | no more manual copies |
 | `bin/cli.mjs`, `install.sh` | `packages/cli` | unified installer |
-| package root exports | root + `packages/compatibility-opencode-council` | controlled compatibility |
+| package root exports | root + `packages/compatibility-agent-council` | controlled compatibility |
 
 ## Installer architecture
 
@@ -354,7 +354,7 @@ Deliver:
 - package boundaries
 - prompt source schema
 - adapter capability model
-- compatibility policy for `opencode-council`
+- compatibility policy for `agent-council`
 
 Exit gate:
 
@@ -443,7 +443,7 @@ Exit gate:
 
 Deliver:
 
-- deprecated `opencode-council` wrapper package
+- deprecated `agent-council` wrapper package
 - migration docs
 - deprecation warnings
 - release and install docs

@@ -9,8 +9,8 @@
 
 ## Migration and compatibility
 
-- `opencode-council` remains available as a compatibility alias.
-- Existing workflows using `npx opencode-council ...` continue to work.
+- `agent-council` remains available as a compatibility alias.
+- Existing workflows using `npx agent-council ...` continue to work.
 - New installs should use `npx agent-council init`.
 
 Deprecation timeline:

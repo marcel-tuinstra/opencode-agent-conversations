@@ -2,27 +2,27 @@ import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync } from "node:fs
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { createFileBackedSupervisorStateStore } from "../plugins/orchestration-workflows/durable-state-store";
-import { planWorkUnitLanes, type LanePlanningWorkUnit } from "../plugins/orchestration-workflows/lane-plan";
+import { createFileBackedSupervisorStateStore } from "../plugins/agent-council/durable-state-store";
+import { planWorkUnitLanes, type LanePlanningWorkUnit } from "../plugins/agent-council/lane-plan";
 import {
   buildSupervisorManagedWorktreePath,
   createSupervisorLaneWorktreeProvisioner,
   type GitWorktreeEntry,
   type SupervisorLaneWorktreeSystem
-} from "../plugins/orchestration-workflows/lane-worktree-provisioner";
+} from "../plugins/agent-council/lane-worktree-provisioner";
 import {
   createSupervisorDispatchLoop,
   createSupervisorLaneDefinitions
-} from "../plugins/orchestration-workflows/supervisor-scheduler";
-import { createLaneCompletionContract } from "../plugins/orchestration-workflows/lane-contract";
+} from "../plugins/agent-council/supervisor-scheduler";
+import { createLaneCompletionContract } from "../plugins/agent-council/lane-contract";
 import {
   createSupervisorSessionLifecycle,
   type AttachSupervisorRuntimeSessionInput,
   type LaunchSupervisorRuntimeSessionInput,
   type SupervisorSessionRuntimeAdapter
-} from "../plugins/orchestration-workflows/session-runtime-adapter";
-import { normalizeWorkUnit } from "../plugins/orchestration-workflows/work-unit";
-import type { ChildSessionRecord } from "../plugins/orchestration-workflows/child-session-lifecycle";
+} from "../plugins/agent-council/session-runtime-adapter";
+import { normalizeWorkUnit } from "../plugins/agent-council/work-unit";
+import type { ChildSessionRecord } from "../plugins/agent-council/child-session-lifecycle";
 
 const tempDirs: string[] = [];
 

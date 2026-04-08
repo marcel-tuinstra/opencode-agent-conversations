@@ -1,10 +1,10 @@
-import { debugLog } from "../../../plugins/orchestration-workflows/debug.ts";
+import { debugLog } from "../../../plugins/agent-council/debug.ts";
 import {
   createSupervisorReasonDetail,
   formatSupervisorReason
-} from "../../../plugins/orchestration-workflows/reason-codes.ts";
-import { getSupervisorPolicy } from "../../../plugins/orchestration-workflows/supervisor-config.ts";
-import type { Intent } from "../../../plugins/orchestration-workflows/types.ts";
+} from "../../../plugins/agent-council/reason-codes.ts";
+import { getSupervisorPolicy } from "../../../plugins/agent-council/supervisor-config.ts";
+import type { Intent } from "../../../plugins/agent-council/types.ts";
 
 type CompactionSlot = "goals" | "constraints" | "blockers" | "openActions";
 
