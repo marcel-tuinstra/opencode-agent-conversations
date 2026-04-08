@@ -19,7 +19,7 @@ export * from "../../../plugins/orchestration-workflows/observability-dashboard.
 export * from "./supervisor-event-catalog.ts";
 export * from "./supervisor-scheduler.ts";
 export * from "./supervisor-execution-workflow.ts";
-export * from "../../../plugins/orchestration-workflows/supervisor-bootstrap.ts";
+export * from "./supervisor-bootstrap.ts";
 export * from "./supervisor-system-instructions.ts";
 export * from "./supervisor-trigger.ts";
 export * from "../../../plugins/orchestration-workflows/supervisor-delegation.ts";
