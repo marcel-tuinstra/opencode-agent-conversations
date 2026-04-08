@@ -4,14 +4,14 @@
 
 export * from "./types.ts";
 export * from "./constants.ts";
-export * from "../../../plugins/orchestration-workflows/discovery-heuristics.ts";
+export * from "./discovery-heuristics.ts";
 export * from "./roles.ts";
 export * from "./intent.ts";
 export * from "./work-unit.ts";
-export * from "../../../plugins/orchestration-workflows/lane-plan.ts";
+export * from "./lane-plan.ts";
 export * from "../../../plugins/orchestration-workflows/lane-contract.ts";
 export * from "../../../plugins/orchestration-workflows/lane-decomposition.ts";
-export * from "../../../plugins/orchestration-workflows/turn-ownership.ts";
+export * from "./turn-ownership.ts";
 export * from "../../../plugins/orchestration-workflows/supervisor-goal-plan.ts";
 export * from "../../../plugins/orchestration-workflows/supervisor-routing.ts";
 export * from "../../../plugins/orchestration-workflows/supervisor-dispatch-planning.ts";
