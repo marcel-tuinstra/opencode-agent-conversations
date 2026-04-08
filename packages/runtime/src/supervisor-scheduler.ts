@@ -4,7 +4,7 @@ import {
   type SupervisorApprovalGateRequest,
   type SupervisorApprovalSignal,
   type SupervisorApprovalNextAction
-} from "../../../plugins/orchestration-workflows/approval-gates.ts";
+} from "./approval-gates.ts";
 import {
   classifyChildSessionFailure,
   resolveRetryEligibility,

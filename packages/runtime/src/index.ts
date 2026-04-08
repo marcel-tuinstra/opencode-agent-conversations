@@ -14,6 +14,7 @@ export * from "./lane-lifecycle.ts";
 export * from "./lane-worktree-provisioner.ts";
 export * from "./child-session-lifecycle.ts";
 export * from "./durable-state-store.ts";
+export * from "./approval-gates.ts";
 export * from "./review-ready-packet.ts";
 export * from "./review-coordination.ts";
 export * from "../../../plugins/orchestration-workflows/recovery-repair-playbooks.ts";
