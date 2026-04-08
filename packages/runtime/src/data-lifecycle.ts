@@ -1,4 +1,4 @@
-import type { AdHocRunHistoryRecord } from "../../../plugins/orchestration-workflows/ad-hoc-run-history.ts";
+import type { AdHocRunHistoryRecord } from "./ad-hoc-run-history.ts";
 import type {
   SupervisorPersistedRunStatus,
   SupervisorPersistedSessionStatus,
