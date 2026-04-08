@@ -20,7 +20,7 @@ export * from "./protected-path-policy.ts";
 export * from "./path-policy.ts";
 export * from "../../../plugins/orchestration-workflows/approval-gates.ts";
 export * from "../../../plugins/orchestration-workflows/merge-policy.ts";
-export * from "../../../plugins/orchestration-workflows/reason-codes.ts";
+export * from "./reason-codes.ts";
 export * from "../../../plugins/orchestration-workflows/review-ready-packet.ts";
 export * from "../../../plugins/orchestration-workflows/review-coordination.ts";
 export * from "./budget-governance.ts";
