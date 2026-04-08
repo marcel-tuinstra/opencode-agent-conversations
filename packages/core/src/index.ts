@@ -3,11 +3,11 @@
 // while we progressively move files into packages/core.
 
 export * from "./types.ts";
-export * from "../../../plugins/orchestration-workflows/constants.ts";
+export * from "./constants.ts";
 export * from "../../../plugins/orchestration-workflows/discovery-heuristics.ts";
-export * from "../../../plugins/orchestration-workflows/roles.ts";
-export * from "../../../plugins/orchestration-workflows/intent.ts";
-export * from "../../../plugins/orchestration-workflows/work-unit.ts";
+export * from "./roles.ts";
+export * from "./intent.ts";
+export * from "./work-unit.ts";
 export * from "../../../plugins/orchestration-workflows/lane-plan.ts";
 export * from "../../../plugins/orchestration-workflows/lane-contract.ts";
 export * from "../../../plugins/orchestration-workflows/lane-decomposition.ts";
