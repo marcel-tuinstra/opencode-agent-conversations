@@ -105,6 +105,8 @@ const renderOpenCodeAgent = (agent) => {
     `# AGENTS.${agent.name.toUpperCase()}.md`,
     "",
     agent.instructions,
+    "",
+    renderMentionOrchestrationProtocol(agent.name),
     ""
   ].join("\n");
 };
