@@ -13,8 +13,10 @@ describe("cross-platform mention orchestration guidance", () => {
     for (const body of [claudeCto, codexCto]) {
       expect(body).toContain("## Cross-Platform Mention Orchestration");
       expect(body).toContain("@cto");
-      expect(body).toContain("invoke that role as a sub-agent using the host platform's native sub-agent mechanism");
+      expect(body).toContain("single parallel batch");
+      expect(body).toContain("challenge pass");
       expect(body).toContain("Synthesize the final response with clear per-role sections");
+      expect(body).toContain("project name `agent-council`");
     }
   });
 });
