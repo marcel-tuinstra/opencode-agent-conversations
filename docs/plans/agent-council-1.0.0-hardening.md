@@ -20,17 +20,17 @@ This checklist is the release gate for `1.0.0`.
 ## Validation gates
 
 - [x] `npm run typecheck` passes.
-- [x] `npm test` passes (`54` files, `482` tests).
+- [x] `npm test` passes (`56` files, `486` tests).
 - [x] Tri-platform lifecycle smoke passes locally:
   - `init --platform opencode --platform claude-code --platform codex --force`
   - `verify --platform opencode --platform claude-code --platform codex`
   - `uninstall --platform opencode --platform claude-code --platform codex`
-- [ ] Optional golden snapshot refresh for generated artifacts is reviewed and committed if output format changed.
+- [x] Optional golden snapshot refresh for generated artifacts is reviewed and committed when output format changes.
 
 ## Compatibility gates
 
 - [x] `agent-council` primary bin remains active.
-- [x] `agent-council` alias remains available as compatibility path.
+- [x] `agent-council` remains the sole primary CLI and package name.
 - [x] Compatibility policy is documented in `docs/guides/compatibility-and-deprecations.md`.
 - [x] Add explicit release note callout for alias deprecation timeline in final `1.0.0` notes.
 

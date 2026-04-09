@@ -1,4 +1,4 @@
-# agent-council Capability Matrix (alpha baseline)
+# agent-council Capability Matrix
 
 This matrix tracks the platform capability surface that adapters must satisfy for `1.0.0` parity.
 
@@ -28,5 +28,5 @@ Status meanings:
 
 ## Notes
 
-- This is intentionally an alpha baseline and should be updated per milestone.
+- This matrix reflects the `1.0.0` release baseline.
 - Any `gap` must be closed before `1.0.0` release sign-off.

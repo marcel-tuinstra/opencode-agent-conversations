@@ -1,4 +1,4 @@
-# agent-council 1.0.0 (Draft)
+# agent-council 1.0.0 Release Notes
 
 ## Highlights
 
@@ -9,15 +9,13 @@
 
 ## Migration and compatibility
 
-- `agent-council` remains available as a compatibility alias.
 - Existing workflows using `npx agent-council ...` continue to work.
 - New installs should use `npx agent-council init`.
 
-Deprecation timeline:
+Compatibility timeline:
 
-- `1.0.x`: alias supported and documented.
-- `1.1.x`: alias remains supported with stronger migration messaging.
-- `2.0.0` (planned): alias removal candidate, pending final confirmation.
+- `1.x`: `agent-council` remains the canonical CLI and package surface.
+- Supervisor-specific APIs under `agent-council/supervisor` remain explicitly experimental during `1.x`.
 
 ## CLI behavior
 
@@ -44,7 +42,7 @@ npx agent-council uninstall
 ## Validation summary
 
 - `npm run typecheck` passes.
-- `npm test` passes (`54` files / `482` tests).
+- `npm test` passes (`56` files / `486` tests).
 - Tri-platform smoke lifecycle passes:
   - init (all 3 platforms)
   - verify (all 3 platforms)

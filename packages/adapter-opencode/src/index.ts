@@ -10,7 +10,7 @@ export const OPENCODE_ADAPTER: AdapterDescriptor = {
     entries: [
       {
         source: "plugins/agent-council.ts",
-        destination: "~/.opencode/plugins"
+        destination: "~/.opencode/plugins/agent-council.ts"
       },
       {
         source: "plugins/agent-council",
