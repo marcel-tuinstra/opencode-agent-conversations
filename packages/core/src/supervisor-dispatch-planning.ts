@@ -4,8 +4,13 @@ import {
   routeSupervisorWorkUnit,
   type RouteSupervisorWorkUnitResult
 } from "./supervisor-routing.ts";
-import type { SupervisorDispatchLaneInput } from "../../../plugins/agent-council/supervisor-scheduler.ts";
+import type { SupervisorLaneDefinition } from "./supervisor-lane-definitions.ts";
 import type { PlanSupervisorGoalResult } from "./supervisor-goal-plan.ts";
+
+export type SupervisorDispatchLaneInput = {
+  definition: SupervisorLaneDefinition;
+  waitingOn?: readonly string[];
+};
 
 export type CreateSupervisorDispatchPlanInput = DecomposeSupervisorGoalIntoLanesInput & {
   readyDependencyReferences?: readonly string[];

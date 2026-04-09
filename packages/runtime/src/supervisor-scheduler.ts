@@ -31,6 +31,17 @@ import {
 } from "./lane-lifecycle.ts";
 import { assertReviewReadyTransition, type ReviewReadyEvidencePacket, type ReviewReadyEvidencePacketInput } from "./review-ready-packet.ts";
 import type { LanePlan } from "../../core/src/lane-plan.ts";
+import {
+  createSupervisorLaneDefinitions,
+  type CreateSupervisorLaneDefinitionsOptions,
+  type SupervisorLaneDefinition
+} from "../../core/src/supervisor-lane-definitions.ts";
+
+export {
+  createSupervisorLaneDefinitions,
+  type CreateSupervisorLaneDefinitionsOptions,
+  type SupervisorLaneDefinition
+} from "../../core/src/supervisor-lane-definitions.ts";
 import type {
   ProvisionSupervisorLaneWorktreeResult,
   SupervisorLaneWorktreeProvisioner
@@ -44,19 +55,6 @@ import {
   type ReviewRoutingDecision,
   type ReviewRoutingPolicyDecision
 } from "./review-coordination.ts";
-
-export type SupervisorLaneDefinition = {
-  laneId: string;
-  sequence: number;
-  workUnitIds: readonly string[];
-  dependsOnLaneIds: readonly string[];
-  branch: string;
-};
-
-export type CreateSupervisorLaneDefinitionsOptions = {
-  branchPrefix?: string;
-  laneIdPrefix?: string;
-};
 
 export type SupervisorDispatchLaneInput = {
   definition: SupervisorLaneDefinition;
@@ -422,37 +420,6 @@ const summarizeDependencyStates = (
       ? [`Waiting for dependency lanes: ${blockingDependencies.join(", ")}.`]
       : []
   };
-};
-
-export const createSupervisorLaneDefinitions = (
-  lanePlan: LanePlan,
-  options: CreateSupervisorLaneDefinitionsOptions = {}
-): readonly SupervisorLaneDefinition[] => {
-  const laneIdPrefix = options.laneIdPrefix ?? "lane";
-  const branchPrefix = assertNonEmpty(options.branchPrefix ?? "supervisor", "branch prefix");
-  const workUnitLaneMap = new Map(lanePlan.dependencyGraph.map((node) => [node.id, node.lane]));
-
-  return freezeList(lanePlan.lanes
-    .map((lane) => {
-      const dependsOnLaneIds = Array.from(new Set(
-        lane.workUnitIds.flatMap((workUnitId) => {
-          const node = lanePlan.dependencyGraph.find((candidate) => candidate.id === workUnitId);
-          return (node?.blockedBy ?? [])
-            .map((dependencyWorkUnitId) => workUnitLaneMap.get(dependencyWorkUnitId))
-            .filter((dependencyLane): dependencyLane is number => dependencyLane !== undefined && dependencyLane !== lane.lane)
-            .map((dependencyLane) => `${laneIdPrefix}-${dependencyLane}`);
-        })
-      )).sort((left, right) => left.localeCompare(right));
-
-      return Object.freeze({
-        laneId: `${laneIdPrefix}-${lane.lane}`,
-        sequence: lane.lane,
-        workUnitIds: [...lane.workUnitIds],
-        dependsOnLaneIds,
-        branch: `${branchPrefix}/lane-${String(lane.lane).padStart(2, "0")}`
-      });
-    })
-    .sort((left, right) => left.sequence - right.sequence || left.laneId.localeCompare(right.laneId)));
 };
 
 export const createSupervisorDispatchLoop = (

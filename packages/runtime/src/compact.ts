@@ -1,10 +1,10 @@
-import { debugLog } from "../../../plugins/agent-council/debug.ts";
+import { debugLog } from "../../core/src/debug.ts";
 import {
   createSupervisorReasonDetail,
   formatSupervisorReason
-} from "../../../plugins/agent-council/reason-codes.ts";
-import { getSupervisorPolicy } from "../../../plugins/agent-council/supervisor-config.ts";
-import type { Intent } from "../../../plugins/agent-council/types.ts";
+} from "../../core/src/reason-codes.ts";
+import { getSupervisorPolicy } from "../../core/src/supervisor-config.ts";
+import type { Intent } from "../../core/src/types.ts";
 
 type CompactionSlot = "goals" | "constraints" | "blockers" | "openActions";
 

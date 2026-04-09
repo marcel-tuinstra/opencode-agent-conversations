@@ -12,9 +12,9 @@ import {
 } from "../../core/src/lane-decomposition.ts";
 import { normalizeWorkUnit } from "../../core/src/work-unit.ts";
 import type { LanePlanningWorkUnit } from "../../core/src/lane-plan.ts";
-import type { SupervisorLaneDefinition } from "../../../plugins/agent-council/supervisor-scheduler.ts";
+import type { SupervisorLaneDefinition } from "../../core/src/supervisor-lane-definitions.ts";
 import { SUPPORTED_ROLES } from "../../core/src/types.ts";
-import { getSupervisorPolicy } from "../../../plugins/agent-council/supervisor-config.ts";
+import { getSupervisorPolicy } from "../../core/src/supervisor-config.ts";
 
 export const SUPERVISOR_TRIGGER_REGEX = /^@supervisor\s+/i;
 

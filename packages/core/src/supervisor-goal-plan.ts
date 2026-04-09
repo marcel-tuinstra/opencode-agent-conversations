@@ -1,7 +1,7 @@
 import { INTENT_ROLE_WEIGHTS } from "./constants.ts";
 import { isDiscoveryStyleGoal } from "./discovery-heuristics.ts";
 import { detectIntent } from "./intent.ts";
-import { getSupervisorPolicy } from "../../../plugins/agent-council/supervisor-config.ts";
+import { getSupervisorPolicy } from "./supervisor-config.ts";
 import type { Intent, Role } from "./types.ts";
 import { SUPPORTED_ROLES } from "./types.ts";
 

@@ -6,7 +6,7 @@ import {
   getDefaultBudgetProfileName,
   getBudgetProfileFromEnv
 } from "./budget-profiles.ts";
-import { debugLog } from "../../../plugins/agent-council/debug.ts";
+import { debugLog } from "./debug.ts";
 import type { Intent, Role } from "./types.ts";
 
 type RepoRiskTier = "small-high-risk" | "medium-moderate-risk" | "large-mature";

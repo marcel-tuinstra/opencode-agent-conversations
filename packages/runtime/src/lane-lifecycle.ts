@@ -1,4 +1,4 @@
-import { DEFAULT_SUPERVISOR_LIMITS, getSupervisorPolicy } from "../../../plugins/agent-council/supervisor-config.ts";
+import { DEFAULT_SUPERVISOR_LIMITS, getSupervisorPolicy } from "../../core/src/supervisor-config.ts";
 
 export type LaneLifecycleState = "planned" | "active" | "waiting" | "review_ready" | "complete";
 

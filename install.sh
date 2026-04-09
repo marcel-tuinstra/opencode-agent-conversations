@@ -1,11 +1,11 @@
 #!/bin/sh
-# agent-council installer v0.6.2
+# agent-council installer v1.0.0
 # Install agent-council plugin + agent files for OpenCode.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/agent-council/v0.6.2/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/agent-council/v1.0.0/install.sh | bash
 #   # — or —
-#   curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/agent-council/v0.6.2/install.sh -o install.sh
+#   curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/agent-council/v1.0.0/install.sh -o install.sh
 #   bash install.sh
 #
 # Environment variables:
@@ -16,7 +16,7 @@ set -e
 
 # ─── Constants ───────────────────────────────────────────────────────────────
 
-VERSION="0.6.2"
+VERSION="1.0.0"
 REF="v${VERSION}"
 REPO_URL="https://github.com/marcel-tuinstra/agent-council.git"
 RAW_BASE="https://raw.githubusercontent.com/marcel-tuinstra/agent-council/${REF}"

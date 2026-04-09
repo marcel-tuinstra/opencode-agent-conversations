@@ -159,7 +159,6 @@ ${colors.bold("agent-council")} ${colors.dim(`v${PKG_VERSION}`)}
 
 ${colors.cyan("Usage:")}
   npx agent-council <command> [options]
-  npx agent-council <command> [options] ${colors.dim("(legacy alias)")}
 
 ${colors.cyan("Commands:")}
   init        Install agent-council into selected platforms

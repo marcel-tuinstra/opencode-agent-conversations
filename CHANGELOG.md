@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-04-08
+
+### Added
+
+- Tri-platform support with adapter manifests for OpenCode, Claude Code, and Codex.
+- Shared prompt and skill generation pipeline (`shared/* -> generated/*`) with conformance tests.
+- Runtime/core package extraction for supervisor planning, governance, routing, and dispatch flows.
+- Release hardening gates for packed artifact validation and stale-file prune behavior on manifest installs.
+
+### Changed
+
+- Package and plugin naming standardized to `agent-council`.
+- Installer and docs updated for generated agent/skill assets as the canonical install source.
+- CI now validates packed artifacts include all adapter manifest install sources.
+
 ## [0.6.2] - 2026-03-21
 
 ### Added
@@ -115,6 +130,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Intent detection and weighted turn targeting
 
 [0.4.0]: https://github.com/marcel-tuinstra/agent-council/releases/tag/v0.4.0
+[1.0.0]: https://github.com/marcel-tuinstra/agent-council/releases/tag/v1.0.0
 [0.5.0]: https://github.com/marcel-tuinstra/agent-council/releases/tag/v0.5.0
 [0.6.2]: https://github.com/marcel-tuinstra/agent-council/releases/tag/v0.6.2
 [0.6.0]: https://github.com/marcel-tuinstra/agent-council/releases/tag/v0.6.0

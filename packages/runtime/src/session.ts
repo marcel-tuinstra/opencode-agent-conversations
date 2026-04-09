@@ -1,4 +1,4 @@
-import type { SessionPolicy } from "../../../plugins/agent-council/types.ts";
+import type { SessionPolicy } from "../../core/src/types.ts";
 
 export const sessionPolicy = new Map<string, SessionPolicy>();
 export const systemInjectedForSession = new Set<string>();

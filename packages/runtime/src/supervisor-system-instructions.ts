@@ -1,7 +1,7 @@
 import { isDiscoveryStyleGoal } from "../../core/src/discovery-heuristics.ts";
 import type { SupervisorPlanResult } from "./supervisor-trigger.ts";
-import type { SupervisorLaneDefinition } from "../../../plugins/agent-council/supervisor-scheduler.ts";
-import { getSupervisorPolicy } from "../../../plugins/agent-council/supervisor-config.ts";
+import type { SupervisorLaneDefinition } from "../../core/src/supervisor-lane-definitions.ts";
+import { getSupervisorPolicy } from "../../core/src/supervisor-config.ts";
 
 const isDiscoveryOrientedPlan = (plan: SupervisorPlanResult): boolean => {
   return isDiscoveryStyleGoal(plan.goalPlan.goal, plan.goalPlan.intent);

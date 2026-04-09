@@ -11,6 +11,7 @@ export * from "./work-unit.ts";
 export * from "./lane-plan.ts";
 export * from "./lane-contract.ts";
 export * from "./lane-decomposition.ts";
+export * from "./supervisor-lane-definitions.ts";
 export * from "./turn-ownership.ts";
 export * from "./supervisor-goal-plan.ts";
 export * from "./supervisor-routing.ts";
@@ -18,14 +19,11 @@ export * from "./supervisor-dispatch-planning.ts";
 export * from "./governance-policy.ts";
 export * from "./protected-path-policy.ts";
 export * from "./path-policy.ts";
-export * from "../../../plugins/agent-council/approval-gates.ts";
-export * from "../../../plugins/agent-council/merge-policy.ts";
 export * from "./reason-codes.ts";
-export * from "../../../plugins/agent-council/review-ready-packet.ts";
-export * from "../../../plugins/agent-council/review-coordination.ts";
 export * from "./budget-governance.ts";
 export * from "./guardrail-thresholds.ts";
 export * from "./supervisor-config.ts";
+export * from "./debug.ts";
 
 export {
   BUDGET_PROFILES,

@@ -5,7 +5,7 @@ import {
   type SupervisorDispatchPlanResult
 } from "../../core/src/supervisor-dispatch-planning.ts";
 import { planSupervisorGoal, type PlanSupervisorGoalResult } from "../../core/src/supervisor-goal-plan.ts";
-import { getSupervisorPolicy } from "../../../plugins/agent-council/supervisor-config.ts";
+import { getSupervisorPolicy } from "../../core/src/supervisor-config.ts";
 import type { Role } from "../../core/src/types.ts";
 
 export type SupervisorBootstrapPreviewStatus = "supported" | "unsupported";

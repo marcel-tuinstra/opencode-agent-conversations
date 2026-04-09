@@ -1,6 +1,6 @@
-# Upgrading to v0.5.0
+# Upgrade Notes (Historical)
 
-`v0.5.0` freezes the minimal stable runtime contract at the package root and moves supervisor-oriented helpers behind an experimental entry point.
+This document captures the historical root-barrel split that introduced `agent-council/supervisor`.
 
 ## What changed
 
@@ -18,7 +18,7 @@
 - Those supervisor APIs now live under the experimental supervisor entry point: `agent-council/supervisor`.
 - Compatibility, deprecation, and removal rules now live in the canonical policy doc: [`compatibility-and-deprecations.md`](./compatibility-and-deprecations.md).
 
-## Compatibility policy for `v0.5.x`
+## Compatibility policy for `1.x`
 
 See the canonical compatibility and deprecation policy: [`compatibility-and-deprecations.md`](./compatibility-and-deprecations.md).
 

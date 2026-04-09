@@ -23,12 +23,6 @@ Non-interactive install is also supported:
 npx agent-council init --platform opencode --platform claude-code --platform codex
 ```
 
-Legacy alias (still supported):
-
-```bash
-npx agent-council init
-```
-
 Or without Node.js:
 
 ```bash
@@ -54,11 +48,11 @@ Restart OpenCode, then try:
 
 ## Stable Contract
 
-Starting in `v0.5.0`, the package root intentionally exposes a small stable runtime contract for consumers that build on the live orchestration plugin. The canonical compatibility and deprecation policy lives in [`docs/guides/compatibility-and-deprecations.md`](./docs/guides/compatibility-and-deprecations.md).
+Starting in `v1.0.0`, the package root intentionally exposes a small stable runtime contract for consumers that build on the live orchestration plugin. The canonical compatibility and deprecation policy lives in [`docs/guides/compatibility-and-deprecations.md`](./docs/guides/compatibility-and-deprecations.md).
 
-That document defines the stable root exports, CLI compatibility, documented env var and policy-key guarantees, and the deprecation/removal process for `v0.5.x`.
+That document defines stable root exports, CLI compatibility guarantees, and deprecation timing for `1.x`.
 
-Supervisor helpers and other pre-`v0.6.0` orchestration internals remain available under an experimental supervisor entry point instead of the root barrel.
+Supervisor helpers remain available under the experimental supervisor entry point (`agent-council/supervisor`) instead of the root barrel.
 
 ## Example
 
@@ -89,7 +83,7 @@ npx agent-council uninstall       # Clean removal
 
 ## Roadmap
 
-**Now (v0.5.0):** Deliberative orchestration, delegation mode, MCP gating, budget governance, 10 agent personas, one-command install, and a defined compatibility policy for the stable runtime contract.
+**Now (v1.0.0):** Deliberative orchestration, delegation mode, MCP gating, budget governance, tri-platform install support (OpenCode/Claude/Codex), and a defined compatibility policy for the stable runtime contract.
 
 **Next:** Governed parallel execution (supervisor mode) and async delegation with governance.
 
@@ -98,7 +92,7 @@ npx agent-council uninstall       # Clean removal
 | | |
 |---|---|
 | Getting started | [Install](./docs/getting-started/install.md) / [Quick start](./docs/getting-started/quickstart.md) |
-| Upgrading | [Upgrade to v0.5.0](./docs/guides/upgrading-to-0.5.0.md) |
+| Upgrading | [Upgrade notes](./docs/guides/upgrading-to-0.5.0.md) |
 | Compatibility | [Compatibility and deprecations](./docs/guides/compatibility-and-deprecations.md) |
 | Configuration | [Customization](./docs/guides/customization.md) / [Policy profiles](./docs/guides/policy-profiles.md) |
 | Architecture | [Overview](./docs/overview/architecture.md) / [Positioning](./docs/overview/product-positioning.md) |
@@ -111,7 +105,7 @@ npx agent-council uninstall       # Clean removal
 npm install && npm test
 ```
 
-197 tests, CI on every PR. See the [testing guide](./docs/testing/testing.md) for conventions.
+484 tests, CI on every PR. See the [testing guide](./docs/testing/testing.md) for conventions.
 
 ## Contact
 

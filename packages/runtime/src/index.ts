@@ -7,7 +7,7 @@ export * from "./compact.ts";
 export * from "./session.ts";
 export * from "../../../plugins/agent-council/mcp.ts";
 export * from "../../../plugins/agent-council/output.ts";
-export * from "../../../plugins/agent-council/debug.ts";
+export * from "../../core/src/debug.ts";
 export * from "../../../plugins/agent-council/opencode-client-adapter.ts";
 export * from "./session-runtime-adapter.ts";
 export * from "./lane-lifecycle.ts";

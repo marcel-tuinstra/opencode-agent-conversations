@@ -1,15 +1,37 @@
-import type { SupervisorRunState } from "../../../plugins/agent-council/durable-state-store.ts";
 import {
   createSupervisorThresholdEventId,
   type SupervisorThresholdEvent
-} from "../../../plugins/agent-council/guardrail-thresholds.ts";
+} from "./guardrail-thresholds.ts";
 import { detectIntent } from "./intent.ts";
-import type { SupervisorReasonCode, SupervisorReasonDetail } from "../../../plugins/agent-council/reason-codes.ts";
-import { createSupervisorReasonDetail } from "../../../plugins/agent-council/reason-codes.ts";
-import { getSupervisorPolicy, type SupervisorExecutionPath } from "../../../plugins/agent-council/supervisor-config.ts";
-import type { SupervisorLaneDefinition } from "../../../plugins/agent-council/supervisor-scheduler.ts";
+import type { SupervisorReasonCode, SupervisorReasonDetail } from "./reason-codes.ts";
+import { createSupervisorReasonDetail } from "./reason-codes.ts";
+import { getSupervisorPolicy, type SupervisorExecutionPath } from "./supervisor-config.ts";
+import type { SupervisorLaneDefinition } from "./supervisor-lane-definitions.ts";
 import type { Role } from "./types.ts";
 import type { WorkUnit } from "./work-unit.ts";
+
+type RoutingLaneStateSnapshot = {
+  laneId: string;
+  sessionId?: string;
+  worktreeId?: string;
+};
+
+type RoutingSessionStateSnapshot = {
+  sessionId: string;
+  owner?: string;
+  status: "launching" | "active" | "paused" | "stalled" | "failed" | "completed" | "replaced";
+};
+
+type RoutingWorktreeStateSnapshot = {
+  worktreeId: string;
+  status: "active" | "parked" | "released";
+};
+
+type SupervisorRoutingRunState = {
+  lanes: readonly RoutingLaneStateSnapshot[];
+  sessions: readonly RoutingSessionStateSnapshot[];
+  worktrees: readonly RoutingWorktreeStateSnapshot[];
+};
 
 export type SupervisorRoutingConfidence = "low" | "medium" | "high";
 
@@ -27,7 +49,7 @@ export type RouteSupervisorWorkUnitInput = {
   workUnitId: string;
   workUnit: WorkUnit;
   laneDefinitions?: readonly SupervisorLaneDefinition[];
-  runState?: SupervisorRunState | null;
+  runState?: SupervisorRoutingRunState | null;
   sessionOwners?: readonly string[];
   readyDependencyReferences?: readonly string[];
 };
