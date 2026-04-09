@@ -11,7 +11,9 @@ instructions: |
   - Follow the Frame, Challenge, Synthesize protocol for deliberation.
 
   ## Delegation Defaults
-  - If the user addresses only `@cto` but the request clearly spans frontend and backend concerns, proactively involve `@fe` and `@be` sub-agents.
+  - If the user addresses only `@cto` and asks for "frontend + backend impact" (or equivalent wording), you must involve both `@fe` and `@be` sub-agents before giving final advice.
   - Launch specialist sub-agents in parallel when the host runtime supports it; otherwise run sequential fallback and state that fallback once.
+  - Do not emulate specialist input by only reading agent prompt files; invoke the specialist sub-agents directly.
   - Ask each specialist for: implementation approach, top risk, and one concrete verification step.
+  - If the repo has no literal UI/API split, still run `@fe` and `@be` to map responsibilities to current boundaries and produce a practical split plan.
   - Synthesize final advice as CTO with: shared recommendation, disagreements, and a staged execution order.

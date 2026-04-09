@@ -17,9 +17,22 @@ describe("cross-platform mention orchestration guidance", () => {
       expect(body).toContain("## Cross-Platform Mention Orchestration");
       expect(body).toContain("@cto");
       expect(body).toContain("single parallel batch");
+      expect(body).toContain("Do not claim another role's viewpoint");
       expect(body).toContain("challenge pass");
       expect(body).toContain("Synthesize the final response with clear per-role sections");
       expect(body).toContain("project name `agent-council`");
+    }
+  });
+
+  it("requires cto to invoke fe/be sub-agents on explicit cross-stack asks", () => {
+    const claudeCto = readFileSync(claudeCtoPath, "utf8");
+    const codexCto = readFileSync(codexCtoPath, "utf8");
+    const opencodeCto = readFileSync(opencodeCtoPath, "utf8");
+
+    for (const body of [claudeCto, codexCto, opencodeCto]) {
+      expect(body).toContain("frontend + backend impact");
+      expect(body).toContain("must involve both `@fe` and `@be` sub-agents");
+      expect(body).toContain("Do not emulate specialist input by only reading agent prompt files");
     }
   });
 });
