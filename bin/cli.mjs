@@ -1028,6 +1028,27 @@ function copyManifest(manifest) {
   }
 }
 
+function prunePlatformInstallRoots(platformId, dryRun) {
+  const installEntries = getAdapterInstallEntries(platformId);
+  const rootDestinations = Array.from(new Set(
+    installEntries.map((entry) => entry.destination)
+  )).sort((a, b) => b.length - a.length);
+
+  for (const destination of rootDestinations) {
+    if (!existsSync(destination)) {
+      continue;
+    }
+
+    if (dryRun) {
+      console.log(colors.yellow(`  [${platformId}] Dry run -- would prune ${destination}`));
+      continue;
+    }
+
+    rmSync(destination, { recursive: true, force: true });
+    console.log(colors.yellow(`  [${platformId}] Pruned ${destination}`));
+  }
+}
+
 function verifyManifest(manifest) {
   let ok = 0;
   let missing = 0;
@@ -1051,6 +1072,7 @@ async function cmdInstallPlatformFromManifest(platformId, { mode = "init" } = {}
 
   if (FLAG_DRY_RUN) {
     console.log(colors.yellow(`  [${platformId}] Dry run -- would install ${manifest.length} files.`));
+    prunePlatformInstallRoots(platformId, true);
     return;
   }
 
@@ -1062,6 +1084,7 @@ async function cmdInstallPlatformFromManifest(platformId, { mode = "init" } = {}
     }
   }
 
+  prunePlatformInstallRoots(platformId, false);
   copyManifest(manifest);
   console.log(colors.green(`  [${platformId}] Installed ${manifest.length} files.`));
 }
