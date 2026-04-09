@@ -13,7 +13,7 @@ Status meanings:
 | --- | --- | --- | --- |
 | Role prompt injection | native | adapter | adapter |
 | Mention role parsing (`@role`) | native | adapter | adapter |
-| Deliberation protocol orchestration | native | bridge | bridge |
+| Deliberation protocol orchestration | native | bridge | bridge (fallback if delegation unavailable) |
 | Governance policy evaluation | bridge | bridge | bridge |
 | Budget profile enforcement | bridge | bridge | bridge |
 | Supervisor lane planning | bridge | bridge | bridge |

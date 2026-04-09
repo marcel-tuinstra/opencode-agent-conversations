@@ -7,7 +7,7 @@ const codexCtoPath = fileURLToPath(new URL("../generated/codex/agents/cto.toml",
 const opencodeCtoPath = fileURLToPath(new URL("../generated/opencode/agents/cto.md", import.meta.url));
 
 describe("cross-platform mention orchestration guidance", () => {
-  it("embeds mention orchestration protocol in generated Claude and Codex agents", () => {
+  it("embeds runtime-appropriate mention orchestration protocol in generated agents", () => {
     const claudeCto = readFileSync(claudeCtoPath, "utf8");
     const codexCto = readFileSync(codexCtoPath, "utf8");
 
@@ -16,12 +16,19 @@ describe("cross-platform mention orchestration guidance", () => {
     for (const body of [claudeCto, codexCto, opencodeCto]) {
       expect(body).toContain("## Cross-Platform Mention Orchestration");
       expect(body).toContain("@cto");
-      expect(body).toContain("single parallel batch");
       expect(body).toContain("Do not claim another role's viewpoint");
-      expect(body).toContain("challenge pass");
-      expect(body).toContain("Synthesize the final response with clear per-role sections");
       expect(body).toContain("project name `agent-council`");
     }
+
+    for (const body of [claudeCto, opencodeCto]) {
+      expect(body).toContain("single parallel batch");
+      expect(body).toContain("challenge pass");
+      expect(body).toContain("Synthesize the final response with clear per-role sections");
+    }
+
+    expect(codexCto).toContain("Codex delegation capability is conditional");
+    expect(codexCto).toContain("do not fabricate RAW specialist sections");
+    expect(codexCto).not.toContain("single parallel batch");
   });
 
   it("requires cto to invoke fe/be sub-agents on explicit cross-stack asks", () => {
