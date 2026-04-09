@@ -7,6 +7,7 @@
 import {
   existsSync,
   cpSync,
+  copyFileSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -473,7 +474,7 @@ function buildCopyManifestFromAdapter(platformId) {
 
     output.push({
       src: sourcePath,
-      dest: join(destinationPath, basename(sourcePath)),
+      dest: destinationPath,
       label: entry.sourceLabel
     });
   }
@@ -1023,7 +1024,14 @@ async function cmdInstallOpenCode({ mode = "init", standalone = true }) {
 function copyManifest(manifest) {
   for (const entry of manifest) {
     mkdirSync(dirname(entry.dest), { recursive: true });
-    cpSync(entry.src, entry.dest, { force: true });
+    const sourceStats = lstatSync(entry.src);
+
+    if (sourceStats.isDirectory()) {
+      cpSync(entry.src, entry.dest, { recursive: true, force: true });
+      continue;
+    }
+
+    copyFileSync(entry.src, entry.dest);
   }
 }
 

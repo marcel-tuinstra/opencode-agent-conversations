@@ -67,6 +67,10 @@ No `opencode.json` edits required.
 @fe @ux Review the landing page interaction flow and tighten the responsive layout.
 ```
 
+Cross-platform note:
+
+- OpenCode, Claude Code, and Codex all install agent files with direct role handles, so `@cto`, `@dev`, and other role tags resolve the same way after install.
+
 ## Agent load checklist
 
 If the plugin works but `@fe`, `@be`, or `@ux` do not appear in tag suggestions:
