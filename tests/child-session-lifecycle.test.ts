@@ -8,13 +8,13 @@ import {
   DEFAULT_CHILD_SESSION_TIMEOUT_POLICY,
   isTerminalChildSessionState,
   resolveRetryEligibility
-} from "../plugins/orchestration-workflows/child-session-lifecycle";
+} from "../plugins/agent-council/child-session-lifecycle";
 import type {
   ChildSessionFailureCode,
   ChildSessionRecord,
   ChildSessionRetryPolicy,
   ChildSessionState
-} from "../plugins/orchestration-workflows/child-session-lifecycle";
+} from "../plugins/agent-council/child-session-lifecycle";
 
 const ALL_STATES: readonly ChildSessionState[] = [
   "pending", "launching", "active", "paused", "stalled",

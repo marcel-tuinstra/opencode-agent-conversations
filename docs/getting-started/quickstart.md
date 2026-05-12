@@ -6,7 +6,7 @@ Follow [`install.md`](./install.md).
 
 ## Verify
 
-Compatibility for `v0.5.x` is covered in the canonical policy doc: [`../guides/compatibility-and-deprecations.md`](../guides/compatibility-and-deprecations.md).
+Compatibility for `1.x` is covered in the canonical policy doc: [`../guides/compatibility-and-deprecations.md`](../guides/compatibility-and-deprecations.md).
 
 Use a prompt like:
 
@@ -24,12 +24,13 @@ Expected behavior:
 
 ## Post-merge local refresh
 
-After merging changes to `main`, refresh both runtime and agent files locally:
+After merging changes to `main`, refresh managed assets locally:
 
 ```bash
-cp plugins/orchestration-workflows.ts ~/.opencode/plugins/orchestration-workflows.ts
-cp -R plugins/orchestration-workflows ~/.opencode/plugins/orchestration-workflows
-cp agents/*.md ~/.opencode/agents/
+cp plugins/agent-council.ts ~/.opencode/plugins/agent-council.ts
+cp -R plugins/agent-council ~/.opencode/plugins/agent-council
+cp -R generated/opencode/agents ~/.opencode/
+cp -R generated/opencode/skills ~/.opencode/skills/agent-council
 ```
 
 Then restart OpenCode and re-run the verify prompts above.

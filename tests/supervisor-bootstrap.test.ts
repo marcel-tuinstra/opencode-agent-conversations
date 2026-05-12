@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { LanePlanningWorkUnit } from "../plugins/orchestration-workflows/lane-plan";
-import { createSupervisorBootstrapPreview } from "../plugins/orchestration-workflows/supervisor-bootstrap";
-import { normalizeWorkUnit } from "../plugins/orchestration-workflows/work-unit";
+import type { LanePlanningWorkUnit } from "../plugins/agent-council/lane-plan";
+import { createSupervisorBootstrapPreview } from "../plugins/agent-council/supervisor-bootstrap";
+import { normalizeWorkUnit } from "../plugins/agent-council/work-unit";
 
 describe("supervisor-bootstrap", () => {
   it("builds a fail-closed bootstrap preview from planning, lane decomposition, and routing guidance", () => {

@@ -3,8 +3,8 @@ import {
   DEFAULT_HARD_STOP_THRESHOLD_PERCENT,
   evaluateBudgetGovernance,
   resolveBudgetGovernancePolicy
-} from "../plugins/orchestration-workflows/budget-governance";
-import { resetSupervisorPolicyCache } from "../plugins/orchestration-workflows/supervisor-config";
+} from "../plugins/agent-council/budget-governance";
+import { resetSupervisorPolicyCache } from "../plugins/agent-council/supervisor-config";
 
 describe("budget-governance", () => {
   beforeEach(() => {

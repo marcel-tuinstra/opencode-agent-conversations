@@ -1,27 +1,40 @@
 {
-  "name": "opencode-council",
-  "version": "0.6.2",
-  "description": "AI agents that debate before they act. Multi-agent orchestration for OpenCode with governance, heartbeat deliberation, and delegation.",
+  "name": "agent-council",
+  "version": "1.0.0",
+  "description": "AI agents that debate before they act. Multi-platform orchestration for OpenCode, Claude Code, and Codex with governance, supervisor runtime, and budget parity.",
   "type": "module",
   "exports": {
     ".": "./index.ts",
-    "./supervisor": "./plugins/orchestration-workflows-supervisor.ts"
+    "./supervisor": "./plugins/agent-council-supervisor.ts",
+    "./core": "./packages/core/src/index.ts",
+    "./runtime": "./packages/runtime/src/index.ts"
   },
   "bin": {
-    "opencode-council": "bin/cli.mjs"
+    "agent-council": "bin/cli.mjs"
   },
+  "workspaces": [
+    "packages/*"
+  ],
   "files": [
     "bin/",
     "plugins/",
-    "agents/"
+    "agents/",
+    "generated/",
+    "shared/",
+    "packages/"
   ],
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",
-    "typecheck": "tsc -p tsconfig.typecheck.json --noEmit"
+    "typecheck": "tsc -p tsconfig.typecheck.json --noEmit",
+    "generate": "node packages/generator/src/index.mjs",
+    "verify:pack": "node scripts/verify-pack-manifest-assets.mjs",
+    "verify:plan": "node packages/cli/src/index.mjs verify"
   },
   "keywords": [
     "opencode",
+    "claude-code",
+    "codex",
     "ai-agents",
     "multi-agent",
     "orchestration",
@@ -33,17 +46,19 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/marcel-tuinstra/opencode-council.git"
+    "url": "git+https://github.com/marcel-tuinstra/agent-council.git"
   },
-  "homepage": "https://github.com/marcel-tuinstra/opencode-council#readme",
+  "homepage": "https://github.com/marcel-tuinstra/agent-council#readme",
   "bugs": {
-    "url": "https://github.com/marcel-tuinstra/opencode-council/issues"
+    "url": "https://github.com/marcel-tuinstra/agent-council/issues"
   },
   "engines": {
     "node": ">=22.0.0"
   },
   "devDependencies": {
+    "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.0.0",
+    "js-yaml": "^4.1.1",
     "typescript": "^5.8.3",
     "vitest": "^3.2.4"
   }

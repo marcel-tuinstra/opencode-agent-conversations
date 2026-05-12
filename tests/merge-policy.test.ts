@@ -3,7 +3,7 @@ import {
   assertMergePolicyAllowsAutoMerge,
   evaluateMergePolicy,
   resolveMergePolicy
-} from "../plugins/orchestration-workflows/merge-policy";
+} from "../plugins/agent-council/merge-policy";
 
 describe("merge-policy", () => {
   it("defaults to manual human approval under the safe v1 profile", () => {
@@ -120,14 +120,14 @@ describe("merge-policy", () => {
     // Act
     const decision = evaluateMergePolicy(policy, {
       serviceCriticality: "standard",
-      changedPaths: ["plugins/orchestration-workflows/merge-policy.ts"],
+      changedPaths: ["plugins/agent-council/merge-policy.ts"],
       labels: ["automerge"]
     });
 
     // Assert
     expect(decision.status).toBe("requires-human");
     expect(decision.protectedPathOutcome).toBe("requires-human");
-    expect(decision.protectedPaths).toEqual(["plugins/orchestration-workflows/merge-policy.ts"]);
+    expect(decision.protectedPaths).toEqual(["plugins/agent-council/merge-policy.ts"]);
     expect(decision.protectedPathAuditExpectations).toEqual([
       "Attach the changed paths, the approving human, and the reason for the exception before continuing."
     ]);

@@ -88,7 +88,7 @@ If the file is missing, the plugin keeps the built-in profile. If a field is inv
 
 ## 1) Customize MCP provider checks
 
-Files: `plugins/orchestration-workflows/supervisor-config.ts` and `plugins/orchestration-workflows/mcp.ts`
+Files: `plugins/agent-council/supervisor-config.ts` and `plugins/agent-council/mcp.ts`
 
 Main places to edit:
 
@@ -124,7 +124,7 @@ const providerFromToolName = (tool: string): string | null => {
 
 ## 2) Tune MCP strictness and call limits
 
-Files: `.opencode/supervisor-policy.json`, `plugins/orchestration-workflows/mcp.ts`, and `plugins/orchestration-workflows/index.ts`
+Files: `.opencode/supervisor-policy.json`, `plugins/agent-council/mcp.ts`, and `plugins/agent-council/index.ts`
 
 Useful knobs:
 
@@ -136,7 +136,7 @@ If you want a softer policy, you can remove the temporary block that forces chec
 
 ## 3) Add or rename discussion roles
 
-Files: `plugins/orchestration-workflows/types.ts`, `.opencode/supervisor-policy.json`, `plugins/orchestration-workflows/roles.ts`, `plugins/orchestration-workflows/intent.ts`, and `plugins/orchestration-workflows/output.ts`
+Files: `plugins/agent-council/types.ts`, `.opencode/supervisor-policy.json`, `plugins/agent-council/roles.ts`, `plugins/agent-council/intent.ts`, and `plugins/agent-council/output.ts`
 
 When introducing a new role, update all of the following:
 
@@ -185,7 +185,7 @@ Prefer short diagnostics, explicit tradeoffs, and practical next steps.
 - Keep agent prompts role-specific and concise.
 - Prefer adding aliases in `roleAliases` so users can mention natural names.
 - Supervisor policy defaults now live in `POLICY_PROFILES.md`; keep repo-specific overrides aligned with that contract.
-- Budget environment variables in `plugins/orchestration-workflows/budget.ts` still override the repo policy file at runtime.
+- Budget environment variables in `plugins/agent-council/budget.ts` still override the repo policy file at runtime.
 - After changes, run a quick prompt with multi-mentions and provider names to verify behavior.
 - After merges, sync both plugin files and `~/.opencode/agents/` before concluding that new roles are missing.
 

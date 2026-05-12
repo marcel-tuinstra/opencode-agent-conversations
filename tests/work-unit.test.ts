@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { normalizeWorkUnit } from "../plugins/orchestration-workflows/work-unit";
+import { normalizeWorkUnit } from "../plugins/agent-council/work-unit";
 
 describe("work-unit", () => {
   it("normalizes tracker-backed intake into the canonical work-unit shape", () => {

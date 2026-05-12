@@ -2,8 +2,8 @@ import { mkdirSync, mkdtempSync, readFileSync, readdirSync, rmSync, writeFileSyn
 import os from "node:os";
 import path from "node:path";
 import { afterEach, describe, expect, it } from "vitest";
-import { createFileBackedSupervisorStateStore, SUPERVISOR_STATE_STORE_SCHEMA_VERSION } from "../plugins/orchestration-workflows/durable-state-store";
-import type { ChildSessionRecord } from "../plugins/orchestration-workflows/child-session-lifecycle";
+import { createFileBackedSupervisorStateStore, SUPERVISOR_STATE_STORE_SCHEMA_VERSION } from "../plugins/agent-council/durable-state-store";
+import type { ChildSessionRecord } from "../plugins/agent-council/child-session-lifecycle";
 
 const tempDirs: string[] = [];
 
@@ -78,7 +78,7 @@ describe("durable-state-store", () => {
           requestedBy: "supervisor",
           requestedAt: "2026-03-13T10:01:00.000Z",
           context: {
-            changedPaths: ["plugins/orchestration-workflows/supervisor-scheduler.ts"],
+            changedPaths: ["plugins/agent-council/supervisor-scheduler.ts"],
             targetRef: "epic/supervisor-alpha"
           },
           updatedAt: "2026-03-13T10:01:00.000Z"

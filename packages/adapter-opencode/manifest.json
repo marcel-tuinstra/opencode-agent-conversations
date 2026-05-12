@@ -1,0 +1,33 @@
+{
+  "platform": "opencode",
+  "install": {
+    "type": "copy",
+    "entries": [
+      {
+        "source": "plugins/agent-council.ts",
+        "destination": "~/.opencode/plugins/agent-council.ts"
+      },
+      {
+        "source": "plugins/agent-council",
+        "destination": "~/.opencode/plugins/agent-council"
+      },
+      {
+        "source": "generated/opencode/agents",
+        "destination": "~/.opencode/agents"
+      },
+      {
+        "source": "generated/opencode/skills",
+        "destination": "~/.opencode/skills/agent-council"
+      }
+    ]
+  },
+  "runtime": {
+    "promptInjection": "native",
+    "toolGating": "native",
+    "worktrees": "native"
+  },
+  "detect": {
+    "binaries": ["opencode"],
+    "homeMarkers": [".opencode"]
+  }
+}

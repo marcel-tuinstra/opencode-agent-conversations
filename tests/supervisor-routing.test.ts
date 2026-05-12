@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
-import type { SupervisorRunState } from "../plugins/orchestration-workflows/durable-state-store";
-import type { SupervisorLaneDefinition } from "../plugins/orchestration-workflows/supervisor-scheduler";
-import { routeSupervisorWorkUnit } from "../plugins/orchestration-workflows/supervisor-routing";
-import { normalizeWorkUnit } from "../plugins/orchestration-workflows/work-unit";
+import type { SupervisorRunState } from "../plugins/agent-council/durable-state-store";
+import type { SupervisorLaneDefinition } from "../plugins/agent-council/supervisor-scheduler";
+import { routeSupervisorWorkUnit } from "../plugins/agent-council/supervisor-routing";
+import { normalizeWorkUnit } from "../plugins/agent-council/work-unit";
 
 const createRunState = (): SupervisorRunState => ({
   schemaVersion: 2,

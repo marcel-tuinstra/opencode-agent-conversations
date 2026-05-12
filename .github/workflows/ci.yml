@@ -44,5 +44,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      - name: Verify packed manifest assets
+        run: npm run verify:pack
+
       - name: Run typecheck
         run: npm run typecheck

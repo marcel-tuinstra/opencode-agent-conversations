@@ -5,6 +5,21 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.0.0] - 2026-04-08
+
+### Added
+
+- Tri-platform support with adapter manifests for OpenCode, Claude Code, and Codex.
+- Shared prompt and skill generation pipeline (`shared/* -> generated/*`) with conformance tests.
+- Runtime/core package extraction for supervisor planning, governance, routing, and dispatch flows.
+- Release hardening gates for packed artifact validation and stale-file prune behavior on manifest installs.
+
+### Changed
+
+- Package and plugin naming standardized to `agent-council`.
+- Installer and docs updated for generated agent/skill assets as the canonical install source.
+- CI now validates packed artifacts include all adapter manifest install sources.
+
 ## [0.6.2] - 2026-03-21
 
 ### Added
@@ -44,13 +59,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - The package root is now frozen to the minimal stable runtime contract: `AgentConversations`, `SUPPORTED_ROLES`, `Role`, `Intent`, `DelegationMode`, `DelegationRequest`, `DelegationWave`, `DelegationPlan`, and `SessionPolicy`
-- Supervisor helpers and other non-runtime root-barrel exports move to the experimental supervisor entry point, `opencode-council/supervisor`
+- Supervisor helpers and other non-runtime root-barrel exports move to the experimental supervisor entry point, `agent-council/supervisor`
 - `v0.5.0` formalizes the contract split so the live runtime can remain stable while supervisor APIs continue iterating toward `v0.6.0`
 
 ### Upgrade Notes
 
-- If you import only the live runtime contract from `opencode-council`, no migration is required
-- If you import supervisor helpers, move those imports from `opencode-council` to `opencode-council/supervisor`
+- If you import only the live runtime contract from `agent-council`, no migration is required
+- If you import supervisor helpers, move those imports from `agent-council` to `agent-council/supervisor`
 - Existing CLI commands keep working across `v0.5.x`
 - Existing documented env vars and policy keys stay valid across `v0.5.x`; new ones are additive
 - See `docs/guides/upgrading-to-0.5.0.md` for import migration examples
@@ -59,15 +74,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
-- **One-command install**: `npx opencode-council init` installs plugin + all 10 agents in one command
+- **One-command install**: `npx agent-council init` installs plugin + all 10 agents in one command
 - **Shell installer**: `curl -fsSL .../install.sh | bash` for non-Node users
 - **Install management**: `refresh`, `verify`, and `uninstall` commands
 - **Config detection**: existing install detection, supervisor-policy.json preservation, dry-run mode, backup support
 
 ### Changed
 
-- **Renamed to OpenCode Council**: repo, npm package, and all references updated from `opencode-orchestration-workflows` to `opencode-council`
-- Package published to npm as `opencode-council` (no longer `private: true`)
+- **Renamed to OpenCode Council**: repo, npm package, and all references updated from `opencode-agent-council` to `agent-council`
+- Package published to npm as `agent-council` (no longer `private: true`)
 - README rewritten as compact product page with one-command install
 
 ## [0.3.0] - 2026-03-18
@@ -114,10 +129,11 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Runtime-visible budget checkpoints and handoff reminders
 - Intent detection and weighted turn targeting
 
-[0.4.0]: https://github.com/marcel-tuinstra/opencode-council/releases/tag/v0.4.0
-[0.5.0]: https://github.com/marcel-tuinstra/opencode-council/releases/tag/v0.5.0
-[0.6.2]: https://github.com/marcel-tuinstra/opencode-council/releases/tag/v0.6.2
-[0.6.0]: https://github.com/marcel-tuinstra/opencode-council/releases/tag/v0.6.0
-[0.3.0]: https://github.com/marcel-tuinstra/opencode-council/releases/tag/v0.3.0
-[0.2.0]: https://github.com/marcel-tuinstra/opencode-council/releases/tag/v0.2.0
-[0.1.0]: https://github.com/marcel-tuinstra/opencode-council/releases/tag/v0.1.0
+[0.4.0]: https://github.com/marcel-tuinstra/agent-council/releases/tag/v0.4.0
+[1.0.0]: https://github.com/marcel-tuinstra/agent-council/releases/tag/v1.0.0
+[0.5.0]: https://github.com/marcel-tuinstra/agent-council/releases/tag/v0.5.0
+[0.6.2]: https://github.com/marcel-tuinstra/agent-council/releases/tag/v0.6.2
+[0.6.0]: https://github.com/marcel-tuinstra/agent-council/releases/tag/v0.6.0
+[0.3.0]: https://github.com/marcel-tuinstra/agent-council/releases/tag/v0.3.0
+[0.2.0]: https://github.com/marcel-tuinstra/agent-council/releases/tag/v0.2.0
+[0.1.0]: https://github.com/marcel-tuinstra/agent-council/releases/tag/v0.1.0

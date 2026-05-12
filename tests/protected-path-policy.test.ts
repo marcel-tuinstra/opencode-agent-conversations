@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { evaluateProtectedPathPolicy } from "../plugins/orchestration-workflows/protected-path-policy";
-import { resolveSupervisorPolicy } from "../plugins/orchestration-workflows/supervisor-config";
+import { evaluateProtectedPathPolicy } from "../plugins/agent-council/protected-path-policy";
+import { resolveSupervisorPolicy } from "../plugins/agent-council/supervisor-config";
 
 describe("protected-path-policy", () => {
   it("allows low-risk paths by default while keeping the policy fail-closed", () => {
@@ -33,13 +33,13 @@ describe("protected-path-policy", () => {
 
     // Act
     const decision = evaluateProtectedPathPolicy([
-      "plugins/orchestration-workflows/merge-policy.ts"
+      "plugins/agent-council/merge-policy.ts"
     ], policy);
 
     // Assert
     expect(decision).toMatchObject({
       outcome: "requires-human",
-      requiresHumanPaths: ["plugins/orchestration-workflows/merge-policy.ts"],
+      requiresHumanPaths: ["plugins/agent-council/merge-policy.ts"],
       deniedPaths: [],
       violationCodes: ["protected-path-requires-human"]
     });

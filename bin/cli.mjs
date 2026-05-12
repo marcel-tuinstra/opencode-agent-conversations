@@ -1,12 +1,13 @@
 #!/usr/bin/env node
 
-// opencode-council installer CLI
+// agent-council installer CLI
 // Zero dependencies -- Node.js stdlib only
 // Cross-platform: macOS, Linux, Windows (stretch)
 
 import {
   existsSync,
   cpSync,
+  copyFileSync,
   mkdirSync,
   readdirSync,
   readFileSync,
@@ -14,10 +15,11 @@ import {
   rmSync,
   lstatSync,
 } from "node:fs";
-import { join, dirname, relative, resolve } from "node:path";
+import { join, dirname, relative, resolve, basename } from "node:path";
 import { homedir } from "node:os";
 import { fileURLToPath } from "node:url";
 import { createHash } from "node:crypto";
+import { spawnSync } from "node:child_process";
 
 // ---------------------------------------------------------------------------
 // Color helpers -- respect NO_COLOR (https://no-color.org/)
@@ -42,14 +44,28 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname  = dirname(__filename);
 const repoRoot   = resolve(__dirname, "..");
 
-const SRC_PLUGIN_BARREL = join(repoRoot, "plugins", "orchestration-workflows.ts");
-const SRC_PLUGIN_DIR    = join(repoRoot, "plugins", "orchestration-workflows");
+const SRC_PLUGIN_BARREL = join(repoRoot, "plugins", "agent-council.ts");
+const SRC_PLUGIN_DIR    = join(repoRoot, "plugins", "agent-council");
 const SRC_AGENTS_DIR    = join(repoRoot, "agents");
+const SRC_GENERATED_OPENCODE_AGENTS = join(repoRoot, "generated", "opencode", "agents");
+const SRC_GENERATED_OPENCODE_SKILLS = join(repoRoot, "generated", "opencode", "skills");
+const ADAPTER_MANIFESTS = {
+  "opencode": join(repoRoot, "packages", "adapter-opencode", "manifest.json"),
+  "claude-code": join(repoRoot, "packages", "adapter-claude-code", "manifest.json"),
+  "codex": join(repoRoot, "packages", "adapter-codex", "manifest.json")
+};
 
 const DEST_BASE        = join(homedir(), ".opencode");
 const DEST_PLUGINS_DIR = join(DEST_BASE, "plugins");
 const DEST_AGENTS_DIR  = join(DEST_BASE, "agents");
-const DEST_PLUGIN_SUB  = join(DEST_PLUGINS_DIR, "orchestration-workflows");
+const DEST_SKILLS_DIR  = join(DEST_BASE, "skills", "agent-council");
+const DEST_PLUGIN_SUB  = join(DEST_PLUGINS_DIR, "agent-council");
+
+const PLATFORM_IDS = ["opencode", "claude-code", "codex"];
+const SRC_OPENCODE_AGENTS_DIR = existsSync(SRC_GENERATED_OPENCODE_AGENTS)
+  ? SRC_GENERATED_OPENCODE_AGENTS
+  : SRC_AGENTS_DIR;
+const SRC_OPENCODE_SKILLS_DIR = SRC_GENERATED_OPENCODE_SKILLS;
 
 // ---------------------------------------------------------------------------
 // Package version (read from package.json)
@@ -64,10 +80,14 @@ const PKG_VERSION = existsSync(pkgJsonPath)
 // Known agent manifest -- files we own (used by verify & refresh prune)
 // ---------------------------------------------------------------------------
 
-const KNOWN_AGENTS = existsSync(SRC_AGENTS_DIR)
-  ? readdirSync(SRC_AGENTS_DIR).filter((f) => f.endsWith(".md"))
+const KNOWN_AGENTS = existsSync(SRC_OPENCODE_AGENTS_DIR)
+  ? readdirSync(SRC_OPENCODE_AGENTS_DIR).filter((f) => f.endsWith(".md"))
   : ["be.md", "ceo.md", "cto.md", "dev.md", "fe.md",
      "marketing.md", "pm.md", "po.md", "research.md", "ux.md"];
+
+const KNOWN_SKILLS = existsSync(SRC_OPENCODE_SKILLS_DIR)
+  ? readdirSync(SRC_OPENCODE_SKILLS_DIR).filter((f) => !f.startsWith("."))
+  : ["deliberate"];
 
 // ---------------------------------------------------------------------------
 // CLI argument parsing (minimal -- no dependencies)
@@ -89,6 +109,24 @@ if (budgetProfileIdx !== -1) {
   knownFlagValues.add(budgetProfileIdx + 1);
 }
 
+const platformValues = [];
+for (let i = 0; i < args.length; i++) {
+  if (args[i] === "--platform") {
+    const next = args[i + 1] ?? "";
+    knownFlagValues.add(i + 1);
+    if (next) {
+      platformValues.push(next);
+    }
+  }
+}
+
+const FLAG_PLATFORMS = Array.from(new Set(
+  platformValues
+    .flatMap((value) => value.split(","))
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => value.length > 0)
+));
+
 for (let i = 0; i < args.length; i++) {
   if (knownFlagValues.has(i)) continue;     // skip flag values
   if (args[i].startsWith("-")) {
@@ -98,7 +136,10 @@ for (let i = 0; i < args.length; i++) {
   }
 }
 
-const KNOWN_FLAGS = ["--help", "-h", "--dry-run", "-n", "--force", "-f", "--backup", "-b", "--version", "-v", "--budget-profile"];
+const KNOWN_FLAGS = [
+  "--help", "-h", "--dry-run", "-n", "--force", "-f", "--backup", "-b", "--version", "-v",
+  "--budget-profile", "--platform"
+];
 const unknownFlags = flags.filter((f) => !KNOWN_FLAGS.includes(f));
 if (unknownFlags.length > 0) {
   console.error(colors.yellow(`  Warning: unknown flag(s) ignored: ${unknownFlags.join(", ")}`));
@@ -115,16 +156,16 @@ const FLAG_BACKUP  = flags.includes("--backup") || flags.includes("-b");
 
 function printHelp() {
   console.log(`
-${colors.bold("opencode-council")} ${colors.dim(`v${PKG_VERSION}`)}
+${colors.bold("agent-council")} ${colors.dim(`v${PKG_VERSION}`)}
 
 ${colors.cyan("Usage:")}
-  npx opencode-council <command> [options]
+  npx agent-council <command> [options]
 
 ${colors.cyan("Commands:")}
-  init        Install plugin + agent files into ~/.opencode
-  refresh     Reinstall from source (prunes stale files, overwrites all)
-  verify      Health-check: compare installed files against source by SHA-256
-  uninstall   Remove installed plugin + agent files from ~/.opencode
+  init        Install agent-council into selected platforms
+  refresh     Reinstall from source for selected platforms
+  verify      Health-check selected platform installs
+  uninstall   Remove agent-council from selected platforms
   config      Configure plugin settings
   help        Show this help message
 
@@ -138,15 +179,16 @@ ${colors.cyan("Options:")}
   --backup,  -b                Back up existing files before overwriting (refresh/init)
   --version, -v                Print version and exit
   --budget-profile <name>      Set budget profile during init (skips prompt)
+  --platform <id[,id...]>      Target platform(s): opencode, claude-code, codex
 
 ${colors.cyan("What it does:")}
   Copies plugin and agent files from this package into
   ${colors.dim(DEST_BASE)} so OpenCode can load them at startup.
 
   Source files:
-    plugins/orchestration-workflows.ts     ${colors.dim("(barrel)")}
-    plugins/orchestration-workflows/       ${colors.dim("(runtime modules)")}
-    agents/*.md                            ${colors.dim("(role profiles)")}
+    plugins/agent-council.ts     ${colors.dim("(barrel)")}
+    plugins/agent-council/       ${colors.dim("(runtime modules)")}
+    generated/opencode/agents/*.md         ${colors.dim("(generated role profiles)")}
 
   Destination:
     ${colors.dim(DEST_PLUGINS_DIR + "/")}
@@ -199,53 +241,18 @@ function sha256(filePath) {
 }
 
 function printPlan() {
+  const manifest = buildManifest();
   console.log(colors.cyan("  Would copy:"));
-  console.log(`    ${colors.dim(relative(process.cwd(), SRC_PLUGIN_BARREL))}`);
-  console.log(`      -> ${colors.dim(join(DEST_PLUGINS_DIR, "orchestration-workflows.ts"))}`);
-  console.log("");
-  console.log(`    ${colors.dim(relative(process.cwd(), SRC_PLUGIN_DIR) + "/  (recursive)")}`);
-  console.log(`      -> ${colors.dim(join(DEST_PLUGINS_DIR, "orchestration-workflows") + "/")}`);
-  console.log("");
-
-  const agentFiles = readdirSync(SRC_AGENTS_DIR).filter((f) => f.endsWith(".md"));
-  for (const file of agentFiles) {
-    console.log(`    ${colors.dim(join("agents", file))}`);
-    console.log(`      -> ${colors.dim(join(DEST_AGENTS_DIR, file))}`);
+  for (const entry of manifest) {
+    console.log(`    ${colors.dim(relative(process.cwd(), entry.src))}`);
+    console.log(`      -> ${colors.dim(entry.dest)}`);
   }
   console.log("");
 }
 
 /** Build the full manifest of source -> dest file pairs. */
 function buildManifest() {
-  const manifest = [];
-
-  // 1. Barrel file
-  manifest.push({
-    src:  SRC_PLUGIN_BARREL,
-    dest: join(DEST_PLUGINS_DIR, "orchestration-workflows.ts"),
-    label: "plugins/orchestration-workflows.ts",
-  });
-
-  // 2. Plugin directory files
-  for (const relFile of collectFiles(SRC_PLUGIN_DIR)) {
-    manifest.push({
-      src:  join(SRC_PLUGIN_DIR, relFile),
-      dest: join(DEST_PLUGIN_SUB, relFile),
-      label: join("plugins/orchestration-workflows", relFile),
-    });
-  }
-
-  // 3. Agent files
-  const agentFiles = readdirSync(SRC_AGENTS_DIR).filter((f) => f.endsWith(".md"));
-  for (const file of agentFiles) {
-    manifest.push({
-      src:  join(SRC_AGENTS_DIR, file),
-      dest: join(DEST_AGENTS_DIR, file),
-      label: join("agents", file),
-    });
-  }
-
-  return manifest;
+  return buildCopyManifestFromAdapter("opencode");
 }
 
 function validateSource(path, label) {
@@ -262,12 +269,13 @@ function validateSource(path, label) {
 function validateSources() {
   validateSource(SRC_PLUGIN_BARREL, "Plugin barrel file");
   validateSource(SRC_PLUGIN_DIR, "Plugin directory");
-  validateSource(SRC_AGENTS_DIR, "Agents directory");
+  validateSource(SRC_OPENCODE_AGENTS_DIR, "OpenCode agents directory");
+  validateSource(SRC_OPENCODE_SKILLS_DIR, "OpenCode skills directory");
 }
 
 function printBanner() {
   console.log("");
-  console.log(colors.bold("  opencode-council") + " " + colors.dim(`v${PKG_VERSION}`));
+  console.log(colors.bold("  agent-council") + " " + colors.dim(`v${PKG_VERSION}`));
   console.log(colors.dim("  ------------------------------------------"));
   console.log("");
 }
@@ -276,7 +284,8 @@ function printSources() {
   console.log(colors.cyan("  Source (repo):"));
   console.log(`    ${colors.dim(relative(process.cwd(), SRC_PLUGIN_BARREL))}`);
   console.log(`    ${colors.dim(relative(process.cwd(), SRC_PLUGIN_DIR) + "/")}`);
-  console.log(`    ${colors.dim(relative(process.cwd(), SRC_AGENTS_DIR) + "/")}`);
+  console.log(`    ${colors.dim(relative(process.cwd(), SRC_OPENCODE_AGENTS_DIR) + "/")}`);
+  console.log(`    ${colors.dim(relative(process.cwd(), SRC_OPENCODE_SKILLS_DIR) + "/")}`);
   console.log("");
 }
 
@@ -284,6 +293,7 @@ function printDestinations() {
   console.log(colors.cyan("  Destination:"));
   console.log(`    ${colors.dim(DEST_PLUGINS_DIR + "/")}`);
   console.log(`    ${colors.dim(DEST_AGENTS_DIR + "/")}`);
+  console.log(`    ${colors.dim(DEST_SKILLS_DIR + "/")}`);
   console.log("");
 }
 
@@ -308,6 +318,168 @@ async function confirm(message) {
   });
 
   return !answer || answer === "y" || answer === "yes";
+}
+
+function hasCommand(binary) {
+  const probe = process.platform === "win32" ? "where" : "command";
+  const probeArgs = process.platform === "win32"
+    ? [binary]
+    : ["-v", binary];
+  const result = spawnSync(probe, probeArgs, {
+    shell: process.platform !== "win32",
+    stdio: "ignore"
+  });
+  return result.status === 0;
+}
+
+function detectPlatforms() {
+  const output = {
+    opencode: false,
+    "claude-code": false,
+    codex: false
+  };
+
+  for (const platformId of PLATFORM_IDS) {
+    const adapterManifest = readJson(ADAPTER_MANIFESTS[platformId]);
+    const markers = adapterManifest.detect?.homeMarkers ?? [];
+    const binaries = adapterManifest.detect?.binaries ?? [];
+    const markerDetected = markers.some((marker) => existsSync(join(homedir(), marker)));
+    const binaryDetected = binaries.some((binary) => hasCommand(binary));
+    output[platformId] = markerDetected || binaryDetected;
+  }
+
+  return output;
+}
+
+function normalizePlatformSelection(input) {
+  const normalized = Array.from(new Set(input
+    .map((value) => value.trim().toLowerCase())
+    .filter((value) => PLATFORM_IDS.includes(value))
+  ));
+  return normalized;
+}
+
+async function promptPlatforms(detectedMap) {
+  if (!process.stdin.isTTY) {
+    const fallback = PLATFORM_IDS.filter((id) => detectedMap[id]);
+    return fallback.length > 0 ? fallback : ["opencode"];
+  }
+
+  const detected = PLATFORM_IDS.filter((id) => detectedMap[id]);
+  const defaults = detected.length > 0 ? detected : ["opencode"];
+
+  console.log(colors.cyan("  Detected platforms:"));
+  for (const id of PLATFORM_IDS) {
+    const marker = detectedMap[id] ? colors.green("[x]") : "[ ]";
+    console.log(`    ${marker} ${id}`);
+  }
+  console.log("");
+  console.log(colors.cyan("  Select target platforms (comma-separated numbers):"));
+  console.log(`    1) opencode${defaults.includes("opencode") ? colors.dim(" (default)") : ""}`);
+  console.log(`    2) claude-code${defaults.includes("claude-code") ? colors.dim(" (default)") : ""}`);
+  console.log(`    3) codex${defaults.includes("codex") ? colors.dim(" (default)") : ""}`);
+  console.log("");
+
+  const readline = await import("node:readline");
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  const answer = await new Promise((res) => {
+    rl.question(colors.cyan("  Platforms [1,2,3 default: detected]: "), (ans) => {
+      rl.close();
+      res(ans.trim());
+    });
+  });
+
+  if (!answer) {
+    return defaults;
+  }
+
+  const mapped = answer
+    .split(",")
+    .map((item) => item.trim())
+    .map((item) => {
+      if (item === "1") return "opencode";
+      if (item === "2") return "claude-code";
+      if (item === "3") return "codex";
+      return item;
+    });
+
+  const selected = normalizePlatformSelection(mapped);
+  return selected.length > 0 ? selected : defaults;
+}
+
+async function resolveTargetPlatforms() {
+  if (FLAG_PLATFORMS.length > 0) {
+    const selected = normalizePlatformSelection(FLAG_PLATFORMS);
+    if (selected.length === 0) {
+      console.error(colors.red("  Invalid --platform value. Use: opencode, claude-code, codex"));
+      process.exit(1);
+    }
+    return selected;
+  }
+
+  const detected = detectPlatforms();
+  return await promptPlatforms(detected);
+}
+
+function readJson(path) {
+  return JSON.parse(readFileSync(path, "utf8"));
+}
+
+function resolveHomePath(value) {
+  if (value.startsWith("~/")) {
+    return join(homedir(), value.slice(2));
+  }
+  return value;
+}
+
+function getAdapterInstallEntries(platformId) {
+  const manifestPath = ADAPTER_MANIFESTS[platformId];
+  const adapterManifest = readJson(manifestPath);
+  if (!adapterManifest.install || adapterManifest.install.type !== "copy") {
+    throw new Error(`Unsupported install spec for ${platformId}`);
+  }
+
+  return (adapterManifest.install.entries ?? []).map((entry) => ({
+    source: join(repoRoot, entry.source),
+    destination: resolveHomePath(entry.destination),
+    sourceLabel: entry.source
+  }));
+}
+
+function buildCopyManifestFromAdapter(platformId) {
+  const entries = getAdapterInstallEntries(platformId);
+  const output = [];
+
+  for (const entry of entries) {
+    const sourcePath = entry.source;
+    const destinationPath = entry.destination;
+    validateSource(sourcePath, `Adapter source (${platformId}: ${entry.sourceLabel})`);
+
+    const sourceStat = lstatSync(sourcePath);
+    if (sourceStat.isDirectory()) {
+      const files = collectFiles(sourcePath);
+      for (const relFile of files) {
+        output.push({
+          src: join(sourcePath, relFile),
+          dest: join(destinationPath, relFile),
+          label: join(entry.sourceLabel, relFile)
+        });
+      }
+      continue;
+    }
+
+    output.push({
+      src: sourcePath,
+      dest: destinationPath,
+      label: entry.sourceLabel
+    });
+  }
+
+  return output;
 }
 
 /** Create .bak copies of every destination file that exists. */
@@ -343,7 +515,7 @@ function prunePluginDir(dryRun) {
 // ---------------------------------------------------------------------------
 
 function cmdVersion() {
-  console.log(`opencode-council v${PKG_VERSION}`);
+  console.log(`agent-council v${PKG_VERSION}`);
   process.exit(0);
 }
 
@@ -360,11 +532,15 @@ function cmdHelp() {
 // Command: verify
 // ---------------------------------------------------------------------------
 
-function cmdVerify() {
-  printBanner();
+function cmdVerifyOpenCode({ standalone = true } = {}) {
+  if (standalone) {
+    printBanner();
+  }
   validateSources();
-  printSources();
-  printDestinations();
+  if (standalone) {
+    printSources();
+    printDestinations();
+  }
 
   const manifest = buildManifest();
   let ok = 0;
@@ -402,32 +578,45 @@ function cmdVerify() {
   if (missing === 0 && mismatch === 0) {
     console.log(colors.green(colors.bold("  All files match. Installation is healthy.")));
   } else {
-    console.log(colors.yellow("  Run `npx opencode-council refresh` to repair."));
+    console.log(colors.yellow("  Run `npx agent-council refresh` to repair."));
   }
   console.log("");
 
-  process.exit(missing > 0 || mismatch > 0 ? 1 : 0);
+  const hasIssues = missing > 0 || mismatch > 0;
+  if (standalone) {
+    process.exit(hasIssues ? 1 : 0);
+  }
+
+  return { ok, missing, changed: mismatch, total: manifest.length, hasIssues };
 }
 
 // ---------------------------------------------------------------------------
 // Command: uninstall
 // ---------------------------------------------------------------------------
 
-async function cmdUninstall() {
-  printBanner();
+async function cmdUninstallOpenCode({ standalone = true } = {}) {
+  if (standalone) {
+    printBanner();
+  }
 
   console.log(colors.cyan("  This will remove:"));
-  console.log(`    ${colors.dim(join(DEST_PLUGINS_DIR, "orchestration-workflows.ts"))}`);
+  console.log(`    ${colors.dim(join(DEST_PLUGINS_DIR, "agent-council.ts"))}`);
   console.log(`    ${colors.dim(DEST_PLUGIN_SUB + "/")}`);
   for (const agent of KNOWN_AGENTS) {
     console.log(`    ${colors.dim(join(DEST_AGENTS_DIR, agent))}`);
+  }
+  for (const skill of KNOWN_SKILLS) {
+    console.log(`    ${colors.dim(join(DEST_SKILLS_DIR, skill))}`);
   }
   console.log("");
 
   if (FLAG_DRY_RUN) {
     console.log(colors.yellow("  Dry run -- no files will be removed."));
     console.log("");
-    process.exit(0);
+    if (standalone) {
+      process.exit(0);
+    }
+    return;
   }
 
   // Confirmation (skip with --force or non-TTY)
@@ -437,7 +626,10 @@ async function cmdUninstall() {
       console.log("");
       console.log(colors.yellow("  Aborted."));
       console.log("");
-      process.exit(0);
+        if (standalone) {
+          process.exit(0);
+        }
+        return;
     }
     console.log("");
   }
@@ -446,11 +638,11 @@ async function cmdUninstall() {
   let removed = 0;
 
   // Remove barrel file
-  const barrelDest = join(DEST_PLUGINS_DIR, "orchestration-workflows.ts");
+  const barrelDest = join(DEST_PLUGINS_DIR, "agent-council.ts");
   if (existsSync(barrelDest)) {
     rmSync(barrelDest, { force: true });
     removed++;
-    console.log(colors.green(`  Removed ${colors.dim("plugins/orchestration-workflows.ts")}`));
+    console.log(colors.green(`  Removed ${colors.dim("plugins/agent-council.ts")}`));
   }
 
   // Remove plugin subdir
@@ -458,7 +650,7 @@ async function cmdUninstall() {
     const count = countFiles(DEST_PLUGIN_SUB);
     rmSync(DEST_PLUGIN_SUB, { recursive: true, force: true });
     removed += count;
-    console.log(colors.green(`  Removed ${colors.dim("plugins/orchestration-workflows/  (" + count + " files)")}`));
+    console.log(colors.green(`  Removed ${colors.dim("plugins/agent-council/  (" + count + " files)")}`));
   }
 
   // Remove our known agents only
@@ -475,13 +667,22 @@ async function cmdUninstall() {
     console.log(colors.green(`  Removed ${colors.dim("agents/  (" + agentCount + " profiles)")}`));
   }
 
+  if (existsSync(DEST_SKILLS_DIR)) {
+    const skillFileCount = countFiles(DEST_SKILLS_DIR);
+    rmSync(DEST_SKILLS_DIR, { recursive: true, force: true });
+    removed += skillFileCount;
+    console.log(colors.green(`  Removed ${colors.dim("skills/agent-council/  (" + skillFileCount + " files)")}`));
+  }
+
   const elapsed = Date.now() - t0;
   console.log("");
   console.log(colors.green(colors.bold("  Uninstalled.")));
   console.log(colors.dim(`  ${removed} files removed in ${elapsed}ms`));
   console.log("");
 
-  process.exit(0);
+  if (standalone) {
+    process.exit(0);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -571,7 +772,7 @@ function printBudgetProfileOutput(profileName, saved) {
   const cp = profile.compaction;
 
   console.log("");
-  console.log(colors.bold("opencode-council") + " " + colors.dim(`v${PKG_VERSION}`));
+  console.log(colors.bold("agent-council") + " " + colors.dim(`v${PKG_VERSION}`));
   console.log("");
   console.log(`${colors.cyan("Budget profile:")} ${colors.bold(profileName)}`);
   console.log("");
@@ -637,18 +838,24 @@ async function promptBudgetProfile() {
 // Command: init / refresh  (shared install flow)
 // ---------------------------------------------------------------------------
 
-async function cmdInstall({ mode = "init" }) {
+async function cmdInstallOpenCode({ mode = "init", standalone = true }) {
   const label = mode;
   const t0 = Date.now();
 
-  printBanner();
+  if (standalone) {
+    printBanner();
+  }
   validateSources();
-  printSources();
+  if (standalone) {
+    printSources();
+  }
 
-  const existingInstall = existsSync(join(DEST_PLUGINS_DIR, "orchestration-workflows.ts"))
+  const existingInstall = existsSync(join(DEST_PLUGINS_DIR, "agent-council.ts"))
     || existsSync(DEST_PLUGIN_SUB);
 
-  printDestinations();
+  if (standalone) {
+    printDestinations();
+  }
 
   if (existingInstall && mode === "init") {
     console.log(colors.yellow("  Note: Existing installation detected. Files will be overwritten."));
@@ -664,7 +871,10 @@ async function cmdInstall({ mode = "init" }) {
     printPlan();
     console.log(colors.yellow("  Run without --dry-run to apply changes."));
     console.log("");
-    process.exit(0);
+    if (standalone) {
+      process.exit(0);
+    }
+    return;
   }
 
   // Confirmation (skip with --force)
@@ -678,7 +888,10 @@ async function cmdInstall({ mode = "init" }) {
       console.log("");
       console.log(colors.yellow("  Aborted."));
       console.log("");
-      process.exit(0);
+      if (standalone) {
+        process.exit(0);
+      }
+      return;
     }
     console.log("");
   }
@@ -704,27 +917,37 @@ async function cmdInstall({ mode = "init" }) {
     // Ensure destination directories exist
     mkdirSync(DEST_PLUGINS_DIR, { recursive: true });
     mkdirSync(DEST_AGENTS_DIR, { recursive: true });
+    mkdirSync(DEST_SKILLS_DIR, { recursive: true });
 
     // 1. Copy plugin barrel file
-    const destBarrel = join(DEST_PLUGINS_DIR, "orchestration-workflows.ts");
+    const destBarrel = join(DEST_PLUGINS_DIR, "agent-council.ts");
     cpSync(SRC_PLUGIN_BARREL, destBarrel, { force: true });
     copiedFiles++;
-    console.log(colors.green(`  Copied  ${colors.dim("plugins/orchestration-workflows.ts")}`));
+    console.log(colors.green(`  Copied  ${colors.dim("plugins/agent-council.ts")}`));
 
     // 2. Copy plugin directory (recursive)
     cpSync(SRC_PLUGIN_DIR, DEST_PLUGIN_SUB, { recursive: true, force: true });
     copiedDirs++;
     const pluginFileCount = countFiles(SRC_PLUGIN_DIR);
     copiedFiles += pluginFileCount;
-    console.log(colors.green(`  Copied  ${colors.dim(`plugins/orchestration-workflows/  (${pluginFileCount} files)`)}`));
+    console.log(colors.green(`  Copied  ${colors.dim(`plugins/agent-council/  (${pluginFileCount} files)`)}`));
 
     // 3. Copy agent profile files
-    const agentFiles = readdirSync(SRC_AGENTS_DIR).filter((f) => f.endsWith(".md"));
+    const agentFiles = readdirSync(SRC_OPENCODE_AGENTS_DIR).filter((f) => f.endsWith(".md"));
     for (const file of agentFiles) {
-      cpSync(join(SRC_AGENTS_DIR, file), join(DEST_AGENTS_DIR, file), { force: true });
+      cpSync(join(SRC_OPENCODE_AGENTS_DIR, file), join(DEST_AGENTS_DIR, file), { force: true });
       copiedFiles++;
     }
     console.log(colors.green(`  Copied  ${colors.dim(`agents/  (${agentFiles.length} profiles)`)}`));
+
+    // 4. Copy generated skills directory
+    if (existsSync(DEST_SKILLS_DIR)) {
+      rmSync(DEST_SKILLS_DIR, { recursive: true, force: true });
+    }
+    cpSync(SRC_OPENCODE_SKILLS_DIR, DEST_SKILLS_DIR, { recursive: true, force: true });
+    const skillFileCount = countFiles(SRC_OPENCODE_SKILLS_DIR);
+    copiedFiles += skillFileCount;
+    console.log(colors.green(`  Copied  ${colors.dim(`skills/agent-council/  (${skillFileCount} files)`)}`));
 
   } catch (err) {
     console.error("");
@@ -734,7 +957,10 @@ async function cmdInstall({ mode = "init" }) {
     }
     console.error("");
     console.error(colors.yellow("  Check file permissions and try again."));
-    process.exit(1);
+    if (standalone) {
+      process.exit(1);
+    }
+    throw err;
   }
 
   // Budget profile selection
@@ -745,7 +971,10 @@ async function cmdInstall({ mode = "init" }) {
     if (!VALID_PROFILES.includes(FLAG_BUDGET_PROFILE)) {
       console.error(colors.red(`  Invalid budget profile: "${FLAG_BUDGET_PROFILE}"`));
       console.log(`  Valid profiles: ${VALID_PROFILES.join(", ")}`);
-      process.exit(1);
+      if (standalone) {
+        process.exit(1);
+      }
+      throw new Error(`Invalid budget profile: ${FLAG_BUDGET_PROFILE}`);
     }
     selectedProfile = FLAG_BUDGET_PROFILE;
     console.log(colors.dim(`  Budget profile: ${selectedProfile} (from --budget-profile)`));
@@ -783,11 +1012,191 @@ async function cmdInstall({ mode = "init" }) {
   if (mode === "refresh") {
     console.log(colors.dim("  Stale files have been pruned. Installation is up to date."));
   } else {
-    console.log(colors.dim("  After pulling updates, run `npx opencode-council refresh` to sync."));
+    console.log(colors.dim("  After pulling updates, run `npx agent-council refresh` to sync."));
   }
   console.log("");
 
-  process.exit(0);
+  if (standalone) {
+    process.exit(0);
+  }
+}
+
+function copyManifest(manifest) {
+  for (const entry of manifest) {
+    mkdirSync(dirname(entry.dest), { recursive: true });
+    const sourceStats = lstatSync(entry.src);
+
+    if (sourceStats.isDirectory()) {
+      cpSync(entry.src, entry.dest, { recursive: true, force: true });
+      continue;
+    }
+
+    copyFileSync(entry.src, entry.dest);
+  }
+}
+
+function prunePlatformInstallRoots(platformId, dryRun) {
+  const installEntries = getAdapterInstallEntries(platformId);
+  const rootDestinations = Array.from(new Set(
+    installEntries.map((entry) => entry.destination)
+  )).sort((a, b) => b.length - a.length);
+
+  for (const destination of rootDestinations) {
+    if (!existsSync(destination)) {
+      continue;
+    }
+
+    if (dryRun) {
+      console.log(colors.yellow(`  [${platformId}] Dry run -- would prune ${destination}`));
+      continue;
+    }
+
+    rmSync(destination, { recursive: true, force: true });
+    console.log(colors.yellow(`  [${platformId}] Pruned ${destination}`));
+  }
+}
+
+function verifyManifest(manifest) {
+  let ok = 0;
+  let missing = 0;
+  let changed = 0;
+  for (const entry of manifest) {
+    if (!existsSync(entry.dest)) {
+      missing++;
+      continue;
+    }
+    if (sha256(entry.src) !== sha256(entry.dest)) {
+      changed++;
+      continue;
+    }
+    ok++;
+  }
+  return { ok, missing, changed, total: manifest.length };
+}
+
+async function cmdInstallPlatformFromManifest(platformId, { mode = "init" } = {}) {
+  const manifest = buildCopyManifestFromAdapter(platformId);
+
+  if (FLAG_DRY_RUN) {
+    console.log(colors.yellow(`  [${platformId}] Dry run -- would install ${manifest.length} files.`));
+    prunePlatformInstallRoots(platformId, true);
+    return;
+  }
+
+  if (!FLAG_FORCE && mode === "init") {
+    const yes = await confirm(colors.cyan(`  [${platformId}] Proceed with install? [Y/n] `));
+    if (!yes) {
+      console.log(colors.yellow(`  [${platformId}] Skipped by user.`));
+      return;
+    }
+  }
+
+  prunePlatformInstallRoots(platformId, false);
+  copyManifest(manifest);
+  console.log(colors.green(`  [${platformId}] Installed ${manifest.length} files.`));
+}
+
+function cmdVerifyPlatformFromManifest(platformId) {
+  const manifest = buildCopyManifestFromAdapter(platformId);
+  const result = verifyManifest(manifest);
+  const status = result.missing > 0 || result.changed > 0 ? colors.yellow("needs refresh") : colors.green("healthy");
+  console.log(`  [${platformId}] ${status} ${colors.dim(`(ok ${result.ok}/${result.total}, missing ${result.missing}, changed ${result.changed})`)}`);
+  return result;
+}
+
+async function cmdUninstallPlatformFromManifest(platformId) {
+  const installEntries = getAdapterInstallEntries(platformId);
+  const rootDestinations = Array.from(new Set(
+    installEntries.map((entry) => entry.destination)
+  )).sort((a, b) => b.length - a.length);
+
+  if (FLAG_DRY_RUN) {
+    for (const destination of rootDestinations) {
+      console.log(colors.yellow(`  [${platformId}] Dry run -- would remove ${destination}`));
+    }
+    return;
+  }
+
+  if (!FLAG_FORCE) {
+    const yes = await confirm(colors.cyan(`  [${platformId}] Proceed with uninstall? [Y/n] `));
+    if (!yes) {
+      console.log(colors.yellow(`  [${platformId}] Skipped by user.`));
+      return;
+    }
+  }
+
+  for (const destination of rootDestinations) {
+    rmSync(destination, { recursive: true, force: true });
+    console.log(colors.green(`  [${platformId}] Removed ${destination}`));
+  }
+}
+
+async function runInstallForTarget(target, mode) {
+  if (target === "opencode") {
+    await cmdInstallOpenCode({ mode, standalone: false });
+    return;
+  }
+
+  await cmdInstallPlatformFromManifest(target, { mode });
+}
+
+function runVerifyForTarget(target) {
+  if (target === "opencode") {
+    const result = cmdVerifyOpenCode({ standalone: false });
+    return result.hasIssues;
+  }
+
+  const result = cmdVerifyPlatformFromManifest(target);
+  return result.missing > 0 || result.changed > 0;
+}
+
+async function runUninstallForTarget(target) {
+  if (target === "opencode") {
+    await cmdUninstallOpenCode({ standalone: false });
+    return;
+  }
+
+  await cmdUninstallPlatformFromManifest(target);
+}
+
+async function cmdInstall({ mode = "init" }) {
+  const targets = await resolveTargetPlatforms();
+  printBanner();
+  console.log(colors.cyan(`  Targets: ${targets.join(", ")}`));
+  console.log("");
+
+  for (const target of targets) {
+    await runInstallForTarget(target, mode);
+  }
+}
+
+async function cmdVerify() {
+  const targets = await resolveTargetPlatforms();
+  printBanner();
+  console.log(colors.cyan(`  Targets: ${targets.join(", ")}`));
+  console.log("");
+
+  let hasIssues = false;
+  for (const target of targets) {
+    if (runVerifyForTarget(target)) {
+      hasIssues = true;
+    }
+  }
+
+  if (hasIssues) {
+    process.exit(1);
+  }
+}
+
+async function cmdUninstall() {
+  const targets = await resolveTargetPlatforms();
+  printBanner();
+  console.log(colors.cyan(`  Targets: ${targets.join(", ")}`));
+  console.log("");
+
+  for (const target of targets) {
+    await runUninstallForTarget(target);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -816,7 +1225,7 @@ switch (command) {
     break;
 
   case "verify":
-    cmdVerify();
+    await cmdVerify();
     break;
 
   case "uninstall":
@@ -832,7 +1241,7 @@ switch (command) {
     break;
 
   case null:
-    // Bare `npx opencode-council` with no command -- show help
+    // Bare `npx agent-council` with no command -- show help
     printHelp();
     process.exit(0);
     break;

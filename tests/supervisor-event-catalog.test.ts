@@ -10,7 +10,7 @@ import {
   type SupervisorEventKind,
   type SupervisorMvpEventKind,
   type SupervisorExtendedEventKind
-} from "../plugins/orchestration-workflows/supervisor-event-catalog";
+} from "../plugins/agent-council/supervisor-event-catalog";
 
 // ── Fixtures ────────────────────────────────────────────────────────────────
 

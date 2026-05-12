@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { planSupervisorGoal } from "../plugins/orchestration-workflows/supervisor-goal-plan";
-import type { SupervisorGoalRoleRecommendation } from "../plugins/orchestration-workflows/supervisor-goal-plan";
+import { planSupervisorGoal } from "../plugins/agent-council/supervisor-goal-plan";
+import type { SupervisorGoalRoleRecommendation } from "../plugins/agent-council/supervisor-goal-plan";
 
 describe("supervisor-goal-plan", () => {
   it("returns a structured plan for a concrete delegated backend goal", () => {

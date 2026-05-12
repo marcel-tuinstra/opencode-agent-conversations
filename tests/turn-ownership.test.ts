@@ -5,7 +5,7 @@ import {
   createLaneTurnHandoffContract,
   transferLaneTurn,
   type LaneTurnOwnership
-} from "../plugins/orchestration-workflows/turn-ownership";
+} from "../plugins/agent-council/turn-ownership";
 
 const activeDevTurn: LaneTurnOwnership = {
   laneId: "lane-1",

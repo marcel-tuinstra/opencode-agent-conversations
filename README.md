@@ -1,24 +1,32 @@
-# OpenCode Council
+# agent-council
 
-[![CI](https://github.com/marcel-tuinstra/opencode-council/actions/workflows/ci.yml/badge.svg)](https://github.com/marcel-tuinstra/opencode-council/actions/workflows/ci.yml)
+[![CI](https://github.com/marcel-tuinstra/agent-council/actions/workflows/ci.yml/badge.svg)](https://github.com/marcel-tuinstra/agent-council/actions/workflows/ci.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](./LICENSE)
-[![Version](https://img.shields.io/badge/version-0.5.0-blue.svg)](https://github.com/marcel-tuinstra/opencode-council/releases)
+[![Version](https://img.shields.io/badge/version-1.0.0-blue.svg)](https://github.com/marcel-tuinstra/agent-council/releases)
 [![OpenCode Plugin](https://img.shields.io/badge/OpenCode-Plugin-green.svg)](https://github.com/sst/opencode)
 
 **AI agents that debate before they act.**
 
-Multi-agent orchestration for [OpenCode](https://github.com/sst/opencode) where specialized roles deliberate, challenge assumptions, and synthesize recommendations -- instead of blindly executing tasks.
+Multi-agent orchestration for OpenCode, Claude Code, and Codex where specialized roles deliberate, challenge assumptions, and synthesize recommendations instead of blindly executing tasks.
 
 ## Quick Start
 
 ```bash
-npx opencode-council init
+npx agent-council init
+```
+
+`init` auto-detects available platforms and lets you choose one or more targets.
+
+Non-interactive install is also supported:
+
+```bash
+npx agent-council init --platform opencode --platform claude-code --platform codex
 ```
 
 Or without Node.js:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/opencode-council/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/agent-council/main/install.sh | bash
 ```
 
 Restart OpenCode, then try:
@@ -40,11 +48,11 @@ Restart OpenCode, then try:
 
 ## Stable Contract
 
-Starting in `v0.5.0`, the package root intentionally exposes a small stable runtime contract for consumers that build on the live orchestration plugin. The canonical compatibility and deprecation policy lives in [`docs/guides/compatibility-and-deprecations.md`](./docs/guides/compatibility-and-deprecations.md).
+Starting in `v1.0.0`, the package root intentionally exposes a small stable runtime contract for consumers that build on the live orchestration plugin. The canonical compatibility and deprecation policy lives in [`docs/guides/compatibility-and-deprecations.md`](./docs/guides/compatibility-and-deprecations.md).
 
-That document defines the stable root exports, CLI compatibility, documented env var and policy-key guarantees, and the deprecation/removal process for `v0.5.x`.
+That document defines stable root exports, CLI compatibility guarantees, and deprecation timing for `1.x`.
 
-Supervisor helpers and other pre-`v0.6.0` orchestration internals remain available under an experimental supervisor entry point instead of the root barrel.
+Supervisor helpers remain available under the experimental supervisor entry point (`agent-council/supervisor`) instead of the root barrel.
 
 ## Example
 
@@ -68,14 +76,14 @@ CTO frames the problem, DEV and PM challenge with their expertise, CTO synthesiz
 ## Manage Your Install
 
 ```bash
-npx opencode-council refresh     # Update to latest version
-npx opencode-council verify      # Check install health
-npx opencode-council uninstall   # Clean removal
+npx agent-council refresh         # Update to latest version
+npx agent-council verify          # Check install health
+npx agent-council uninstall       # Clean removal
 ```
 
 ## Roadmap
 
-**Now (v0.5.0):** Deliberative orchestration, delegation mode, MCP gating, budget governance, 10 agent personas, one-command install, and a defined compatibility policy for the stable runtime contract.
+**Now (v1.0.0):** Deliberative orchestration, delegation mode, MCP gating, budget governance, tri-platform install support (OpenCode/Claude/Codex), and a defined compatibility policy for the stable runtime contract.
 
 **Next:** Governed parallel execution (supervisor mode) and async delegation with governance.
 
@@ -84,7 +92,7 @@ npx opencode-council uninstall   # Clean removal
 | | |
 |---|---|
 | Getting started | [Install](./docs/getting-started/install.md) / [Quick start](./docs/getting-started/quickstart.md) |
-| Upgrading | [Upgrade to v0.5.0](./docs/guides/upgrading-to-0.5.0.md) |
+| Upgrading | [Upgrade notes](./docs/guides/upgrading-to-0.5.0.md) |
 | Compatibility | [Compatibility and deprecations](./docs/guides/compatibility-and-deprecations.md) |
 | Configuration | [Customization](./docs/guides/customization.md) / [Policy profiles](./docs/guides/policy-profiles.md) |
 | Architecture | [Overview](./docs/overview/architecture.md) / [Positioning](./docs/overview/product-positioning.md) |
@@ -97,7 +105,7 @@ npx opencode-council uninstall   # Clean removal
 npm install && npm test
 ```
 
-197 tests, CI on every PR. See the [testing guide](./docs/testing/testing.md) for conventions.
+484 tests, CI on every PR. See the [testing guide](./docs/testing/testing.md) for conventions.
 
 ## Contact
 

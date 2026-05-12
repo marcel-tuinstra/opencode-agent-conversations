@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { createAdHocRunHistoryRecord, linkAdHocRunArtifact } from "../plugins/orchestration-workflows/ad-hoc-run-history";
-import { normalizeWorkUnit } from "../plugins/orchestration-workflows/work-unit";
+import { createAdHocRunHistoryRecord, linkAdHocRunArtifact } from "../plugins/agent-council/ad-hoc-run-history";
+import { normalizeWorkUnit } from "../plugins/agent-council/work-unit";
 
 describe("ad-hoc-run-history", () => {
   it("creates an immutable ad-hoc run record from a normalized work unit", () => {

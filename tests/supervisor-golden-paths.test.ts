@@ -1,19 +1,19 @@
 import { afterEach, describe, expect, it } from "vitest";
-import { evaluateBudgetGovernance, resolveBudgetGovernancePolicy } from "../plugins/orchestration-workflows/budget-governance";
-import { evaluateMergePolicy, resolveMergePolicy } from "../plugins/orchestration-workflows/merge-policy";
+import { evaluateBudgetGovernance, resolveBudgetGovernancePolicy } from "../plugins/agent-council/budget-governance";
+import { evaluateMergePolicy, resolveMergePolicy } from "../plugins/agent-council/merge-policy";
 import {
   appendMcpWarnings,
   appendMissingProviderNotice,
   appendSupervisorDecisionNotes,
   normalizeThreadOutput,
   stripControlLeakage
-} from "../plugins/orchestration-workflows/output";
-import { assertReviewReadyTransition } from "../plugins/orchestration-workflows/review-ready-packet";
-import { resetSessionState, sessionPolicy, systemInjectedForSession } from "../plugins/orchestration-workflows/session";
-import { transferLaneTurn, type LaneTurnOwnership } from "../plugins/orchestration-workflows/turn-ownership";
-import type { Role, SessionPolicy } from "../plugins/orchestration-workflows/types";
-import { planWorkUnitLanes } from "../plugins/orchestration-workflows/lane-plan";
-import { normalizeWorkUnit } from "../plugins/orchestration-workflows/work-unit";
+} from "../plugins/agent-council/output";
+import { assertReviewReadyTransition } from "../plugins/agent-council/review-ready-packet";
+import { resetSessionState, sessionPolicy, systemInjectedForSession } from "../plugins/agent-council/session";
+import { transferLaneTurn, type LaneTurnOwnership } from "../plugins/agent-council/turn-ownership";
+import type { Role, SessionPolicy } from "../plugins/agent-council/types";
+import { planWorkUnitLanes } from "../plugins/agent-council/lane-plan";
+import { normalizeWorkUnit } from "../plugins/agent-council/work-unit";
 
 const threadTargets: Record<Role, number> = {
   CTO: 2,

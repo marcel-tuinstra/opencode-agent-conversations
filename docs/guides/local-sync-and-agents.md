@@ -5,16 +5,18 @@ Use this guide when merged plugin changes are present on `main` but local behavi
 ## Source of truth
 
 - Runtime plugin files live in `~/.opencode/plugins/`
-- Agent profile files live in `~/.opencode/agents/`
+- Generated agent profile files live in `~/.opencode/agents/` (from `generated/opencode/agents`)
+- Generated skills live in `~/.opencode/skills/agent-council/` (from `generated/opencode/skills`)
 - Mention parsing can work before tag suggestions update, so sync both locations
 
 ## Standard refresh flow
 
 ```bash
-mkdir -p ~/.opencode/plugins ~/.opencode/agents
-cp plugins/orchestration-workflows.ts ~/.opencode/plugins/orchestration-workflows.ts
-cp -R plugins/orchestration-workflows ~/.opencode/plugins/orchestration-workflows
-cp agents/*.md ~/.opencode/agents/
+mkdir -p ~/.opencode/plugins ~/.opencode/agents ~/.opencode/skills/agent-council
+cp plugins/agent-council.ts ~/.opencode/plugins/agent-council.ts
+cp -R plugins/agent-council ~/.opencode/plugins/agent-council
+cp -R generated/opencode/agents ~/.opencode/
+cp -R generated/opencode/skills ~/.opencode/skills/agent-council
 ```
 
 Then restart OpenCode.
@@ -45,7 +47,7 @@ Expected results:
 
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
-| `@fe` works in prompts but not in suggestions | agent files missing or stale | re-copy `agents/*.md`, restart |
+| `@fe` works in prompts but not in suggestions | generated agent files missing or stale | re-copy `generated/opencode/agents/*.md`, restart |
 | `@fe` and `@be` are absent everywhere | plugin files not refreshed | re-copy plugin runtime and restart |
 | `@dev` works but `@fe/@be/@ux` do not | runtime updated but agent profiles missing | sync `~/.opencode/agents/` |
 | prompts thread but old routing behavior remains | stale plugin process | restart OpenCode after sync |

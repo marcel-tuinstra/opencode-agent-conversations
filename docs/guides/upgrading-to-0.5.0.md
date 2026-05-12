@@ -1,6 +1,6 @@
-# Upgrading to v0.5.0
+# Upgrade Notes (Historical)
 
-`v0.5.0` freezes the minimal stable runtime contract at the package root and moves supervisor-oriented helpers behind an experimental entry point.
+This document captures the historical root-barrel split that introduced `agent-council/supervisor`.
 
 ## What changed
 
@@ -15,10 +15,10 @@
   - `DelegationPlan`
   - `SessionPolicy`
 - Supervisor planning, routing, lifecycle, state-store, review, and other helper exports move off the root barrel.
-- Those supervisor APIs now live under the experimental supervisor entry point: `opencode-council/supervisor`.
+- Those supervisor APIs now live under the experimental supervisor entry point: `agent-council/supervisor`.
 - Compatibility, deprecation, and removal rules now live in the canonical policy doc: [`compatibility-and-deprecations.md`](./compatibility-and-deprecations.md).
 
-## Compatibility policy for `v0.5.x`
+## Compatibility policy for `1.x`
 
 See the canonical compatibility and deprecation policy: [`compatibility-and-deprecations.md`](./compatibility-and-deprecations.md).
 
@@ -34,12 +34,12 @@ import {
   type Intent,
   type Role,
   type SessionPolicy
-} from "opencode-council";
+} from "agent-council";
 ```
 
 ## If you import supervisor helpers from the root barrel
 
-Move those imports to `opencode-council/supervisor`.
+Move those imports to `agent-council/supervisor`.
 
 Before:
 
@@ -50,7 +50,7 @@ import {
   loadSupervisorPolicy,
   type SupervisorRunRecord,
   type SupervisorWorkflowStage
-} from "opencode-council";
+} from "agent-council";
 ```
 
 After:
@@ -62,7 +62,7 @@ import {
   loadSupervisorPolicy,
   type SupervisorRunRecord,
   type SupervisorWorkflowStage
-} from "opencode-council/supervisor";
+} from "agent-council/supervisor";
 ```
 
 Another common migration:
@@ -75,7 +75,7 @@ import {
   routeSupervisorWorkUnit,
   type WorkUnit,
   type RouteSupervisorWorkUnitResult
-} from "opencode-council";
+} from "agent-council";
 ```
 
 After:
@@ -86,14 +86,14 @@ import {
   routeSupervisorWorkUnit,
   type WorkUnit,
   type RouteSupervisorWorkUnitResult
-} from "opencode-council/supervisor";
+} from "agent-council/supervisor";
 ```
 
 ## Migration checklist
 
 1. Keep root imports only for the frozen stable contract.
-2. Move all supervisor-specific value exports to `opencode-council/supervisor`.
-3. Move all supervisor-specific type imports to `opencode-council/supervisor`.
+2. Move all supervisor-specific value exports to `agent-council/supervisor`.
+3. Move all supervisor-specific type imports to `agent-council/supervisor`.
 4. Treat the supervisor entry point as experimental; expect further iteration there.
 5. Keep existing CLI automation as-is.
 6. Check the canonical policy doc before depending on compatibility or deprecation behavior.

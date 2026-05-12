@@ -2,17 +2,17 @@ import { describe, expect, it } from "vitest";
 import {
   evaluateBudgetGovernance,
   resolveBudgetGovernancePolicy
-} from "../plugins/orchestration-workflows/budget-governance";
+} from "../plugins/agent-council/budget-governance";
 import {
   evaluateSupervisorApprovalGate,
-} from "../plugins/orchestration-workflows/approval-gates";
+} from "../plugins/agent-council/approval-gates";
 import {
   createSupervisorObservabilityDashboard,
   resolveHeartbeatHealth
-} from "../plugins/orchestration-workflows/observability-dashboard";
-import { routeSupervisorWorkUnit } from "../plugins/orchestration-workflows/supervisor-routing";
-import { createLaneTurnHandoffContract } from "../plugins/orchestration-workflows/turn-ownership";
-import { normalizeWorkUnit } from "../plugins/orchestration-workflows/work-unit";
+} from "../plugins/agent-council/observability-dashboard";
+import { routeSupervisorWorkUnit } from "../plugins/agent-council/supervisor-routing";
+import { createLaneTurnHandoffContract } from "../plugins/agent-council/turn-ownership";
+import { normalizeWorkUnit } from "../plugins/agent-council/work-unit";
 
 describe("observability-dashboard", () => {
   it("aggregates lane, heartbeat, blocker, budget, policy, and ownership signals into one snapshot", () => {

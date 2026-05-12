@@ -5,47 +5,56 @@
 With Node.js:
 
 ```bash
-npx opencode-council init
+npx agent-council init
+```
+
+`init` auto-detects installed platforms and asks which targets to install.
+
+Use explicit non-interactive targeting when needed:
+
+```bash
+npx agent-council init --platform opencode --platform claude-code --platform codex
 ```
 
 Without Node.js:
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/opencode-council/main/install.sh | bash
+curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/agent-council/main/install.sh | bash
 ```
 
 Restart OpenCode after installing.
 
-## Compatibility notes for `v0.5.x`
+## Compatibility notes for `v1.0.0`
 
 - The canonical compatibility and deprecation policy lives in [`../guides/compatibility-and-deprecations.md`](../guides/compatibility-and-deprecations.md).
-- Root package exports and CLI verbs are covered there for `v0.5.x`.
-- The supervisor entry point, `opencode-council/supervisor`, remains experimental.
+- Root package exports and CLI verbs are covered there.
+- The supervisor entry point, `agent-council/supervisor`, remains experimental.
 
 ## Managing your install
 
 ```bash
-npx opencode-council refresh     # Update to latest version
-npx opencode-council verify      # Check install health
-npx opencode-council uninstall   # Clean removal
+npx agent-council refresh        # Update to latest version
+npx agent-council verify         # Check install health
+npx agent-council uninstall      # Clean removal
 ```
 
 Use `--dry-run` with any command to see what would happen without making changes. Use `--backup` with `refresh` to create `.bak` copies before overwriting.
 
-If you already use `init`, `refresh`, `verify`, or `uninstall`, you do not need new command names for `v0.5.x`.
+If you already use local scripts around `agent-council`, `refresh` is the safest way to sync managed assets after updates.
 
 ## Manual install
 
 If you prefer to copy files yourself:
 
 ```bash
-git clone https://github.com/marcel-tuinstra/opencode-council.git
-cd opencode-council
+git clone https://github.com/marcel-tuinstra/agent-council.git
+cd agent-council
 
-mkdir -p ~/.opencode/plugins ~/.opencode/agents
-cp plugins/orchestration-workflows.ts ~/.opencode/plugins/
-cp -R plugins/orchestration-workflows ~/.opencode/plugins/
-cp agents/*.md ~/.opencode/agents/
+mkdir -p ~/.opencode/plugins ~/.opencode/agents ~/.opencode/skills/agent-council
+cp plugins/agent-council.ts ~/.opencode/plugins/
+cp -R plugins/agent-council ~/.opencode/plugins/
+cp -R generated/opencode/agents ~/.opencode/
+cp -R generated/opencode/skills ~/.opencode/skills/agent-council
 ```
 
 No `opencode.json` edits required.
@@ -58,25 +67,29 @@ No `opencode.json` edits required.
 @fe @ux Review the landing page interaction flow and tighten the responsive layout.
 ```
 
+Cross-platform note:
+
+- OpenCode, Claude Code, and Codex all install agent files with direct role handles, so `@cto`, `@dev`, and other role tags resolve the same way after install.
+
 ## Agent load checklist
 
 If the plugin works but `@fe`, `@be`, or `@ux` do not appear in tag suggestions:
 
 - Confirm plugin files exist in `~/.opencode/plugins/`
-- Confirm agent profile files exist in `~/.opencode/agents/`
+- Confirm generated agent profiles exist in `~/.opencode/agents/`
 - Restart OpenCode after syncing both plugin and agent files
 - Try a smoke prompt like `@fe @ux Review the landing page interaction flow.`
-- If role parsing works but suggestions do not, re-copy agent markdown files and restart
+- If role parsing works but suggestions do not, re-copy generated agent markdown files and restart
 
 ## Troubleshooting
 
 ### Debug mode
 
 ```bash
-ORCHESTRATION_WORKFLOWS_DEBUG=1 opencode web
+AGENT_COUNCIL_DEBUG=1 opencode web
 ```
 
-This enables plugin debug logging to stderr. `1`, `true`, `yes`, and `on` all enable it. Look for lines prefixed with `[orchestration-workflows]`.
+This enables plugin debug logging to stderr. `1`, `true`, `yes`, and `on` all enable it. Look for lines prefixed with `[agent-council]`.
 
 For debug env var and policy compatibility expectations, use the canonical policy doc: [`../guides/compatibility-and-deprecations.md`](../guides/compatibility-and-deprecations.md).
 
@@ -108,10 +121,10 @@ Common provenance lines:
 
 | Symptom | Likely cause | What to check |
 | --- | --- | --- |
-| `@fe`, `@be`, or `@ux` parse in debug logs but do not appear in suggestions | stale or missing agent markdown sync | re-copy `agents/*.md`, restart OpenCode, then run `npx opencode-council verify` |
+| `@fe`, `@be`, or `@ux` parse in debug logs but do not appear in suggestions | stale or missing generated agent sync | re-copy `generated/opencode/agents/*.md`, restart OpenCode, then run `npx agent-council verify` |
 | policy changes in `.opencode/supervisor-policy.json` do not seem to apply | file is invalid or unreadable, so the runtime failed safe | run with `ORCHESTRATION_WORKFLOWS_DEBUG=1` and look for `supervisor.policy.invalid` or `supervisor.policy.load_failed` |
 | budget thresholds do not match the repo policy file | shell environment overrides are winning | check for `ORCHESTRATION_WORKFLOWS_BUDGET_*` or `ORCHESTRATION_WORKFLOWS_EXECUTE_STEP_TOKEN_COST` in the current shell |
 | response ends with `blocked.missing-mcp-provider` or `blocked.mcp-access` | required MCP coverage or access is missing | mention the needed provider explicitly and verify the current policy allows that MCP action |
 | response ends with `budget.output-compact`, `budget.output-truncate`, or `budget.output-halt` | budget governance intervened | retry with a narrower scope, fewer roles, or an explicit budget override when policy allows it |
 
-If the debug output shows `FE`, `BE`, or `UX` in role parsing but the picker still hides them, the most likely problem is a missing or stale `~/.opencode/agents/*.md` sync. Run `npx opencode-council verify` to check.
+If the debug output shows `FE`, `BE`, or `UX` in role parsing but the picker still hides them, the most likely problem is a missing or stale `~/.opencode/agents/*.md` sync from `generated/opencode/agents`. Run `npx agent-council verify` to check.

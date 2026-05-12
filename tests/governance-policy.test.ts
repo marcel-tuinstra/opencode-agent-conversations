@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
-import type { LaneContractViolation } from "../plugins/orchestration-workflows/lane-contract";
-import { evaluateGovernancePolicy } from "../plugins/orchestration-workflows/governance-policy";
-import { resolveSupervisorPolicy } from "../plugins/orchestration-workflows/supervisor-config";
+import type { LaneContractViolation } from "../plugins/agent-council/lane-contract";
+import { evaluateGovernancePolicy } from "../plugins/agent-council/governance-policy";
+import { resolveSupervisorPolicy } from "../plugins/agent-council/supervisor-config";
 
 describe("governance-policy", () => {
   it("fails closed when an explicit review-ready rule escalates a checkpoint", () => {

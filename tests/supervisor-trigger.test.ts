@@ -4,8 +4,8 @@ import {
   detectSupervisorTrigger,
   buildSupervisorPlan,
   formatSupervisorPreview
-} from "../plugins/orchestration-workflows/supervisor-trigger";
-import { buildSupervisorSystemInstruction } from "../plugins/orchestration-workflows/supervisor-system-instructions";
+} from "../plugins/agent-council/supervisor-trigger";
+import { buildSupervisorSystemInstruction } from "../plugins/agent-council/supervisor-system-instructions";
 
 describe("supervisor-trigger", () => {
   describe("SUPERVISOR_TRIGGER_REGEX", () => {

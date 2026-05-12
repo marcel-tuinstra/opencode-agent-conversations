@@ -1,11 +1,11 @@
 #!/bin/sh
-# opencode-council installer v0.6.2
-# Install orchestration-workflows plugin + agent files for OpenCode.
+# agent-council installer v1.0.0
+# Install agent-council plugin + agent files for OpenCode.
 #
 # Usage:
-#   curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/opencode-council/v0.6.2/install.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/agent-council/v1.0.0/install.sh | bash
 #   # — or —
-#   curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/opencode-council/v0.6.2/install.sh -o install.sh
+#   curl -fsSL https://raw.githubusercontent.com/marcel-tuinstra/agent-council/v1.0.0/install.sh -o install.sh
 #   bash install.sh
 #
 # Environment variables:
@@ -16,17 +16,17 @@ set -e
 
 # ─── Constants ───────────────────────────────────────────────────────────────
 
-VERSION="0.6.2"
+VERSION="1.0.0"
 REF="v${VERSION}"
-REPO_URL="https://github.com/marcel-tuinstra/opencode-council.git"
-RAW_BASE="https://raw.githubusercontent.com/marcel-tuinstra/opencode-council/${REF}"
+REPO_URL="https://github.com/marcel-tuinstra/agent-council.git"
+RAW_BASE="https://raw.githubusercontent.com/marcel-tuinstra/agent-council/${REF}"
 INSTALL_DIR="${OPENCODE_DIR:-$HOME/.opencode}"
 
 # ─── File manifests ──────────────────────────────────────────────────────────
 
-BARREL_FILE="plugins/orchestration-workflows.ts"
+BARREL_FILE="plugins/agent-council.ts"
 
-MODULE_DIR="plugins/orchestration-workflows"
+MODULE_DIR="plugins/agent-council"
 MODULE_FILES="
 index.ts
 ad-hoc-run-history.ts
@@ -292,7 +292,7 @@ download_with_curl() {
 # ─── git download method (fallback) ─────────────────────────────────────────
 
 download_with_git() {
-  TMPDIR_GIT="$(mktemp -d 2>/dev/null || mktemp -d -t 'opencode-council')"
+  TMPDIR_GIT="$(mktemp -d 2>/dev/null || mktemp -d -t 'agent-council')"
   trap 'rm -rf "$TMPDIR_GIT"' EXIT INT TERM
 
   printf "  %-50s " "Cloning repository (shallow)..."
@@ -364,7 +364,7 @@ print_success() {
   printf "  %b\n" "${DIM}@cto @dev @pm Investigate why API latency regressed this week.${RESET}"
   echo ""
   dim "To update later, run this script again or use:\n"
-  printf "  %b\n" "${DIM}npx opencode-council refresh${RESET}"
+  printf "  %b\n" "${DIM}npx agent-council refresh${RESET}"
   echo ""
 }
 
@@ -374,7 +374,7 @@ main() {
   setup_colors
 
   echo ""
-  printf "%b\n" "${BOLD}opencode-council installer v${VERSION}${RESET}"
+  printf "%b\n" "${BOLD}agent-council installer v${VERSION}${RESET}"
   echo ""
 
   check_prerequisites

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   createSupervisorDelegationPlan,
   validateSupervisorDelegationPlan
-} from "../plugins/orchestration-workflows/supervisor-delegation";
+} from "../plugins/agent-council/supervisor-delegation";
 
 describe("supervisor-delegation", () => {
   it("accepts a delegate-only plan with separate implementation and integration agents", () => {

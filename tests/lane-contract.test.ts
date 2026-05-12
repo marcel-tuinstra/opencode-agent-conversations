@@ -4,7 +4,7 @@ import {
   createLaneCompletionContract,
   evaluateLaneCompletionContract,
   validateLaneCompletionContract
-} from "../plugins/orchestration-workflows/lane-contract";
+} from "../plugins/agent-council/lane-contract";
 
 const buildContract = () => createLaneCompletionContract({
   runId: "run-440",

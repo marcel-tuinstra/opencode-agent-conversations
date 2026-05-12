@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { buildTurnTargets, detectIntent, shouldUseHeartbeat } from "../plugins/orchestration-workflows/intent";
-import type { Role } from "../plugins/orchestration-workflows/types";
+import { buildTurnTargets, detectIntent, shouldUseHeartbeat } from "../plugins/agent-council/intent";
+import type { Role } from "../plugins/agent-council/types";
 
 const sumTurns = (targets: Record<Role, number>) => {
   return Object.values(targets).reduce((sum, value) => sum + value, 0);
